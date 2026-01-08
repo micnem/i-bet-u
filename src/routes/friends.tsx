@@ -10,11 +10,12 @@ import {
 	Trophy,
 	Plus,
 	X,
-	Check,
-	Copy,
+	History,
 } from "lucide-react";
 import { currentUser, mockFriends, mockUsers } from "../data/mockData";
 import type { User } from "../data/types";
+import { QRCodeDisplay } from "../components/QRCode";
+import { generateFriendInviteLink, getFriendInviteShareData } from "../lib/sharing";
 
 export const Route = createFileRoute("/friends")({ component: FriendsPage });
 
@@ -136,6 +137,14 @@ function FriendsPage() {
 									</div>
 
 									<div className="flex items-center gap-2">
+										<Link
+											to="/friends/$friendId"
+											params={{ friendId: friend.user.id }}
+											className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm flex items-center gap-1 text-gray-700 transition-colors"
+										>
+											<History size={16} />
+											History
+										</Link>
 										<Link
 											to="/bets/create"
 											search={{ friendId: friend.user.id }}
@@ -266,37 +275,14 @@ function FriendsPage() {
 
 						{/* QR Code Display */}
 						{addMethod === "qr" ? (
-							<div className="text-center">
-								<div className="bg-gray-100 rounded-xl p-8 mb-4">
-									{/* Mock QR Code */}
-									<div className="w-48 h-48 mx-auto bg-white rounded-lg flex items-center justify-center border-2 border-gray-200">
-										<div className="grid grid-cols-5 gap-1">
-											{Array.from({ length: 25 }).map((_, i) => (
-												<div
-													key={i}
-													className={`w-6 h-6 ${
-														Math.random() > 0.5 ? "bg-gray-900" : "bg-white"
-													}`}
-												/>
-											))}
-										</div>
-									</div>
-								</div>
-								<p className="text-gray-600 mb-2">
-									Scan this code to add <strong>@{currentUser.username}</strong>
-								</p>
-								<button
-									onClick={() => {
-										// Mock copy link
-										navigator.clipboard.writeText(
-											`https://ibetu.app/add/${currentUser.username}`
-										);
-									}}
-									className="inline-flex items-center gap-2 text-orange-500 hover:text-orange-600 text-sm"
-								>
-									<Copy size={16} />
-									Copy invite link
-								</button>
+							<div className="py-4">
+								<QRCodeDisplay
+									value={generateFriendInviteLink(currentUser.username)}
+									title={`Add @${currentUser.username}`}
+									description="Scan this QR code or share the link to add me as a friend on IBetU"
+									shareData={getFriendInviteShareData(currentUser.username, currentUser.displayName)}
+									size={180}
+								/>
 							</div>
 						) : (
 							<>

@@ -223,30 +223,6 @@ function LandingPage() {
 				</div>
 			</section>
 
-			{/* How We Make Money */}
-			<section className="bg-gray-700 py-16 px-6 text-white">
-				<div className="max-w-4xl mx-auto">
-					<span className="text-gray-400">—</span>
-					<h2 className="text-4xl font-bold text-white mb-8">
-						How do we make money?
-					</h2>
-					<ol className="text-lg space-y-3">
-						<li className="flex gap-2">
-							<span className="font-bold text-orange-500">1.</span>
-							Membership to sign up.
-						</li>
-						<li className="flex gap-2">
-							<span className="font-bold text-orange-500">2.</span>
-							We take on the actual bet a small fee.
-						</li>
-						<li className="flex gap-2">
-							<span className="font-bold text-orange-500">3.</span>
-							We don't take money from users and do marketing.
-						</li>
-					</ol>
-				</div>
-			</section>
-
 			{/* Features Grid */}
 			<section className="bg-gray-50 py-16 px-6">
 				<div className="max-w-4xl mx-auto">

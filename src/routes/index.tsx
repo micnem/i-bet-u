@@ -1,118 +1,317 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-	Route as RouteIcon,
-	Server,
+	UserPlus,
+	Send,
+	CreditCard,
+	Handshake,
 	Shield,
-	Sparkles,
-	Waves,
-	Zap,
+	Users,
+	Trophy,
+	ArrowRight,
+	CheckCircle,
 } from "lucide-react";
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute("/")({ component: LandingPage });
 
-function App() {
-	const features = [
-		{
-			icon: <Zap className="w-12 h-12 text-cyan-400" />,
-			title: "Powerful Server Functions",
-			description:
-				"Write server-side code that seamlessly integrates with your client components. Type-safe, secure, and simple.",
-		},
-		{
-			icon: <Server className="w-12 h-12 text-cyan-400" />,
-			title: "Flexible Server Side Rendering",
-			description:
-				"Full-document SSR, streaming, and progressive enhancement out of the box. Control exactly what renders where.",
-		},
-		{
-			icon: <RouteIcon className="w-12 h-12 text-cyan-400" />,
-			title: "API Routes",
-			description:
-				"Build type-safe API endpoints alongside your application. No separate backend needed.",
-		},
-		{
-			icon: <Shield className="w-12 h-12 text-cyan-400" />,
-			title: "Strongly Typed Everything",
-			description:
-				"End-to-end type safety from server to client. Catch errors before they reach production.",
-		},
-		{
-			icon: <Waves className="w-12 h-12 text-cyan-400" />,
-			title: "Full Streaming Support",
-			description:
-				"Stream data from server to client progressively. Perfect for AI applications and real-time updates.",
-		},
-		{
-			icon: <Sparkles className="w-12 h-12 text-cyan-400" />,
-			title: "Next Generation Ready",
-			description:
-				"Built from the ground up for modern web applications. Deploy anywhere JavaScript runs.",
-		},
-	];
-
+function LandingPage() {
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-			<section className="relative py-20 px-6 text-center overflow-hidden">
-				<div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10"></div>
-				<div className="relative max-w-5xl mx-auto">
-					<div className="flex items-center justify-center gap-6 mb-6">
-						<img
-							src="/tanstack-circle-logo.png"
-							alt="TanStack Logo"
-							className="w-24 h-24 md:w-32 md:h-32"
-						/>
-						<h1 className="text-6xl md:text-7xl font-black text-white [letter-spacing:-0.08em]">
-							<span className="text-gray-300">TANSTACK</span>{" "}
-							<span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-								START
-							</span>
-						</h1>
-					</div>
-					<p className="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
-						Hi David Bart{" "}
+		<div className="min-h-screen">
+			{/* Hero Section */}
+			<section className="bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-6">
+				<div className="max-w-4xl mx-auto">
+					<h1 className="text-5xl md:text-6xl font-bold text-orange-500 mb-6">
+						IBetU
+					</h1>
+					<p className="text-xl md:text-2xl text-gray-700 mb-8 max-w-2xl">
+						A website and application where friends, spouses, colleagues, family
+						members get to do bets on random outcomes against each other.
 					</p>
-					<p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
-						Full-stack framework powered by TanStack Router for React and Solid.
-						Build modern applications with server functions, streaming, and type
-						safety.
-					</p>
-					<div className="flex flex-col items-center gap-4">
-						<a
-							href="https://tanstack.com/start"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-cyan-500/50"
+					<div className="flex flex-col sm:flex-row gap-4">
+						<Link
+							to="/auth/signup"
+							className="ibetu-btn-primary inline-flex items-center justify-center gap-2"
 						>
-							Documentation
-						</a>
-						<p className="text-gray-400 text-sm mt-2">
-							Begin your TanStack Start journey by editing{" "}
-							<code className="px-2 py-1 bg-slate-700 rounded text-cyan-400">
-								/src/routes/index.tsx
-							</code>
-						</p>
+							Get Started
+							<ArrowRight size={20} />
+						</Link>
+						<Link
+							to="/auth/login"
+							className="ibetu-btn-outline inline-flex items-center justify-center"
+						>
+							Sign In
+						</Link>
 					</div>
 				</div>
 			</section>
 
-			<section className="py-16 px-6 max-w-7xl mx-auto">
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{features.map((feature, index) => (
-						<div
-							key={index}
-							className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10"
-						>
-							<div className="mb-4">{feature.icon}</div>
-							<h3 className="text-xl font-semibold text-white mb-3">
-								{feature.title}
-							</h3>
-							<p className="text-gray-400 leading-relaxed">
-								{feature.description}
+			{/* Intro Section */}
+			<section className="bg-orange-500 py-16 px-6 text-white">
+				<div className="max-w-4xl mx-auto">
+					<div className="bg-white rounded-xl p-8 text-gray-800 shadow-lg">
+						<h2 className="text-3xl font-bold text-gray-800 mb-6">1. Intro</h2>
+						<p className="text-lg mb-4">
+							How often does a person in your close setting tells you let's bet
+							on this or that?
+						</p>
+						<p className="text-lg mb-6">
+							Yet even though you win the bet you don't get any benefit due to
+							not being done officially or a way to track it.
+						</p>
+
+						<div className="space-y-4">
+							<div className="flex items-start gap-3">
+								<ArrowRight className="text-orange-500 mt-1 flex-shrink-0" />
+								<p className="text-orange-500 font-medium">
+									Clear definition of the bet and the winnings.
+								</p>
+							</div>
+							<div className="flex items-start gap-3">
+								<ArrowRight className="text-orange-500 mt-1 flex-shrink-0" />
+								<p className="text-orange-500 font-medium">
+									Both have to approve the winner and if this isn't possible a
+									third party verification.
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Step One */}
+			<section className="bg-gray-800 py-16 px-6 text-white">
+				<div className="max-w-4xl mx-auto">
+					<div className="flex flex-col md:flex-row items-center gap-8">
+						<div className="flex-1">
+							<span className="text-gray-400">—</span>
+							<h2 className="text-4xl font-bold text-orange-500 mb-6">
+								Step one:
+							</h2>
+							<ol className="text-lg space-y-2 text-orange-400">
+								<li className="flex gap-2">
+									<span className="font-bold">1)</span>
+									You build yourself a quick profile
+								</li>
+								<li className="flex gap-2">
+									<span className="font-bold">2)</span>
+									<span>
+										You add your friends by QR, Phone number or Nickname
+									</span>
+								</li>
+							</ol>
+						</div>
+						<div className="flex-1 flex justify-center">
+							<div className="bg-white rounded-xl p-8 shadow-lg">
+								<div className="flex flex-col items-center">
+									<UserPlus className="w-16 h-16 text-cyan-500 mb-4" />
+									<button className="px-6 py-2 bg-cyan-500 text-white rounded-full font-medium mb-2">
+										Sign Up
+									</button>
+									<span className="text-gray-600">Register now!</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Step Two */}
+			<section className="bg-gray-700 py-16 px-6 text-white">
+				<div className="max-w-4xl mx-auto">
+					<div className="flex flex-col md:flex-row items-center gap-8">
+						<div className="flex-1">
+							<span className="text-gray-400">—</span>
+							<h2 className="text-4xl font-bold text-orange-500 mb-6">
+								Step two:
+							</h2>
+							<ol className="text-lg space-y-2 text-orange-400">
+								<li className="flex gap-2">
+									<span className="font-bold">1)</span>
+									You find something you want to bet on.
+								</li>
+								<li className="flex gap-2">
+									<span className="font-bold">2)</span>
+									Send a bet invite to your friend.
+								</li>
+							</ol>
+							<ul className="mt-4 space-y-1 text-orange-400">
+								<li className="flex gap-2">
+									<span className="text-white">•</span>
+									What you are betting on.
+								</li>
+								<li className="flex gap-2">
+									<span className="text-white">•</span>
+									The amount
+								</li>
+								<li className="flex gap-2">
+									<span className="text-white">•</span>
+									Timeline
+								</li>
+								<li className="flex gap-2">
+									<span className="text-white">•</span>
+									How the outcome will be verified
+								</li>
+							</ul>
+						</div>
+						<div className="flex-1 flex justify-center">
+							<div className="bg-white rounded-xl p-4 shadow-lg max-w-xs">
+								<div className="border-b pb-2 mb-4">
+									<span className="text-gray-800 font-medium">Sports Bet</span>
+									<div className="text-right text-gray-600 text-sm">
+										Your Wallet
+										<div className="text-orange-500 font-bold">$567</div>
+									</div>
+								</div>
+								<div className="text-center py-4">
+									<span className="text-gray-500">Basketball</span>
+									<div className="flex items-center justify-center gap-4 my-4">
+										<div className="text-center">
+											<div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+												<Trophy className="w-5 h-5 text-blue-500" />
+											</div>
+											<div className="text-xs text-gray-600 mt-1">
+												Lorem Team
+											</div>
+										</div>
+										<span className="text-xl font-bold text-gray-400">VS</span>
+										<div className="text-center">
+											<div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+												<Trophy className="w-5 h-5 text-red-500" />
+											</div>
+											<div className="text-xs text-gray-600 mt-1">
+												Ipsum Team
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Step Three */}
+			<section className="bg-gray-800 py-16 px-6 text-white">
+				<div className="max-w-4xl mx-auto">
+					<div className="flex flex-col md:flex-row items-center gap-8">
+						<div className="flex-1">
+							<span className="text-gray-400">—</span>
+							<h2 className="text-4xl font-bold text-orange-500 mb-6">
+								Step three:
+							</h2>
+							<ol className="text-lg space-y-2 text-orange-400">
+								<li className="flex gap-2">
+									<span className="font-bold">1)</span>
+									You put in your credit card details
+								</li>
+								<li className="flex gap-2">
+									<span className="font-bold">2)</span>
+									Lastly wait for your friend to accept (and insert his cc
+									details)
+								</li>
+							</ol>
+						</div>
+						<div className="flex-1 flex justify-center">
+							<div className="bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl p-6 shadow-lg">
+								<CreditCard className="w-16 h-16 text-white mb-4" />
+								<div className="text-white font-mono">
+									<div className="text-lg tracking-widest">•••• •••• •••• 4242</div>
+									<div className="text-sm mt-2 opacity-80">VALID THRU 12/27</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* How We Make Money */}
+			<section className="bg-gray-700 py-16 px-6 text-white">
+				<div className="max-w-4xl mx-auto">
+					<span className="text-gray-400">—</span>
+					<h2 className="text-4xl font-bold text-white mb-8">
+						How do we make money?
+					</h2>
+					<ol className="text-lg space-y-3">
+						<li className="flex gap-2">
+							<span className="font-bold text-orange-500">1.</span>
+							Membership to sign up.
+						</li>
+						<li className="flex gap-2">
+							<span className="font-bold text-orange-500">2.</span>
+							We take on the actual bet a small fee.
+						</li>
+						<li className="flex gap-2">
+							<span className="font-bold text-orange-500">3.</span>
+							We don't take money from users and do marketing.
+						</li>
+					</ol>
+				</div>
+			</section>
+
+			{/* Features Grid */}
+			<section className="bg-gray-50 py-16 px-6">
+				<div className="max-w-4xl mx-auto">
+					<h2 className="text-3xl font-bold text-center text-gray-800 mb-12">
+						Why Choose IBetU?
+					</h2>
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+						<div className="bg-white rounded-xl p-6 shadow-md text-center">
+							<div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Shield className="w-7 h-7 text-orange-500" />
+							</div>
+							<h3 className="font-bold text-lg mb-2">Secure & Verified</h3>
+							<p className="text-gray-600 text-sm">
+								All bets are tracked and verified by both parties or third-party
+								verification.
 							</p>
 						</div>
-					))}
+						<div className="bg-white rounded-xl p-6 shadow-md text-center">
+							<div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Users className="w-7 h-7 text-orange-500" />
+							</div>
+							<h3 className="font-bold text-lg mb-2">Friend-to-Friend</h3>
+							<p className="text-gray-600 text-sm">
+								Bet with people you know and trust. Add friends via QR, phone,
+								or nickname.
+							</p>
+						</div>
+						<div className="bg-white rounded-xl p-6 shadow-md text-center">
+							<div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Handshake className="w-7 h-7 text-orange-500" />
+							</div>
+							<h3 className="font-bold text-lg mb-2">Fair & Transparent</h3>
+							<p className="text-gray-600 text-sm">
+								Clear bet terms, agreed upon winnings, and mutual approval of
+								outcomes.
+							</p>
+						</div>
+					</div>
 				</div>
 			</section>
+
+			{/* CTA Section */}
+			<section className="bg-orange-500 py-16 px-6">
+				<div className="max-w-4xl mx-auto text-center">
+					<h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+						Ready to make it official?
+					</h2>
+					<p className="text-xl text-orange-100 mb-8">
+						Join IBetU and never lose track of a bet again.
+					</p>
+					<Link
+						to="/auth/signup"
+						className="inline-flex items-center gap-2 px-8 py-4 bg-white text-orange-500 font-bold rounded-lg hover:bg-gray-100 transition-colors text-lg"
+					>
+						<CheckCircle size={24} />
+						Sign Up Now
+					</Link>
+				</div>
+			</section>
+
+			{/* Footer */}
+			<footer className="bg-gray-900 py-8 px-6 text-center text-gray-400">
+				<p>&copy; 2026 IBetU. All rights reserved.</p>
+				<p className="text-sm mt-2">Bet responsibly with friends.</p>
+			</footer>
 		</div>
 	);
 }

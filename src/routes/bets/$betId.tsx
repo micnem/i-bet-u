@@ -11,8 +11,10 @@ import {
 	AlertCircle,
 	Trophy,
 	User,
+	Share2,
 } from "lucide-react";
 import { currentUser, mockBets, mockBetInvites, getUserById } from "../../data/mockData";
+import { shareLink, getBetShareData } from "../../lib/sharing";
 
 export const Route = createFileRoute("/bets/$betId")({
 	component: BetDetailsPage,
@@ -76,6 +78,16 @@ function BetDetailsPage() {
 		}
 	};
 
+	const handleShare = () => {
+		shareLink(
+			getBetShareData({
+				id: displayBet.id,
+				title: displayBet.title,
+				amount: displayBet.amount,
+			})
+		);
+	};
+
 	const getStatusBadge = () => {
 		if (isCompleted) {
 			return isWinner ? (
@@ -126,13 +138,22 @@ function BetDetailsPage() {
 				} text-white`}
 			>
 				<div className="max-w-2xl mx-auto">
-					<Link
-						to="/bets"
-						className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4"
-					>
-						<ArrowLeft size={20} />
-						Back to Bets
-					</Link>
+					<div className="flex items-center justify-between mb-4">
+						<Link
+							to="/bets"
+							className="inline-flex items-center gap-2 text-white/80 hover:text-white"
+						>
+							<ArrowLeft size={20} />
+							Back to Bets
+						</Link>
+						<button
+							onClick={handleShare}
+							className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors"
+						>
+							<Share2 size={16} />
+							Share
+						</button>
+					</div>
 
 					<div className="flex items-start justify-between">
 						<div>

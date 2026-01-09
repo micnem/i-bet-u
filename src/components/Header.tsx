@@ -10,6 +10,7 @@ import {
 	Wallet,
 	Plus,
 	LogIn,
+	Medal,
 } from "lucide-react";
 import { currentUser } from "../data/mockData";
 
@@ -26,6 +27,7 @@ export default function Header() {
 	const authNavItems = [
 		{ to: "/dashboard", label: "Dashboard", icon: Home },
 		{ to: "/bets", label: "My Bets", icon: Trophy },
+		{ to: "/leaderboard", label: "Leaderboard", icon: Medal },
 		{ to: "/friends", label: "Friends", icon: Users },
 		{ to: "/profile", label: "Profile", icon: User },
 	];

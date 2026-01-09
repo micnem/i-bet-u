@@ -106,7 +106,7 @@ function SignUpPage() {
 									name="displayName"
 									value={formData.displayName}
 									onChange={handleChange}
-									className={`ibetu-input pl-10 ${errors.displayName ? "border-red-500" : ""}`}
+									className={`ibetu-input pl-12 ${errors.displayName ? "border-red-500" : ""}`}
 									placeholder="John Doe"
 								/>
 							</div>
@@ -121,7 +121,7 @@ function SignUpPage() {
 								Username (Nickname)
 							</label>
 							<div className="relative">
-								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">
 									@
 								</span>
 								<input
@@ -130,7 +130,7 @@ function SignUpPage() {
 									name="username"
 									value={formData.username}
 									onChange={handleChange}
-									className={`ibetu-input pl-10 ${errors.username ? "border-red-500" : ""}`}
+									className={`ibetu-input pl-12 ${errors.username ? "border-red-500" : ""}`}
 									placeholder="johndoe"
 								/>
 							</div>
@@ -155,7 +155,7 @@ function SignUpPage() {
 									name="email"
 									value={formData.email}
 									onChange={handleChange}
-									className={`ibetu-input pl-10 ${errors.email ? "border-red-500" : ""}`}
+									className={`ibetu-input pl-12 ${errors.email ? "border-red-500" : ""}`}
 									placeholder="john@example.com"
 								/>
 							</div>
@@ -181,7 +181,7 @@ function SignUpPage() {
 									name="phone"
 									value={formData.phone}
 									onChange={handleChange}
-									className="ibetu-input pl-10"
+									className="ibetu-input pl-12"
 									placeholder="+1 555-123-4567"
 								/>
 							</div>
@@ -203,7 +203,7 @@ function SignUpPage() {
 									name="password"
 									value={formData.password}
 									onChange={handleChange}
-									className={`ibetu-input pl-10 pr-10 ${errors.password ? "border-red-500" : ""}`}
+									className={`ibetu-input pl-12 pr-10 ${errors.password ? "border-red-500" : ""}`}
 									placeholder="••••••••"
 								/>
 								<button
@@ -235,7 +235,7 @@ function SignUpPage() {
 									name="confirmPassword"
 									value={formData.confirmPassword}
 									onChange={handleChange}
-									className={`ibetu-input pl-10 ${errors.confirmPassword ? "border-red-500" : ""}`}
+									className={`ibetu-input pl-12 ${errors.confirmPassword ? "border-red-500" : ""}`}
 									placeholder="••••••••"
 								/>
 							</div>

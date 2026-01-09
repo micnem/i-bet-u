@@ -13,6 +13,8 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
+    "@clerk/tanstack-start": "^0.11.5",
+    "@clerk/types": "^4.101.10",
     "@cloudflare/vite-plugin": "^1.13.8",
     "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/vite": "^4.0.6",

@@ -1,5 +1,6 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useUser, useClerk } from "@clerk/tanstack-start";
 import {
 	Menu,
 	X,
@@ -11,17 +12,21 @@ import {
 	Plus,
 	LogIn,
 	Medal,
+	LogOut,
 } from "lucide-react";
 import { currentUser } from "../data/mockData";
 
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
 	const location = useLocation();
+	const navigate = useNavigate();
+	const { user, isSignedIn } = useUser();
+	const { signOut } = useClerk();
 
 	// Check if user is on auth pages or landing page
-	const isPublicPage =
-		location.pathname === "/" ||
-		location.pathname.startsWith("/auth");
+	const isAuthPage = location.pathname.startsWith("/auth");
+	const isLandingPage = location.pathname === "/";
+	const isPublicPage = isAuthPage || isLandingPage || !isSignedIn;
 
 	// Navigation items for authenticated users
 	const authNavItems = [
@@ -39,6 +44,21 @@ export default function Header() {
 	];
 
 	const navItems = isPublicPage ? publicNavItems : authNavItems;
+
+	// Get display name - use Clerk user if available, otherwise fallback to mock
+	const displayName = user?.firstName
+		? `${user.firstName} ${user.lastName || ""}`.trim()
+		: currentUser.displayName;
+	const username = user?.username || currentUser.username;
+	const avatarUrl =
+		user?.imageUrl ||
+		`https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+
+	const handleSignOut = async () => {
+		await signOut();
+		setIsOpen(false);
+		navigate({ to: "/" });
+	};
 
 	return (
 		<>
@@ -78,6 +98,7 @@ export default function Header() {
 							{!isPublicPage && (
 								<Link
 									to="/bets/create"
+									search={{ friendId: undefined }}
 									className="ml-2 flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg font-medium transition-colors"
 								>
 									<Plus size={18} />
@@ -86,7 +107,7 @@ export default function Header() {
 							)}
 
 							{/* Sign Up Button (only for public) */}
-							{isPublicPage && (
+							{isPublicPage && !isAuthPage && (
 								<Link
 									to="/auth/signup"
 									className="ml-2 flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 rounded-lg font-medium transition-colors"
@@ -129,8 +150,8 @@ export default function Header() {
 									</span>
 								</Link>
 								<img
-									src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`}
-									alt={currentUser.displayName}
+									src={avatarUrl}
+									alt={displayName}
 									className="w-10 h-10 rounded-full bg-gray-600"
 								/>
 							</div>
@@ -162,13 +183,13 @@ export default function Header() {
 					<div className="p-4 border-b border-gray-700">
 						<div className="flex items-center gap-3">
 							<img
-								src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`}
-								alt={currentUser.displayName}
+								src={avatarUrl}
+								alt={displayName}
 								className="w-12 h-12 rounded-full bg-gray-600"
 							/>
 							<div>
-								<p className="font-medium">{currentUser.displayName}</p>
-								<p className="text-sm text-gray-400">@{currentUser.username}</p>
+								<p className="font-medium">{displayName}</p>
+								<p className="text-sm text-gray-400">@{username}</p>
 							</div>
 						</div>
 						<div className="mt-3 flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg">
@@ -206,6 +227,7 @@ export default function Header() {
 					{!isPublicPage && (
 						<Link
 							to="/bets/create"
+							search={{ friendId: undefined }}
 							onClick={() => setIsOpen(false)}
 							className="flex items-center gap-3 p-3 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-colors mt-4"
 						>
@@ -215,7 +237,7 @@ export default function Header() {
 					)}
 
 					{/* Sign Up Button (only for public) */}
-					{isPublicPage && (
+					{isPublicPage && !isAuthPage && (
 						<Link
 							to="/auth/signup"
 							onClick={() => setIsOpen(false)}
@@ -223,6 +245,17 @@ export default function Header() {
 						>
 							<span className="font-medium">Get Started</span>
 						</Link>
+					)}
+
+					{/* Sign Out Button (only for authenticated) */}
+					{!isPublicPage && (
+						<button
+							onClick={handleSignOut}
+							className="flex items-center gap-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors mt-4 w-full"
+						>
+							<LogOut size={20} />
+							<span className="font-medium">Sign Out</span>
+						</button>
 					)}
 				</nav>
 			</aside>

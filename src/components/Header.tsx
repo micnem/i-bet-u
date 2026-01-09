@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useUser, useClerk } from "@clerk/tanstack-start";
+import { useUser, useClerk } from "@clerk/tanstack-react-start";
 import {
 	Menu,
 	X,

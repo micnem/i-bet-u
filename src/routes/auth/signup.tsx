@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useSignUp } from "@clerk/tanstack-start";
+import { useSignUp } from "@clerk/tanstack-react-start";
 import { Mail, User, ArrowLeft, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth/signup")({ component: SignUpPage });

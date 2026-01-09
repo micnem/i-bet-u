@@ -1,50 +1,108 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useSignIn } from "@clerk/tanstack-start";
+import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth/login")({ component: LoginPage });
 
 function LoginPage() {
 	const navigate = useNavigate();
-	const [showPassword, setShowPassword] = useState(false);
-	const [formData, setFormData] = useState({
-		email: "",
-		password: "",
-		rememberMe: false,
-	});
-	const [errors, setErrors] = useState<Record<string, string>>({});
+	const { signIn, setActive, isLoaded } = useSignIn();
+	const [email, setEmail] = useState("");
+	const [code, setCode] = useState("");
+	const [step, setStep] = useState<"email" | "code">("email");
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState("");
 
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const { name, value, type, checked } = e.target;
-		setFormData((prev) => ({
-			...prev,
-			[name]: type === "checkbox" ? checked : value,
-		}));
-		if (errors[name]) {
-			setErrors((prev) => ({ ...prev, [name]: "" }));
-		}
-	};
-
-	const validate = () => {
-		const newErrors: Record<string, string> = {};
-
-		if (!formData.email.trim()) {
-			newErrors.email = "Email is required";
-		}
-
-		if (!formData.password) {
-			newErrors.password = "Password is required";
-		}
-
-		setErrors(newErrors);
-		return Object.keys(newErrors).length === 0;
-	};
-
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSendCode = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (validate()) {
-			// Mock login - just navigate to dashboard
-			navigate({ to: "/dashboard" });
+		if (!isLoaded || !signIn) return;
+
+		setIsLoading(true);
+		setError("");
+
+		try {
+			// Start the sign-in process with email code
+			const result = await signIn.create({
+				identifier: email,
+				strategy: "email_code",
+			});
+
+			if (result.status === "needs_first_factor") {
+				// Prepare for email code verification
+				const emailFactor = result.supportedFirstFactors?.find(
+					(f) => f.strategy === "email_code"
+				);
+				if (emailFactor && "emailAddressId" in emailFactor) {
+					await signIn.prepareFirstFactor({
+						strategy: "email_code",
+						emailAddressId: emailFactor.emailAddressId,
+					});
+				}
+				setStep("code");
+			}
+		} catch (err: unknown) {
+			const clerkError = err as { errors?: { message: string }[] };
+			setError(
+				clerkError.errors?.[0]?.message ||
+					"Failed to send code. Please try again."
+			);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleVerifyCode = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!isLoaded || !signIn) return;
+
+		setIsLoading(true);
+		setError("");
+
+		try {
+			// Attempt to verify the code
+			const result = await signIn.attemptFirstFactor({
+				strategy: "email_code",
+				code,
+			});
+
+			if (result.status === "complete") {
+				// Set the session active and redirect
+				await setActive({ session: result.createdSessionId });
+				navigate({ to: "/dashboard" });
+			}
+		} catch (err: unknown) {
+			const clerkError = err as { errors?: { message: string }[] };
+			setError(
+				clerkError.errors?.[0]?.message || "Invalid code. Please try again."
+			);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleResendCode = async () => {
+		if (!isLoaded || !signIn) return;
+
+		setIsLoading(true);
+		setError("");
+
+		try {
+			const emailFactor = signIn.supportedFirstFactors?.find(
+				(f) => f.strategy === "email_code"
+			);
+			if (emailFactor && "emailAddressId" in emailFactor) {
+				await signIn.prepareFirstFactor({
+					strategy: "email_code",
+					emailAddressId: emailFactor.emailAddressId,
+				});
+			}
+			setError(""); // Clear any errors
+		} catch (err: unknown) {
+			const clerkError = err as { errors?: { message: string }[] };
+			setError(clerkError.errors?.[0]?.message || "Failed to resend code.");
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -63,104 +121,120 @@ function LoginPage() {
 					<div className="text-center mb-8">
 						<h1 className="text-3xl font-bold text-orange-500 mb-2">IBetU</h1>
 						<h2 className="text-xl font-semibold text-gray-800">Welcome Back</h2>
-						<p className="text-gray-600 mt-2">Sign in to continue betting</p>
+						<p className="text-gray-600 mt-2">
+							{step === "email"
+								? "Enter your email to sign in"
+								: "Enter the code sent to your email"}
+						</p>
 					</div>
 
-					<form onSubmit={handleSubmit} className="space-y-4">
-						{/* Email */}
-						<div>
-							<label htmlFor="email" className="ibetu-label">
-								Email or Username
-							</label>
-							<div className="relative">
-								<Mail
-									className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-									size={20}
-								/>
+					{error && (
+						<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+							{error}
+						</div>
+					)}
+
+					{step === "email" ? (
+						<form onSubmit={handleSendCode} className="space-y-4">
+							<div>
+								<label htmlFor="email" className="ibetu-label">
+									Email Address
+								</label>
+								<div className="relative">
+									<Mail
+										className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+										size={20}
+									/>
+									<input
+										type="email"
+										id="email"
+										value={email}
+										onChange={(e) => setEmail(e.target.value)}
+										className="ibetu-input pl-10"
+										placeholder="john@example.com"
+										required
+										disabled={isLoading}
+									/>
+								</div>
+							</div>
+
+							<button
+								type="submit"
+								disabled={isLoading || !email}
+								className="w-full ibetu-btn-primary mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							>
+								{isLoading ? (
+									<>
+										<Loader2 className="animate-spin" size={20} />
+										Sending Code...
+									</>
+								) : (
+									"Send Sign In Code"
+								)}
+							</button>
+						</form>
+					) : (
+						<form onSubmit={handleVerifyCode} className="space-y-4">
+							<div>
+								<label htmlFor="code" className="ibetu-label">
+									Verification Code
+								</label>
 								<input
 									type="text"
-									id="email"
-									name="email"
-									value={formData.email}
-									onChange={handleChange}
-									className={`ibetu-input pl-12 ${errors.email ? "border-red-500" : ""}`}
-									placeholder="john@example.com"
+									id="code"
+									value={code}
+									onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+									className="ibetu-input text-center text-2xl tracking-widest"
+									placeholder="000000"
+									maxLength={6}
+									required
+									disabled={isLoading}
+									autoFocus
 								/>
+								<p className="text-sm text-gray-500 mt-2">
+									We sent a 6-digit code to{" "}
+									<span className="font-medium">{email}</span>
+								</p>
 							</div>
-							{errors.email && (
-								<p className="text-red-500 text-sm mt-1">{errors.email}</p>
-							)}
-						</div>
 
-						{/* Password */}
-						<div>
-							<label htmlFor="password" className="ibetu-label">
-								Password
-							</label>
-							<div className="relative">
-								<Lock
-									className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-									size={20}
-								/>
-								<input
-									type={showPassword ? "text" : "password"}
-									id="password"
-									name="password"
-									value={formData.password}
-									onChange={handleChange}
-									className={`ibetu-input pl-12 pr-10 ${errors.password ? "border-red-500" : ""}`}
-									placeholder="••••••••"
-								/>
+							<button
+								type="submit"
+								disabled={isLoading || code.length !== 6}
+								className="w-full ibetu-btn-primary mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							>
+								{isLoading ? (
+									<>
+										<Loader2 className="animate-spin" size={20} />
+										Verifying...
+									</>
+								) : (
+									"Verify & Sign In"
+								)}
+							</button>
+
+							<div className="flex items-center justify-between text-sm">
 								<button
 									type="button"
-									onClick={() => setShowPassword(!showPassword)}
-									className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+									onClick={() => {
+										setStep("email");
+										setCode("");
+										setError("");
+									}}
+									className="text-gray-600 hover:text-gray-900"
 								>
-									{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+									Change email
+								</button>
+								<button
+									type="button"
+									onClick={handleResendCode}
+									disabled={isLoading}
+									className="text-orange-500 hover:text-orange-600 disabled:opacity-50"
+								>
+									Resend code
 								</button>
 							</div>
-							{errors.password && (
-								<p className="text-red-500 text-sm mt-1">{errors.password}</p>
-							)}
-						</div>
-
-						{/* Remember Me & Forgot Password */}
-						<div className="flex items-center justify-between">
-							<label className="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									name="rememberMe"
-									checked={formData.rememberMe}
-									onChange={handleChange}
-									className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-								/>
-								<span className="text-sm text-gray-600">Remember me</span>
-							</label>
-							<button
-								type="button"
-								className="text-sm text-orange-500 hover:text-orange-600"
-							>
-								Forgot password?
-							</button>
-						</div>
-
-						<button type="submit" className="w-full ibetu-btn-primary mt-6">
-							Sign In
-						</button>
-					</form>
-
-					{/* Demo Login */}
-					<div className="mt-6 pt-6 border-t border-gray-200">
-						<p className="text-center text-gray-500 text-sm mb-4">
-							Demo Mode - Click to log in instantly
-						</p>
-						<button
-							onClick={() => navigate({ to: "/dashboard" })}
-							className="w-full ibetu-btn-secondary"
-						>
-							Continue as Demo User
-						</button>
-					</div>
+						</form>
+					)}
 
 					<p className="text-center text-gray-600 mt-6">
 						Don't have an account?{" "}

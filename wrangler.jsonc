@@ -1,7 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tanstack-start-app",
+  "name": "ibetu-app",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+  "main": "@tanstack/react-start/server-entry",
+
+  // Environment variables
+  // NOTE: For secrets (API keys), use Cloudflare dashboard or `wrangler secret put`
+  "vars": {
+    "VITE_CLERK_PUBLISHABLE_KEY": "",
+    "SUPABASE_URL": ""
+  }
+
+  // Secrets should be set via:
+  // wrangler secret put CLERK_SECRET_KEY
+  // wrangler secret put SUPABASE_ANON_KEY
+  // wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  // Or through Cloudflare Dashboard > Workers > Settings > Variables
 }

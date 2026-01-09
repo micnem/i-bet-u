@@ -1,7 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { ClerkProvider } from "@clerk/tanstack-start";
+import { ClerkProvider } from "@clerk/tanstack-react-start";
 
 import Header from "../components/Header";
 

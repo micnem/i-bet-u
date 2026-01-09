@@ -83,7 +83,7 @@ function LoginPage() {
 									name="email"
 									value={formData.email}
 									onChange={handleChange}
-									className={`ibetu-input pl-10 ${errors.email ? "border-red-500" : ""}`}
+									className={`ibetu-input pl-12 ${errors.email ? "border-red-500" : ""}`}
 									placeholder="john@example.com"
 								/>
 							</div>
@@ -108,7 +108,7 @@ function LoginPage() {
 									name="password"
 									value={formData.password}
 									onChange={handleChange}
-									className={`ibetu-input pl-10 pr-10 ${errors.password ? "border-red-500" : ""}`}
+									className={`ibetu-input pl-12 pr-10 ${errors.password ? "border-red-500" : ""}`}
 									placeholder="••••••••"
 								/>
 								<button

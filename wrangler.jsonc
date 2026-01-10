@@ -10,7 +10,17 @@
   "vars": {
     "VITE_CLERK_PUBLISHABLE_KEY": "",
     "SUPABASE_URL": ""
-  }
+  },
+  
+    "observability": {
+      "logs": {
+        "enabled": false,
+        "head_sampling_rate": 1,
+        "invocation_logs": true,
+        "persist": true
+      }
+    }
+  
 
   // Secrets should be set via:
   // wrangler secret put CLERK_SECRET_KEY

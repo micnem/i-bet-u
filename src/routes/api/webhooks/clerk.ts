@@ -86,20 +86,47 @@ export const Route = createFileRoute("/api/webhooks/clerk")({
 
 					const username = userData.username || `${email.split("@")[0]}_${userData.id.slice(-4)}`;
 
-					const { error } = await supabaseAdmin.from("users").insert({
-						clerk_id: userData.id,
-						email: email,
-						display_name: displayName,
-						username: username,
-						avatar_url: userData.image_url,
-					});
+					// Check if user already exists by email (to prevent duplicates)
+					const { data: existingUser } = await supabaseAdmin
+						.from("users")
+						.select("id")
+						.eq("email", email)
+						.maybeSingle();
 
-					if (error) {
-						console.error("Failed to create user:", error);
-						return new Response("Failed to create user", { status: 500 });
+					if (existingUser) {
+						// Update existing user with new clerk_id
+						const { error } = await supabaseAdmin
+							.from("users")
+							.update({
+								clerk_id: userData.id,
+								display_name: displayName,
+								avatar_url: userData.image_url,
+							})
+							.eq("id", existingUser.id);
+
+						if (error) {
+							console.error("Failed to update existing user:", error);
+							return new Response("Failed to update user", { status: 500 });
+						}
+
+						console.log("Existing user updated with new clerk_id:", userData.id);
+					} else {
+						// Create new user
+						const { error } = await supabaseAdmin.from("users").insert({
+							clerk_id: userData.id,
+							email: email,
+							display_name: displayName,
+							username: username,
+							avatar_url: userData.image_url,
+						});
+
+						if (error) {
+							console.error("Failed to create user:", error);
+							return new Response("Failed to create user", { status: 500 });
+						}
+
+						console.log("User created:", userData.id);
 					}
-
-					console.log("User created:", userData.id);
 				}
 
 				if (eventType === "user.updated") {

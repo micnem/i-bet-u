@@ -43,18 +43,38 @@ function InvitePage() {
 	const [requestSent, setRequestSent] = useState(false);
 	const [error, setError] = useState<string | null>(loaderError);
 
-	// Check friendship status when authenticated
+	// Check friendship status and auto-send request when authenticated
 	useEffect(() => {
-		async function checkStatus() {
+		async function checkAndAutoAdd() {
 			if (!clerkLoaded || !clerkUser || !loaderInviter) return;
 
+			// Don't add yourself as a friend
+			if (clerkUser.id === loaderInviter.clerk_id) {
+				setFriendshipStatus("self");
+				return;
+			}
+
 			const result = await checkFriendship({ data: { userId: loaderInviter.id } });
-			if (!result.error) {
+			if (!result.error && result.status) {
 				setFriendshipStatus(result.status);
+			} else if (!result.status || result.status === "none") {
+				// Auto-send friend request if not already friends
+				setSendingRequest(true);
+				const sendResult = await sendFriendRequest({
+					data: { friendId: loaderInviter.id, addedVia: "qr" },
+				});
+
+				if (sendResult.error) {
+					setError(sendResult.error);
+				} else {
+					setRequestSent(true);
+					setFriendshipStatus("pending");
+				}
+				setSendingRequest(false);
 			}
 		}
 
-		checkStatus();
+		checkAndAutoAdd();
 	}, [clerkLoaded, clerkUser, loaderInviter]);
 
 	const handleAddFriend = async () => {
@@ -165,15 +185,24 @@ function InvitePage() {
 				{clerkUser ? (
 					// Authenticated user
 					<div>
-						{friendshipStatus === "accepted" ? (
+						{friendshipStatus === "self" ? (
+							<div className="flex items-center justify-center gap-2 text-gray-500 mb-4">
+								<span className="font-medium">This is your own invite link</span>
+							</div>
+						) : friendshipStatus === "accepted" ? (
 							<div className="flex items-center justify-center gap-2 text-green-600 mb-4">
 								<Check className="w-5 h-5" />
-								<span className="font-medium">Already friends</span>
+								<span className="font-medium">Already friends!</span>
 							</div>
 						) : friendshipStatus === "pending" || requestSent ? (
+							<div className="flex items-center justify-center gap-2 text-green-600 mb-4">
+								<Check className="w-5 h-5" />
+								<span className="font-medium">Friend request sent!</span>
+							</div>
+						) : sendingRequest ? (
 							<div className="flex items-center justify-center gap-2 text-orange-500 mb-4">
-								<Clock className="w-5 h-5" />
-								<span className="font-medium">Friend request pending</span>
+								<Loader2 className="w-5 h-5 animate-spin" />
+								<span className="font-medium">Adding friend...</span>
 							</div>
 						) : (
 							<button
@@ -181,12 +210,8 @@ function InvitePage() {
 								disabled={sendingRequest}
 								className="ibetu-btn-primary w-full flex items-center justify-center gap-2 mb-4"
 							>
-								{sendingRequest ? (
-									<Loader2 className="w-5 h-5 animate-spin" />
-								) : (
-									<UserPlus className="w-5 h-5" />
-								)}
-								{sendingRequest ? "Sending..." : "Add Friend"}
+								<UserPlus className="w-5 h-5" />
+								Add Friend
 							</button>
 						)}
 

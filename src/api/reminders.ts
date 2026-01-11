@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { Resend } from "resend";
-import { supabase } from "../lib/supabase";
+import { supabaseAdmin } from "../lib/supabase";
+import { getCurrentUser } from "../lib/auth";
 
 // Initialize Resend client
 const getResendClient = () => {
@@ -17,27 +18,17 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 		(data: { friendId: string; amount: number; friendName: string }) => data
 	)
 	.handler(async ({ data: { friendId, amount, friendName } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", success: false };
 		}
 
-		// Get current user's details
-		const { data: currentUser, error: userError } = await supabase
-			.from("users")
-			.select("display_name, username, email")
-			.eq("id", authUser.id)
-			.single();
-
-		if (userError || !currentUser) {
-			return { error: "Could not fetch user details", success: false };
-		}
+		const userId = currentUser.user.id;
+		const senderUser = currentUser.user;
 
 		// Get friend's email
-		const { data: friend, error: friendError } = await supabase
+		const { data: friend, error: friendError } = await supabaseAdmin
 			.from("users")
 			.select("email, display_name")
 			.eq("id", friendId)
@@ -48,10 +39,10 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 		}
 
 		// Check if a reminder was sent recently (within last 24 hours)
-		const { data: recentReminder } = await supabase
+		const { data: recentReminder } = await supabaseAdmin
 			.from("payment_reminders")
 			.select("id, created_at")
-			.eq("sender_id", authUser.id)
+			.eq("sender_id", userId)
 			.eq("recipient_id", friendId)
 			.gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 			.maybeSingle();
@@ -71,7 +62,7 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 			await resend.emails.send({
 				from: `iBetU <${fromEmail}>`,
 				to: friend.email,
-				subject: `${currentUser.display_name} sent you a payment reminder`,
+				subject: `${senderUser.display_name} sent you a payment reminder`,
 				html: `
 					<!DOCTYPE html>
 					<html>
@@ -86,7 +77,7 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 						<div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
 							<h2 style="color: #1f2937; margin-top: 0;">Hey ${friend.display_name}!</h2>
 							<p style="font-size: 16px; color: #4b5563;">
-								<strong>${currentUser.display_name}</strong> (@${currentUser.username}) is reminding you that you owe them:
+								<strong>${senderUser.display_name}</strong> (@${senderUser.username}) is reminding you that you owe them:
 							</p>
 							<div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
 								<span style="font-size: 36px; font-weight: bold; color: #b45309;">$${amount.toFixed(2)}</span>
@@ -112,8 +103,8 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 			});
 
 			// Record the reminder
-			await supabase.from("payment_reminders").insert({
-				sender_id: authUser.id,
+			await supabaseAdmin.from("payment_reminders").insert({
+				sender_id: userId,
 				recipient_id: friendId,
 				amount: amount,
 			});
@@ -129,15 +120,15 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 export const getReminderHistory = createServerFn({ method: "GET" })
 	.inputValidator((data: { friendId?: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		let query = supabase
+		const userId = currentUser.user.id;
+
+		let query = supabaseAdmin
 			.from("payment_reminders")
 			.select(
 				`
@@ -145,7 +136,7 @@ export const getReminderHistory = createServerFn({ method: "GET" })
 				recipient:users!payment_reminders_recipient_id_fkey(id, display_name, username, avatar_url)
 			`
 			)
-			.eq("sender_id", authUser.id)
+			.eq("sender_id", userId)
 			.order("created_at", { ascending: false })
 			.limit(20);
 
@@ -166,18 +157,18 @@ export const getReminderHistory = createServerFn({ method: "GET" })
 export const canSendReminder = createServerFn({ method: "GET" })
 	.inputValidator((data: { friendId: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", canSend: false, lastSent: null };
 		}
 
-		const { data: recentReminder } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data: recentReminder } = await supabaseAdmin
 			.from("payment_reminders")
 			.select("created_at")
-			.eq("sender_id", authUser.id)
+			.eq("sender_id", userId)
 			.eq("recipient_id", friendId)
 			.order("created_at", { ascending: false })
 			.limit(1)

@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabase, supabaseAdmin } from "../lib/supabase";
+import { supabaseAdmin } from "../lib/supabase";
 import type {
 	Bet,
 	BetInsert,
 	BetStatus,
 	VerificationMethod,
 } from "../lib/database.types";
+import { getCurrentUser } from "../lib/auth";
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
@@ -13,15 +14,15 @@ export const getUserBets = createServerFn({ method: "GET" })
 		(data: { status?: BetStatus; limit?: number; offset?: number }) => data
 	)
 	.handler(async ({ data: { status, limit = 50, offset = 0 } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		let query = supabase
+		const userId = currentUser.user.id;
+
+		let query = supabaseAdmin
 			.from("bets")
 			.select(
 				`
@@ -30,7 +31,7 @@ export const getUserBets = createServerFn({ method: "GET" })
 				opponent:users!bets_opponent_id_fkey(*)
 			`
 			)
-			.or(`creator_id.eq.${authUser.id},opponent_id.eq.${authUser.id}`)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.order("created_at", { ascending: false })
 			.range(offset, offset + limit - 1);
 
@@ -51,15 +52,15 @@ export const getUserBets = createServerFn({ method: "GET" })
 export const getBetById = createServerFn({ method: "GET" })
 	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data, error } = await supabaseAdmin
 			.from("bets")
 			.select(
 				`
@@ -70,7 +71,7 @@ export const getBetById = createServerFn({ method: "GET" })
 			`
 			)
 			.eq("id", betId)
-			.or(`creator_id.eq.${authUser.id},opponent_id.eq.${authUser.id}`)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.single();
 
 		if (error) {
@@ -93,20 +94,20 @@ export const createBet = createServerFn({ method: "POST" })
 		}) => data
 	)
 	.handler(async ({ data }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Check if opponent exists and is a friend
-		const { data: friendship } = await supabase
+		const { data: friendship } = await supabaseAdmin
 			.from("friendships")
 			.select("id")
 			.or(
-				`and(user_id.eq.${authUser.id},friend_id.eq.${data.opponentId}),and(user_id.eq.${data.opponentId},friend_id.eq.${authUser.id})`
+				`and(user_id.eq.${userId},friend_id.eq.${data.opponentId}),and(user_id.eq.${data.opponentId},friend_id.eq.${userId})`
 			)
 			.eq("status", "accepted")
 			.single();
@@ -120,14 +121,14 @@ export const createBet = createServerFn({ method: "POST" })
 			title: data.title,
 			description: data.description,
 			amount: data.amount,
-			creator_id: authUser.id,
+			creator_id: userId,
 			opponent_id: data.opponentId,
 			deadline: data.deadline,
 			verification_method: data.verificationMethod,
 			status: "pending",
 		};
 
-		const { data: bet, error } = await supabase
+		const { data: bet, error } = await supabaseAdmin
 			.from("bets")
 			.insert(betInsert)
 			.select(
@@ -150,20 +151,20 @@ export const createBet = createServerFn({ method: "POST" })
 export const acceptBet = createServerFn({ method: "POST" })
 	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Get the bet
-		const { data: bet } = await supabase
+		const { data: bet } = await supabaseAdmin
 			.from("bets")
 			.select("*")
 			.eq("id", betId)
-			.eq("opponent_id", authUser.id)
+			.eq("opponent_id", userId)
 			.eq("status", "pending")
 			.single();
 
@@ -172,7 +173,7 @@ export const acceptBet = createServerFn({ method: "POST" })
 		}
 
 		// Update bet status to active
-		const { data: updatedBet, error: betError } = await supabase
+		const { data: updatedBet, error: betError } = await supabaseAdmin
 			.from("bets")
 			.update({
 				status: "active",
@@ -193,19 +194,19 @@ export const acceptBet = createServerFn({ method: "POST" })
 export const declineBet = createServerFn({ method: "POST" })
 	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data: bet, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data: bet, error } = await supabaseAdmin
 			.from("bets")
 			.update({ status: "declined" })
 			.eq("id", betId)
-			.eq("opponent_id", authUser.id)
+			.eq("opponent_id", userId)
 			.eq("status", "pending")
 			.select()
 			.single();
@@ -221,21 +222,21 @@ export const declineBet = createServerFn({ method: "POST" })
 export const approveBetResult = createServerFn({ method: "POST" })
 	.inputValidator((data: { betId: string; winnerId: string }) => data)
 	.handler(async ({ data: { betId, winnerId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Get the bet
-		const { data: bet } = await supabase
+		const { data: bet } = await supabaseAdmin
 			.from("bets")
 			.select("*")
 			.eq("id", betId)
 			.eq("status", "active")
-			.or(`creator_id.eq.${authUser.id},opponent_id.eq.${authUser.id}`)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.single();
 
 		if (!bet) {
@@ -248,12 +249,12 @@ export const approveBetResult = createServerFn({ method: "POST" })
 		}
 
 		// Update approval
-		const isCreator = authUser.id === bet.creator_id;
+		const isCreator = userId === bet.creator_id;
 		const updateData = isCreator
 			? { creator_approved: true, winner_id: winnerId }
 			: { opponent_approved: true, winner_id: winnerId };
 
-		const { data: updatedBet, error } = await supabase
+		const { data: updatedBet, error } = await supabaseAdmin
 			.from("bets")
 			.update(updateData)
 			.eq("id", betId)
@@ -285,7 +286,7 @@ async function resolveBet({
 	betId: string;
 	winnerId: string;
 }) {
-	const { data: bet } = await supabase
+	const { data: bet } = await supabaseAdmin
 		.from("bets")
 		.select("*")
 		.eq("id", betId)
@@ -297,7 +298,7 @@ async function resolveBet({
 		winnerId === bet.creator_id ? bet.opponent_id : bet.creator_id;
 
 	// Update bet status
-	await supabase
+	await supabaseAdmin
 		.from("bets")
 		.update({
 			status: "completed",
@@ -307,27 +308,27 @@ async function resolveBet({
 		.eq("id", betId);
 
 	// Update stats
-	await supabase.rpc("increment_wins", { user_id: winnerId });
-	await supabase.rpc("increment_losses", { user_id: loserId });
+	await supabaseAdmin.rpc("increment_wins", { user_id: winnerId });
+	await supabaseAdmin.rpc("increment_losses", { user_id: loserId });
 }
 
 // Cancel a pending bet (creator only)
 export const cancelBet = createServerFn({ method: "POST" })
 	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data: bet, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data: bet, error } = await supabaseAdmin
 			.from("bets")
 			.update({ status: "expired" })
 			.eq("id", betId)
-			.eq("creator_id", authUser.id)
+			.eq("creator_id", userId)
 			.eq("status", "pending")
 			.select()
 			.single();
@@ -342,15 +343,15 @@ export const cancelBet = createServerFn({ method: "POST" })
 // Get pending bet invites for current user
 export const getPendingBetInvites = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data, error } = await supabaseAdmin
 			.from("bets")
 			.select(
 				`
@@ -358,7 +359,7 @@ export const getPendingBetInvites = createServerFn({ method: "GET" }).handler(
 				creator:users!bets_creator_id_fkey(*)
 			`
 			)
-			.eq("opponent_id", authUser.id)
+			.eq("opponent_id", userId)
 			.eq("status", "pending")
 			.order("created_at", { ascending: false });
 
@@ -373,18 +374,18 @@ export const getPendingBetInvites = createServerFn({ method: "GET" }).handler(
 // Get active bets count
 export const getActiveBetsCount = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", count: 0 };
 		}
 
-		const { count, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { count, error } = await supabaseAdmin
 			.from("bets")
 			.select("*", { count: "exact", head: true })
-			.or(`creator_id.eq.${authUser.id},opponent_id.eq.${authUser.id}`)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.eq("status", "active");
 
 		if (error) {
@@ -398,16 +399,16 @@ export const getActiveBetsCount = createServerFn({ method: "GET" }).handler(
 // Get amounts owed summary (calculated from completed bets)
 export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Get all completed bets for the user
-		const { data: completedBets, error } = await supabase
+		const { data: completedBets, error } = await supabaseAdmin
 			.from("bets")
 			.select(
 				`
@@ -416,7 +417,7 @@ export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 				opponent:users!bets_opponent_id_fkey(id, username, display_name, avatar_url)
 			`
 			)
-			.or(`creator_id.eq.${authUser.id},opponent_id.eq.${authUser.id}`)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.eq("status", "completed");
 
 		if (error) {
@@ -432,8 +433,8 @@ export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 		> = {};
 
 		for (const bet of completedBets || []) {
-			const isCreator = bet.creator_id === authUser.id;
-			const isWinner = bet.winner_id === authUser.id;
+			const isCreator = bet.creator_id === userId;
+			const isWinner = bet.winner_id === userId;
 			const friendId = isCreator ? bet.opponent_id : bet.creator_id;
 			const friend = isCreator ? bet.opponent : bet.creator;
 

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabase } from "../lib/supabase";
+import { supabaseAdmin } from "../lib/supabase";
+import { getCurrentUser } from "../lib/auth";
 
 // Get leaderboard
 export const getLeaderboard = createServerFn({ method: "GET" })
@@ -10,7 +11,7 @@ export const getLeaderboard = createServerFn({ method: "GET" })
 		}) => data
 	)
 	.handler(async ({ data: { timeframe = "all", limit = 50 } }) => {
-		let query = supabase
+		let query = supabaseAdmin
 			.from("users")
 			.select("id, username, display_name, avatar_url, bets_won, bets_lost, total_bets")
 			.gt("total_bets", 0)
@@ -45,16 +46,16 @@ export const getLeaderboard = createServerFn({ method: "GET" })
 // Get current user's rank
 export const getUserRank = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", rank: null };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Get all users ordered by wins
-		const { data: allUsers } = await supabase
+		const { data: allUsers } = await supabaseAdmin
 			.from("users")
 			.select("id, bets_won")
 			.gt("total_bets", 0)
@@ -64,7 +65,7 @@ export const getUserRank = createServerFn({ method: "GET" }).handler(
 			return { error: "Failed to fetch rankings", rank: null };
 		}
 
-		const rank = allUsers.findIndex((u) => u.id === authUser.id) + 1;
+		const rank = allUsers.findIndex((u) => u.id === userId) + 1;
 
 		return {
 			error: null,
@@ -78,15 +79,15 @@ export const getUserRank = createServerFn({ method: "GET" }).handler(
 export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
 	.inputValidator((data: { friendId: string; limit?: number; offset?: number }) => data)
 	.handler(async ({ data: { friendId, limit = 50, offset = 0 } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data: bets, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data: bets, error } = await supabaseAdmin
 			.from("bets")
 			.select(
 				`
@@ -96,7 +97,7 @@ export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
 			`
 			)
 			.or(
-				`and(creator_id.eq.${authUser.id},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${authUser.id})`
+				`and(creator_id.eq.${userId},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${userId})`
 			)
 			.order("created_at", { ascending: false })
 			.range(offset, offset + limit - 1);
@@ -108,7 +109,7 @@ export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
 		// Calculate stats
 		const completedBets = bets.filter((b) => b.status === "completed");
 		const userWins = completedBets.filter(
-			(b) => b.winner_id === authUser.id
+			(b) => b.winner_id === userId
 		).length;
 		const friendWins = completedBets.filter(
 			(b) => b.winner_id === friendId
@@ -133,37 +134,37 @@ export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
 export const getFriendComparison = createServerFn({ method: "GET" })
 	.inputValidator((data: { friendId: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Get both users' stats
-		const { data: users, error } = await supabase
+		const { data: users, error } = await supabaseAdmin
 			.from("users")
 			.select("id, username, display_name, avatar_url, total_bets, bets_won, bets_lost")
-			.in("id", [authUser.id, friendId]);
+			.in("id", [userId, friendId]);
 
 		if (error || !users || users.length !== 2) {
 			return { error: error?.message || "Users not found", data: null };
 		}
 
-		const currentUserData = users.find((u) => u.id === authUser.id);
+		const currentUserData = users.find((u) => u.id === userId);
 		const friendData = users.find((u) => u.id === friendId);
 
 		// Get head-to-head stats
-		const { data: h2hBets } = await supabase
+		const { data: h2hBets } = await supabaseAdmin
 			.from("bets")
 			.select("winner_id, status")
 			.or(
-				`and(creator_id.eq.${authUser.id},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${authUser.id})`
+				`and(creator_id.eq.${userId},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${userId})`
 			)
 			.eq("status", "completed");
 
-		const h2hUserWins = h2hBets?.filter((b) => b.winner_id === authUser.id).length || 0;
+		const h2hUserWins = h2hBets?.filter((b) => b.winner_id === userId).length || 0;
 		const h2hFriendWins = h2hBets?.filter((b) => b.winner_id === friendId).length || 0;
 
 		return {
@@ -194,19 +195,19 @@ export const getFriendComparison = createServerFn({ method: "GET" })
 export const getTopBettingFriends = createServerFn({ method: "GET" })
 	.inputValidator((data: { limit?: number }) => data)
 	.handler(async ({ data: { limit = 5 } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Get all bets involving current user
-		const { data: bets } = await supabase
+		const { data: bets } = await supabaseAdmin
 			.from("bets")
 			.select("creator_id, opponent_id, winner_id, status")
-			.or(`creator_id.eq.${authUser.id},opponent_id.eq.${authUser.id}`);
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`);
 
 		if (!bets) {
 			return { error: "Failed to fetch bets", data: null };
@@ -217,13 +218,13 @@ export const getTopBettingFriends = createServerFn({ method: "GET" })
 
 		for (const bet of bets) {
 			const opponentId =
-				bet.creator_id === authUser.id ? bet.opponent_id : bet.creator_id;
+				bet.creator_id === userId ? bet.opponent_id : bet.creator_id;
 
 			if (!opponentCounts[opponentId]) {
 				opponentCounts[opponentId] = { total: 0, wins: 0 };
 			}
 			opponentCounts[opponentId].total++;
-			if (bet.status === "completed" && bet.winner_id === authUser.id) {
+			if (bet.status === "completed" && bet.winner_id === userId) {
 				opponentCounts[opponentId].wins++;
 			}
 		}
@@ -239,7 +240,7 @@ export const getTopBettingFriends = createServerFn({ method: "GET" })
 		}
 
 		// Get user details for top opponents
-		const { data: users } = await supabase
+		const { data: users } = await supabaseAdmin
 			.from("users")
 			.select("id, username, display_name, avatar_url")
 			.in("id", topOpponentIds);

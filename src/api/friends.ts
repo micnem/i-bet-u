@@ -1,19 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabase } from "../lib/supabase";
+import { supabaseAdmin } from "../lib/supabase";
 import type { FriendshipInsert } from "../lib/database.types";
+import { getCurrentUser } from "../lib/auth";
 
 // Get all friends for current user
 export const getFriends = createServerFn({ method: "GET" }).handler(async () => {
-	const {
-		data: { user: authUser },
-	} = await supabase.auth.getUser();
+	const currentUser = await getCurrentUser();
 
-	if (!authUser) {
+	if (!currentUser) {
 		return { error: "Not authenticated", data: null };
 	}
 
+	const userId = currentUser.user.id;
+
 	// Get friendships where user is either the requester or the friend
-	const { data, error } = await supabase
+	const { data, error } = await supabaseAdmin
 		.from("friendships")
 		.select(
 			`
@@ -26,7 +27,7 @@ export const getFriends = createServerFn({ method: "GET" }).handler(async () => 
 			friend:users!friendships_friend_id_fkey(*)
 		`
 		)
-		.eq("user_id", authUser.id)
+		.eq("user_id", userId)
 		.eq("status", "accepted");
 
 	if (error) {
@@ -34,7 +35,7 @@ export const getFriends = createServerFn({ method: "GET" }).handler(async () => 
 	}
 
 	// Also get friendships where current user is the friend_id
-	const { data: reverseFriendships, error: reverseError } = await supabase
+	const { data: reverseFriendships, error: reverseError } = await supabaseAdmin
 		.from("friendships")
 		.select(
 			`
@@ -47,7 +48,7 @@ export const getFriends = createServerFn({ method: "GET" }).handler(async () => 
 			friend:users!friendships_user_id_fkey(*)
 		`
 		)
-		.eq("friend_id", authUser.id)
+		.eq("friend_id", userId)
 		.eq("status", "accepted");
 
 	if (reverseError) {
@@ -64,15 +65,15 @@ export const getFriends = createServerFn({ method: "GET" }).handler(async () => 
 export const getPendingFriendRequests = createServerFn({
 	method: "GET",
 }).handler(async () => {
-	const {
-		data: { user: authUser },
-	} = await supabase.auth.getUser();
+	const currentUser = await getCurrentUser();
 
-	if (!authUser) {
+	if (!currentUser) {
 		return { error: "Not authenticated", data: null };
 	}
 
-	const { data, error } = await supabase
+	const userId = currentUser.user.id;
+
+	const { data, error } = await supabaseAdmin
 		.from("friendships")
 		.select(
 			`
@@ -83,7 +84,7 @@ export const getPendingFriendRequests = createServerFn({
 			requester:users!friendships_user_id_fkey(*)
 		`
 		)
-		.eq("friend_id", authUser.id)
+		.eq("friend_id", userId)
 		.eq("status", "pending");
 
 	if (error) {
@@ -96,15 +97,15 @@ export const getPendingFriendRequests = createServerFn({
 // Get sent friend requests
 export const getSentFriendRequests = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data, error } = await supabaseAdmin
 			.from("friendships")
 			.select(
 				`
@@ -115,7 +116,7 @@ export const getSentFriendRequests = createServerFn({ method: "GET" }).handler(
 				friend:users!friendships_friend_id_fkey(*)
 			`
 			)
-			.eq("user_id", authUser.id)
+			.eq("user_id", userId)
 			.eq("status", "pending");
 
 		if (error) {
@@ -132,24 +133,24 @@ export const sendFriendRequest = createServerFn({ method: "POST" })
 		(data: { friendId: string; addedVia: "qr" | "phone" | "nickname" }) => data
 	)
 	.handler(async ({ data: { friendId, addedVia } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		if (friendId === authUser.id) {
+		const userId = currentUser.user.id;
+
+		if (friendId === userId) {
 			return { error: "Cannot add yourself as a friend", data: null };
 		}
 
 		// Check if friendship already exists
-		const { data: existing } = await supabase
+		const { data: existing } = await supabaseAdmin
 			.from("friendships")
 			.select("id, status")
 			.or(
-				`and(user_id.eq.${authUser.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${authUser.id})`
+				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
 			)
 			.single();
 
@@ -164,13 +165,13 @@ export const sendFriendRequest = createServerFn({ method: "POST" })
 
 		// Create friend request
 		const friendshipInsert: FriendshipInsert = {
-			user_id: authUser.id,
+			user_id: userId,
 			friend_id: friendId,
 			added_via: addedVia,
 			status: "pending",
 		};
 
-		const { data: friendship, error } = await supabase
+		const { data: friendship, error } = await supabaseAdmin
 			.from("friendships")
 			.insert(friendshipInsert)
 			.select(
@@ -192,19 +193,19 @@ export const sendFriendRequest = createServerFn({ method: "POST" })
 export const acceptFriendRequest = createServerFn({ method: "POST" })
 	.inputValidator((data: { friendshipId: string }) => data)
 	.handler(async ({ data: { friendshipId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data: friendship, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data: friendship, error } = await supabaseAdmin
 			.from("friendships")
 			.update({ status: "accepted" })
 			.eq("id", friendshipId)
-			.eq("friend_id", authUser.id)
+			.eq("friend_id", userId)
 			.eq("status", "pending")
 			.select()
 			.single();
@@ -220,19 +221,19 @@ export const acceptFriendRequest = createServerFn({ method: "POST" })
 export const declineFriendRequest = createServerFn({ method: "POST" })
 	.inputValidator((data: { friendshipId: string }) => data)
 	.handler(async ({ data: { friendshipId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data: friendship, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data: friendship, error } = await supabaseAdmin
 			.from("friendships")
 			.update({ status: "declined" })
 			.eq("id", friendshipId)
-			.eq("friend_id", authUser.id)
+			.eq("friend_id", userId)
 			.eq("status", "pending")
 			.select()
 			.single();
@@ -248,20 +249,20 @@ export const declineFriendRequest = createServerFn({ method: "POST" })
 export const removeFriend = createServerFn({ method: "POST" })
 	.inputValidator((data: { friendId: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
-			return { error: "Not authenticated", data: null };
+		if (!currentUser) {
+			return { error: "Not authenticated", success: false };
 		}
 
+		const userId = currentUser.user.id;
+
 		// Delete friendship in either direction
-		const { error } = await supabase
+		const { error } = await supabaseAdmin
 			.from("friendships")
 			.delete()
 			.or(
-				`and(user_id.eq.${authUser.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${authUser.id})`
+				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
 			);
 
 		if (error) {
@@ -274,20 +275,20 @@ export const removeFriend = createServerFn({ method: "POST" })
 // Check if users are friends
 export const checkFriendship = createServerFn({ method: "GET" })
 	.inputValidator((data: { userId: string }) => data)
-	.handler(async ({ data: { userId } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+	.handler(async ({ data: { userId: targetUserId } }) => {
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", isFriend: false, status: null };
 		}
 
-		const { data: friendship } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data: friendship } = await supabaseAdmin
 			.from("friendships")
 			.select("status")
 			.or(
-				`and(user_id.eq.${authUser.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${authUser.id})`
+				`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`
 			)
 			.single();
 
@@ -301,24 +302,24 @@ export const checkFriendship = createServerFn({ method: "GET" })
 // Get friends count
 export const getFriendsCount = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", count: 0 };
 		}
 
-		const { count: count1 } = await supabase
+		const userId = currentUser.user.id;
+
+		const { count: count1 } = await supabaseAdmin
 			.from("friendships")
 			.select("*", { count: "exact", head: true })
-			.eq("user_id", authUser.id)
+			.eq("user_id", userId)
 			.eq("status", "accepted");
 
-		const { count: count2 } = await supabase
+		const { count: count2 } = await supabaseAdmin
 			.from("friendships")
 			.select("*", { count: "exact", head: true })
-			.eq("friend_id", authUser.id)
+			.eq("friend_id", userId)
 			.eq("status", "accepted");
 
 		return { error: null, count: (count1 || 0) + (count2 || 0) };

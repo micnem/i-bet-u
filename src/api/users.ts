@@ -1,30 +1,18 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabase, supabaseAdmin } from "../lib/supabase";
+import { supabaseAdmin } from "../lib/supabase";
 import type { User, UserInsert, UserUpdate } from "../lib/database.types";
+import { getCurrentUser } from "../lib/auth";
 
 // Get current authenticated user's profile
 export const getCurrentUserProfile = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const {
-			data: { user: authUser },
-			error: authError,
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (authError || !authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data, error } = await supabase
-			.from("users")
-			.select("*")
-			.eq("id", authUser.id)
-			.single();
-
-		if (error) {
-			return { error: error.message, data: null };
-		}
-
-		return { error: null, data };
+		return { error: null, data: currentUser.user };
 	}
 );
 
@@ -32,7 +20,7 @@ export const getCurrentUserProfile = createServerFn({ method: "GET" }).handler(
 export const getUserById = createServerFn({ method: "GET" })
 	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
-		const { data, error } = await supabase
+		const { data, error } = await supabaseAdmin
 			.from("users")
 			.select("*")
 			.eq("id", userId)
@@ -49,7 +37,7 @@ export const getUserById = createServerFn({ method: "GET" })
 export const getUserByUsername = createServerFn({ method: "GET" })
 	.inputValidator((data: { username: string }) => data)
 	.handler(async ({ data: { username } }) => {
-		const { data, error } = await supabase
+		const { data, error } = await supabaseAdmin
 			.from("users")
 			.select("*")
 			.eq("username", username)
@@ -66,19 +54,19 @@ export const getUserByUsername = createServerFn({ method: "GET" })
 export const searchUsers = createServerFn({ method: "GET" })
 	.inputValidator((data: { query: string; limit?: number }) => data)
 	.handler(async ({ data: { query, limit = 10 } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data, error } = await supabaseAdmin
 			.from("users")
 			.select("*")
 			.or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
-			.neq("id", authUser.id)
+			.neq("id", userId)
 			.limit(limit);
 
 		if (error) {
@@ -92,19 +80,19 @@ export const searchUsers = createServerFn({ method: "GET" })
 export const searchUserByPhone = createServerFn({ method: "GET" })
 	.inputValidator((data: { phoneNumber: string }) => data)
 	.handler(async ({ data: { phoneNumber } }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
 
-		const { data, error } = await supabase
+		const userId = currentUser.user.id;
+
+		const { data, error } = await supabaseAdmin
 			.from("users")
 			.select("*")
 			.eq("phone_number", phoneNumber)
-			.neq("id", authUser.id)
+			.neq("id", userId)
 			.single();
 
 		if (error) {
@@ -125,13 +113,13 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 		}) => data
 	)
 	.handler(async ({ data }) => {
-		const {
-			data: { user: authUser },
-		} = await supabase.auth.getUser();
+		const currentUser = await getCurrentUser();
 
-		if (!authUser) {
+		if (!currentUser) {
 			return { error: "Not authenticated", data: null };
 		}
+
+		const userId = currentUser.user.id;
 
 		const updateData: UserUpdate = {};
 		if (data.displayName) updateData.display_name = data.displayName;
@@ -140,10 +128,10 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			updateData.phone_number = data.phoneNumber;
 		if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
 
-		const { data: updatedUser, error } = await supabase
+		const { data: updatedUser, error } = await supabaseAdmin
 			.from("users")
 			.update(updateData)
-			.eq("id", authUser.id)
+			.eq("id", userId)
 			.select()
 			.single();
 
@@ -158,7 +146,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 export const getUserStats = createServerFn({ method: "GET" })
 	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
-		const { data: user, error } = await supabase
+		const { data: user, error } = await supabaseAdmin
 			.from("users")
 			.select("total_bets, bets_won, bets_lost")
 			.eq("id", userId)
@@ -188,7 +176,7 @@ export const getUserStats = createServerFn({ method: "GET" })
 export const checkUsernameAvailable = createServerFn({ method: "GET" })
 	.inputValidator((data: { username: string }) => data)
 	.handler(async ({ data: { username } }) => {
-		const { data, error } = await supabase
+		const { data, error } = await supabaseAdmin
 			.from("users")
 			.select("id")
 			.eq("username", username)

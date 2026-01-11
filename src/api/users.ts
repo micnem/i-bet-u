@@ -160,7 +160,7 @@ export const getUserStats = createServerFn({ method: "GET" })
 	.handler(async ({ data: { userId } }) => {
 		const { data: user, error } = await supabase
 			.from("users")
-			.select("total_bets, bets_won, bets_lost, wallet_balance")
+			.select("total_bets, bets_won, bets_lost")
 			.eq("id", userId)
 			.single();
 
@@ -180,7 +180,6 @@ export const getUserStats = createServerFn({ method: "GET" })
 				won: user.bets_won,
 				lost: user.bets_lost,
 				winRate,
-				walletBalance: user.wallet_balance,
 			},
 		};
 	});

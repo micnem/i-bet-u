@@ -3,15 +3,14 @@ import { useEffect } from "react";
 import { useUser, useClerk } from "@clerk/tanstack-react-start";
 import {
 	User,
-	Wallet,
-	CreditCard,
-	Plus,
 	Trophy,
 	TrendingUp,
+	TrendingDown,
 	Settings,
 	LogOut,
 	ChevronRight,
 	Loader2,
+	DollarSign,
 } from "lucide-react";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
@@ -51,11 +50,16 @@ function ProfilePage() {
 	const avatarUrl = clerkUser.imageUrl;
 
 	// Stats will be 0 until synced via webhook and fetched from Supabase
-	const walletBalance = 0;
 	const totalBets = 0;
 	const betsWon = 0;
 	const betsLost = 0;
 	const winRate = 0;
+
+	// Amounts owed (calculated from completed bets)
+	// TODO: Fetch from getAmountsOwedSummary API
+	const totalWon = 0;
+	const totalLost = 0;
+	const netBalance = 0;
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -99,74 +103,65 @@ function ProfilePage() {
 
 			<div className="max-w-4xl mx-auto px-6 py-8">
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-					{/* Wallet Section */}
-					<div className="bg-white rounded-xl shadow-md p-6">
-						<div className="flex items-center gap-3 mb-6">
-							<div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-								<Wallet className="w-5 h-5 text-orange-500" />
-							</div>
-							<div>
-								<h2 className="text-lg font-semibold">Wallet</h2>
-								<p className="text-sm text-gray-500">Manage your funds</p>
-							</div>
-						</div>
-
-						<div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white mb-6">
-							<p className="text-sm text-gray-400">Available Balance</p>
-							<p className="text-4xl font-bold mt-1">
-								${walletBalance.toFixed(2)}
-							</p>
-						</div>
-
-						<div className="flex gap-3">
-							<button
-								type="button"
-								className="flex-1 ibetu-btn-primary flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
-								disabled
-							>
-								<Plus size={20} />
-								Add Funds
-							</button>
-						</div>
-						<p className="text-xs text-gray-500 text-center mt-2">Coming soon</p>
-					</div>
-
-					{/* Payment Methods */}
-					<div className="bg-white rounded-xl shadow-md p-6">
-						<div className="flex items-center justify-between mb-6">
-							<div className="flex items-center gap-3">
-								<div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-									<CreditCard className="w-5 h-5 text-blue-500" />
-								</div>
-								<div>
-									<h2 className="text-lg font-semibold">Payment Methods</h2>
-									<p className="text-sm text-gray-500">Your saved cards</p>
-								</div>
-							</div>
-						</div>
-
-						<div className="text-center py-8 text-gray-500">
-							<CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-							<p>No payment methods yet</p>
-							<p className="text-sm">Coming soon</p>
-						</div>
-					</div>
-
-					{/* Transaction History */}
+					{/* Net Balance Section */}
 					<div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
 						<div className="flex items-center gap-3 mb-6">
-							<div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-								<TrendingUp className="w-5 h-5 text-green-500" />
+							<div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+								<DollarSign className="w-5 h-5 text-orange-500" />
 							</div>
 							<div>
-								<h2 className="text-lg font-semibold">Transaction History</h2>
-								<p className="text-sm text-gray-500">Recent wallet activity</p>
+								<h2 className="text-lg font-semibold">Bet Balance</h2>
+								<p className="text-sm text-gray-500">Your overall betting balance</p>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-3 gap-4">
+							<div className="bg-green-50 rounded-xl p-4 text-center">
+								<div className="flex items-center justify-center gap-2 mb-2">
+									<TrendingUp className="w-5 h-5 text-green-600" />
+									<span className="text-sm text-green-600 font-medium">Won</span>
+								</div>
+								<p className="text-2xl font-bold text-green-700">
+									${totalWon.toFixed(2)}
+								</p>
+							</div>
+							<div className="bg-red-50 rounded-xl p-4 text-center">
+								<div className="flex items-center justify-center gap-2 mb-2">
+									<TrendingDown className="w-5 h-5 text-red-600" />
+									<span className="text-sm text-red-600 font-medium">Lost</span>
+								</div>
+								<p className="text-2xl font-bold text-red-700">
+									${totalLost.toFixed(2)}
+								</p>
+							</div>
+							<div className={`rounded-xl p-4 text-center ${netBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+								<div className="flex items-center justify-center gap-2 mb-2">
+									<DollarSign className={`w-5 h-5 ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`} />
+									<span className={`text-sm font-medium ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`}>Net</span>
+								</div>
+								<p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+									{netBalance >= 0 ? '+' : ''}{netBalance.toFixed(2)}
+								</p>
+							</div>
+						</div>
+					</div>
+
+					{/* Amounts Owed Section */}
+					<div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
+						<div className="flex items-center gap-3 mb-6">
+							<div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+								<Trophy className="w-5 h-5 text-blue-500" />
+							</div>
+							<div>
+								<h2 className="text-lg font-semibold">Amounts Owed</h2>
+								<p className="text-sm text-gray-500">Settle up with your friends</p>
 							</div>
 						</div>
 
 						<div className="text-center py-8 text-gray-500">
-							<TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-							<p>No transactions yet</p>
+							<Trophy className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+							<p>No completed bets yet</p>
+							<p className="text-sm mt-2">Complete some bets to see amounts owed</p>
 						</div>
 					</div>
 

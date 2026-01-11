@@ -101,17 +101,6 @@ export const createBet = createServerFn({ method: "POST" })
 			return { error: "Not authenticated", data: null };
 		}
 
-		// Check if user has sufficient balance
-		const { data: userProfile } = await supabase
-			.from("users")
-			.select("wallet_balance")
-			.eq("id", authUser.id)
-			.single();
-
-		if (!userProfile || userProfile.wallet_balance < data.amount) {
-			return { error: "Insufficient wallet balance", data: null };
-		}
-
 		// Check if opponent exists and is a friend
 		const { data: friendship } = await supabase
 			.from("friendships")
@@ -182,21 +171,7 @@ export const acceptBet = createServerFn({ method: "POST" })
 			return { error: "Bet not found or already processed", data: null };
 		}
 
-		// Check opponent's balance
-		const { data: userProfile } = await supabase
-			.from("users")
-			.select("wallet_balance")
-			.eq("id", authUser.id)
-			.single();
-
-		if (!userProfile || userProfile.wallet_balance < bet.amount) {
-			return { error: "Insufficient wallet balance", data: null };
-		}
-
-		// Start transaction: update bet, hold funds from both users
-		// Note: In production, use a Supabase edge function for atomicity
-
-		// Update bet status
+		// Update bet status to active
 		const { data: updatedBet, error: betError } = await supabase
 			.from("bets")
 			.update({
@@ -210,36 +185,6 @@ export const acceptBet = createServerFn({ method: "POST" })
 		if (betError) {
 			return { error: betError.message, data: null };
 		}
-
-		// Hold funds from creator
-		await supabase.rpc("deduct_balance", {
-			user_id: bet.creator_id,
-			amount: bet.amount,
-		});
-
-		// Hold funds from opponent
-		await supabase.rpc("deduct_balance", {
-			user_id: authUser.id,
-			amount: bet.amount,
-		});
-
-		// Create hold transactions
-		await supabase.from("transactions").insert([
-			{
-				user_id: bet.creator_id,
-				type: "bet_hold",
-				amount: -bet.amount,
-				bet_id: betId,
-				description: `Hold for bet: ${bet.title}`,
-			},
-			{
-				user_id: authUser.id,
-				type: "bet_hold",
-				amount: -bet.amount,
-				bet_id: betId,
-				description: `Hold for bet: ${bet.title}`,
-			},
-		]);
 
 		return { error: null, data: updatedBet };
 	});
@@ -332,7 +277,7 @@ export const approveBetResult = createServerFn({ method: "POST" })
 		return { error: null, data: updatedBet };
 	});
 
-// Internal function to resolve bet and distribute funds
+// Internal function to resolve bet and update stats
 async function resolveBet({
 	betId,
 	winnerId,
@@ -350,7 +295,6 @@ async function resolveBet({
 
 	const loserId =
 		winnerId === bet.creator_id ? bet.opponent_id : bet.creator_id;
-	const totalPot = bet.amount * 2;
 
 	// Update bet status
 	await supabase
@@ -362,33 +306,9 @@ async function resolveBet({
 		})
 		.eq("id", betId);
 
-	// Credit winner
-	await supabase.rpc("add_balance", {
-		user_id: winnerId,
-		amount: totalPot,
-	});
-
 	// Update stats
 	await supabase.rpc("increment_wins", { user_id: winnerId });
 	await supabase.rpc("increment_losses", { user_id: loserId });
-
-	// Create transaction records
-	await supabase.from("transactions").insert([
-		{
-			user_id: winnerId,
-			type: "bet_win",
-			amount: totalPot,
-			bet_id: betId,
-			description: `Won bet: ${bet.title}`,
-		},
-		{
-			user_id: loserId,
-			type: "bet_loss",
-			amount: 0, // Already deducted during hold
-			bet_id: betId,
-			description: `Lost bet: ${bet.title}`,
-		},
-	]);
 }
 
 // Cancel a pending bet (creator only)
@@ -472,5 +392,81 @@ export const getActiveBetsCount = createServerFn({ method: "GET" }).handler(
 		}
 
 		return { error: null, count: count || 0 };
+	}
+);
+
+// Get amounts owed summary (calculated from completed bets)
+export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const {
+			data: { user: authUser },
+		} = await supabase.auth.getUser();
+
+		if (!authUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		// Get all completed bets for the user
+		const { data: completedBets, error } = await supabase
+			.from("bets")
+			.select(
+				`
+				*,
+				creator:users!bets_creator_id_fkey(id, username, display_name, avatar_url),
+				opponent:users!bets_opponent_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.or(`creator_id.eq.${authUser.id},opponent_id.eq.${authUser.id}`)
+			.eq("status", "completed");
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		// Calculate totals
+		let totalWon = 0;
+		let totalLost = 0;
+		const balanceByFriend: Record<
+			string,
+			{ friend: { id: string; username: string; display_name: string; avatar_url: string | null }; amount: number }
+		> = {};
+
+		for (const bet of completedBets || []) {
+			const isCreator = bet.creator_id === authUser.id;
+			const isWinner = bet.winner_id === authUser.id;
+			const friendId = isCreator ? bet.opponent_id : bet.creator_id;
+			const friend = isCreator ? bet.opponent : bet.creator;
+
+			if (isWinner) {
+				totalWon += Number(bet.amount);
+				// Friend owes user this amount
+				if (!balanceByFriend[friendId]) {
+					balanceByFriend[friendId] = { friend, amount: 0 };
+				}
+				balanceByFriend[friendId].amount += Number(bet.amount);
+			} else {
+				totalLost += Number(bet.amount);
+				// User owes friend this amount
+				if (!balanceByFriend[friendId]) {
+					balanceByFriend[friendId] = { friend, amount: 0 };
+				}
+				balanceByFriend[friendId].amount -= Number(bet.amount);
+			}
+		}
+
+		// Convert to array and sort by absolute amount
+		const friendBalances = Object.values(balanceByFriend).sort(
+			(a, b) => Math.abs(b.amount) - Math.abs(a.amount)
+		);
+
+		return {
+			error: null,
+			data: {
+				totalWon,
+				totalLost,
+				netBalance: totalWon - totalLost,
+				friendBalances,
+			},
+		};
 	}
 );

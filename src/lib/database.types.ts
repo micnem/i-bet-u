@@ -12,7 +12,6 @@ export type Json =
 export type BetStatus = "pending" | "active" | "completed" | "declined" | "expired";
 export type BetOutcome = "win" | "loss" | "pending" | "disputed";
 export type VerificationMethod = "mutual_agreement" | "third_party" | "photo_proof" | "honor_system";
-export type TransactionType = "deposit" | "withdrawal" | "bet_win" | "bet_loss" | "bet_hold" | "bet_refund";
 export type FriendRequestStatus = "pending" | "accepted" | "declined";
 
 export interface Database {
@@ -27,7 +26,6 @@ export interface Database {
 					email: string;
 					phone_number: string | null;
 					avatar_url: string | null;
-					wallet_balance: number;
 					total_bets: number;
 					bets_won: number;
 					bets_lost: number;
@@ -42,7 +40,6 @@ export interface Database {
 					email: string;
 					phone_number?: string | null;
 					avatar_url?: string | null;
-					wallet_balance?: number;
 					total_bets?: number;
 					bets_won?: number;
 					bets_lost?: number;
@@ -57,7 +54,6 @@ export interface Database {
 					email?: string;
 					phone_number?: string | null;
 					avatar_url?: string | null;
-					wallet_balance?: number;
 					total_bets?: number;
 					bets_won?: number;
 					bets_lost?: number;
@@ -140,58 +136,6 @@ export interface Database {
 					resolved_at?: string | null;
 				};
 			};
-			transactions: {
-				Row: {
-					id: string;
-					user_id: string;
-					type: TransactionType;
-					amount: number;
-					bet_id: string | null;
-					description: string;
-					created_at: string;
-				};
-				Insert: {
-					id?: string;
-					user_id: string;
-					type: TransactionType;
-					amount: number;
-					bet_id?: string | null;
-					description: string;
-					created_at?: string;
-				};
-				Update: {
-					description?: string;
-				};
-			};
-			payment_methods: {
-				Row: {
-					id: string;
-					user_id: string;
-					type: "credit_card" | "debit_card";
-					last4: string;
-					brand: string;
-					expiry_month: number;
-					expiry_year: number;
-					is_default: boolean;
-					stripe_payment_method_id: string | null;
-					created_at: string;
-				};
-				Insert: {
-					id?: string;
-					user_id: string;
-					type: "credit_card" | "debit_card";
-					last4: string;
-					brand: string;
-					expiry_month: number;
-					expiry_year: number;
-					is_default?: boolean;
-					stripe_payment_method_id?: string | null;
-					created_at?: string;
-				};
-				Update: {
-					is_default?: boolean;
-				};
-			};
 		};
 		Views: {
 			[_ in never]: never;
@@ -203,7 +147,6 @@ export interface Database {
 			bet_status: BetStatus;
 			bet_outcome: BetOutcome;
 			verification_method: VerificationMethod;
-			transaction_type: TransactionType;
 			friend_request_status: FriendRequestStatus;
 		};
 	};
@@ -220,12 +163,6 @@ export type FriendshipInsert = Database["public"]["Tables"]["friendships"]["Inse
 export type Bet = Database["public"]["Tables"]["bets"]["Row"];
 export type BetInsert = Database["public"]["Tables"]["bets"]["Insert"];
 export type BetUpdate = Database["public"]["Tables"]["bets"]["Update"];
-
-export type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
-export type TransactionInsert = Database["public"]["Tables"]["transactions"]["Insert"];
-
-export type PaymentMethod = Database["public"]["Tables"]["payment_methods"]["Row"];
-export type PaymentMethodInsert = Database["public"]["Tables"]["payment_methods"]["Insert"];
 
 // Extended types with relationships
 export type BetWithUsers = Bet & {

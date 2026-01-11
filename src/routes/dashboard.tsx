@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useUser } from "@clerk/tanstack-react-start";
 import {
-	Wallet,
+	DollarSign,
 	Trophy,
 	Users,
 	Plus,
@@ -43,11 +43,14 @@ function Dashboard() {
 	const username = clerkUser.username || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
 
 	// Stats will be 0 until synced via webhook and fetched from Supabase
-	const walletBalance = 0;
 	const totalBets = 0;
 	const betsWon = 0;
 	const betsLost = 0;
 	const winRate = 0;
+
+	// Net balance (calculated from completed bets)
+	// TODO: Fetch from getAmountsOwedSummary API
+	const netBalance = 0;
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -76,11 +79,11 @@ function Dashboard() {
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
 						<div className="bg-white/20 backdrop-blur rounded-lg p-4">
 							<div className="flex items-center gap-3">
-								<Wallet className="w-8 h-8" />
+								<DollarSign className="w-8 h-8" />
 								<div>
-									<p className="text-sm text-orange-100">Wallet Balance</p>
-									<p className="text-2xl font-bold">
-										${walletBalance.toFixed(2)}
+									<p className="text-sm text-orange-100">Net Balance</p>
+									<p className={`text-2xl font-bold ${netBalance >= 0 ? '' : ''}`}>
+										{netBalance >= 0 ? '+' : ''}${Math.abs(netBalance).toFixed(2)}
 									</p>
 								</div>
 							</div>
@@ -184,11 +187,11 @@ function Dashboard() {
 									className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
 								>
 									<div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-										<Wallet className="w-5 h-5 text-white" />
+										<DollarSign className="w-5 h-5 text-white" />
 									</div>
 									<div>
-										<p className="font-medium text-gray-800">Add Funds</p>
-										<p className="text-sm text-gray-500">Top up your wallet</p>
+										<p className="font-medium text-gray-800">View Balance</p>
+										<p className="text-sm text-gray-500">See amounts owed</p>
 									</div>
 								</Link>
 							</div>

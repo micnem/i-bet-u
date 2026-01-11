@@ -144,7 +144,7 @@ export const getFriendComparison = createServerFn({ method: "GET" })
 		// Get both users' stats
 		const { data: users, error } = await supabase
 			.from("users")
-			.select("id, username, display_name, avatar_url, total_bets, bets_won, bets_lost, wallet_balance")
+			.select("id, username, display_name, avatar_url, total_bets, bets_won, bets_lost")
 			.in("id", [authUser.id, friendId]);
 
 		if (error || !users || users.length !== 2) {

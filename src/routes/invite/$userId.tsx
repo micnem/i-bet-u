@@ -4,7 +4,7 @@ import { useUser } from "@clerk/tanstack-react-start";
 import { useState, useEffect } from "react";
 import { Users, UserPlus, Check, Clock, Loader2, X } from "lucide-react";
 import { supabaseAdmin } from "../../lib/supabase";
-import { sendFriendRequest, checkFriendship } from "../../api/friends";
+import { addFriendViaInvite, checkFriendship } from "../../api/friends";
 
 // Server function to get user by clerk ID (public, no auth required)
 // Uses admin client to bypass RLS since this is a public invite page
@@ -39,11 +39,11 @@ function InvitePage() {
 	const navigate = useNavigate();
 
 	const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
-	const [sendingRequest, setSendingRequest] = useState(false);
-	const [requestSent, setRequestSent] = useState(false);
+	const [addingFriend, setAddingFriend] = useState(false);
+	const [friendAdded, setFriendAdded] = useState(false);
 	const [error, setError] = useState<string | null>(loaderError);
 
-	// Check friendship status and auto-send request when authenticated
+	// Check friendship status and auto-add friend when authenticated
 	useEffect(() => {
 		async function checkAndAutoAdd() {
 			if (!clerkLoaded || !clerkUser || !loaderInviter) return;
@@ -55,22 +55,22 @@ function InvitePage() {
 			}
 
 			const result = await checkFriendship({ data: { userId: loaderInviter.id } });
-			if (!result.error && result.status) {
-				setFriendshipStatus(result.status);
-			} else if (!result.status || result.status === "none") {
-				// Auto-send friend request if not already friends
-				setSendingRequest(true);
-				const sendResult = await sendFriendRequest({
-					data: { friendId: loaderInviter.id, addedVia: "qr" },
+			if (!result.error && result.status === "accepted") {
+				setFriendshipStatus("accepted");
+			} else if (!result.status || result.status === "none" || result.status === "pending") {
+				// Auto-add friend via invite link
+				setAddingFriend(true);
+				const addResult = await addFriendViaInvite({
+					data: { friendId: loaderInviter.id },
 				});
 
-				if (sendResult.error) {
-					setError(sendResult.error);
+				if (addResult.error) {
+					setError(addResult.error);
 				} else {
-					setRequestSent(true);
-					setFriendshipStatus("pending");
+					setFriendAdded(true);
+					setFriendshipStatus("accepted");
 				}
-				setSendingRequest(false);
+				setAddingFriend(false);
 			}
 		}
 
@@ -80,18 +80,18 @@ function InvitePage() {
 	const handleAddFriend = async () => {
 		if (!loaderInviter) return;
 
-		setSendingRequest(true);
-		const result = await sendFriendRequest({
-			data: { friendId: loaderInviter.id, addedVia: "qr" },
+		setAddingFriend(true);
+		const result = await addFriendViaInvite({
+			data: { friendId: loaderInviter.id },
 		});
 
 		if (result.error) {
 			setError(result.error);
 		} else {
-			setRequestSent(true);
-			setFriendshipStatus("pending");
+			setFriendAdded(true);
+			setFriendshipStatus("accepted");
 		}
-		setSendingRequest(false);
+		setAddingFriend(false);
 	};
 
 	const handleSignUpToAdd = () => {
@@ -189,17 +189,12 @@ function InvitePage() {
 							<div className="flex items-center justify-center gap-2 text-gray-500 mb-4">
 								<span className="font-medium">This is your own invite link</span>
 							</div>
-						) : friendshipStatus === "accepted" ? (
+						) : friendshipStatus === "accepted" || friendAdded ? (
 							<div className="flex items-center justify-center gap-2 text-green-600 mb-4">
 								<Check className="w-5 h-5" />
-								<span className="font-medium">Already friends!</span>
+								<span className="font-medium">You're now friends!</span>
 							</div>
-						) : friendshipStatus === "pending" || requestSent ? (
-							<div className="flex items-center justify-center gap-2 text-green-600 mb-4">
-								<Check className="w-5 h-5" />
-								<span className="font-medium">Friend request sent!</span>
-							</div>
-						) : sendingRequest ? (
+						) : addingFriend ? (
 							<div className="flex items-center justify-center gap-2 text-orange-500 mb-4">
 								<Loader2 className="w-5 h-5 animate-spin" />
 								<span className="font-medium">Adding friend...</span>
@@ -207,7 +202,7 @@ function InvitePage() {
 						) : (
 							<button
 								onClick={handleAddFriend}
-								disabled={sendingRequest}
+								disabled={addingFriend}
 								className="ibetu-btn-primary w-full flex items-center justify-center gap-2 mb-4"
 							>
 								<UserPlus className="w-5 h-5" />

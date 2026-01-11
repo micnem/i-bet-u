@@ -127,6 +127,77 @@ export const getSentFriendRequests = createServerFn({ method: "GET" }).handler(
 	}
 );
 
+// Add friend directly via invite link (auto-accepted)
+export const addFriendViaInvite = createServerFn({ method: "POST" })
+	.inputValidator((data: { friendId: string }) => data)
+	.handler(async ({ data: { friendId } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		if (friendId === userId) {
+			return { error: "Cannot add yourself as a friend", data: null };
+		}
+
+		// Check if friendship already exists
+		const { data: existing } = await supabaseAdmin
+			.from("friendships")
+			.select("id, status")
+			.or(
+				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
+			)
+			.single();
+
+		if (existing) {
+			if (existing.status === "accepted") {
+				return { error: null, data: existing, alreadyFriends: true };
+			}
+			// If pending request exists, accept it
+			if (existing.status === "pending") {
+				const { data: updated, error } = await supabaseAdmin
+					.from("friendships")
+					.update({ status: "accepted" })
+					.eq("id", existing.id)
+					.select()
+					.single();
+
+				if (error) {
+					return { error: error.message, data: null };
+				}
+				return { error: null, data: updated, alreadyFriends: false };
+			}
+		}
+
+		// Create friendship with accepted status (invite link = mutual consent)
+		const friendshipInsert: FriendshipInsert = {
+			user_id: userId,
+			friend_id: friendId,
+			added_via: "qr",
+			status: "accepted",
+		};
+
+		const { data: friendship, error } = await supabaseAdmin
+			.from("friendships")
+			.insert(friendshipInsert)
+			.select(
+				`
+				*,
+				friend:users!friendships_friend_id_fkey(*)
+			`
+			)
+			.single();
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data: friendship, alreadyFriends: false };
+	});
+
 // Send friend request
 export const sendFriendRequest = createServerFn({ method: "POST" })
 	.inputValidator(

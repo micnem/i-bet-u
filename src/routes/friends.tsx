@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@clerk/tanstack-react-start";
 import {
 	UserPlus,
@@ -9,27 +9,129 @@ import {
 	AtSign,
 	Users,
 	X,
+	Check,
+	Loader2,
+	UserX,
 } from "lucide-react";
 import { QRCodeDisplay } from "../components/QRCode";
 import { generateFriendInviteLink, getFriendInviteShareData } from "../lib/sharing";
+import {
+	getFriends,
+	getPendingFriendRequests,
+	acceptFriendRequest,
+	declineFriendRequest,
+} from "../api/friends";
 
 export const Route = createFileRoute("/friends")({ component: FriendsPage });
 
 type AddMethod = "qr" | "phone" | "nickname";
 
+interface Friend {
+	id: string;
+	friend: {
+		id: string;
+		username: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
+}
+
+interface FriendRequest {
+	id: string;
+	requester: {
+		id: string;
+		username: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
+}
+
 function FriendsPage() {
-	const { user } = useUser();
+	const { user, isLoaded } = useUser();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showAddModal, setShowAddModal] = useState(false);
 	const [addMethod, setAddMethod] = useState<AddMethod>("nickname");
 	const [addInput, setAddInput] = useState("");
-	const [showQR, setShowQR] = useState(false);
+
+	// Data states
+	const [friends, setFriends] = useState<Friend[]>([]);
+	const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [processingRequest, setProcessingRequest] = useState<string | null>(null);
 
 	const userId = user?.id || "";
-	const username = user?.username || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
 	const displayName = user?.firstName
 		? `${user.firstName} ${user.lastName || ""}`.trim()
 		: "User";
+
+	// Fetch friends and pending requests
+	useEffect(() => {
+		async function fetchData() {
+			if (!isLoaded || !user) return;
+
+			setLoading(true);
+			try {
+				const [friendsResult, requestsResult] = await Promise.all([
+					getFriends(),
+					getPendingFriendRequests(),
+				]);
+
+				if (!friendsResult.error && friendsResult.data) {
+					setFriends(friendsResult.data as Friend[]);
+				}
+				if (!requestsResult.error && requestsResult.data) {
+					setPendingRequests(requestsResult.data as FriendRequest[]);
+				}
+			} catch (err) {
+				console.error("Failed to fetch friends data:", err);
+			}
+			setLoading(false);
+		}
+
+		fetchData();
+	}, [isLoaded, user]);
+
+	const handleAcceptRequest = async (friendshipId: string) => {
+		setProcessingRequest(friendshipId);
+		const result = await acceptFriendRequest({ data: { friendshipId } });
+		if (!result.error) {
+			// Remove from pending and refresh friends
+			setPendingRequests((prev) => prev.filter((r) => r.id !== friendshipId));
+			const friendsResult = await getFriends();
+			if (!friendsResult.error && friendsResult.data) {
+				setFriends(friendsResult.data as Friend[]);
+			}
+		}
+		setProcessingRequest(null);
+	};
+
+	const handleDeclineRequest = async (friendshipId: string) => {
+		setProcessingRequest(friendshipId);
+		const result = await declineFriendRequest({ data: { friendshipId } });
+		if (!result.error) {
+			setPendingRequests((prev) => prev.filter((r) => r.id !== friendshipId));
+		}
+		setProcessingRequest(null);
+	};
+
+	// Filter friends by search query
+	const filteredFriends = friends.filter((f) => {
+		const friend = f.friend;
+		if (!friend) return false;
+		const query = searchQuery.toLowerCase();
+		return (
+			friend.display_name?.toLowerCase().includes(query) ||
+			friend.username?.toLowerCase().includes(query)
+		);
+	});
+
+	if (!isLoaded || loading) {
+		return (
+			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
+				<Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -39,7 +141,7 @@ function FriendsPage() {
 					<div className="flex items-center justify-between">
 						<div>
 							<h1 className="text-2xl font-bold text-gray-800">Friends</h1>
-							<p className="text-gray-500">0 friends</p>
+							<p className="text-gray-500">{friends.length} friend{friends.length !== 1 ? "s" : ""}</p>
 						</div>
 						<button
 							type="button"
@@ -52,41 +154,164 @@ function FriendsPage() {
 					</div>
 
 					{/* Search */}
-					<div className="relative mt-6">
-						<Search
-							className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-							size={20}
-						/>
-						<input
-							type="text"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							placeholder="Search friends..."
-							className="ibetu-input pl-10"
-						/>
-					</div>
+					{friends.length > 0 && (
+						<div className="relative mt-6">
+							<Search
+								className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+								size={20}
+							/>
+							<input
+								type="text"
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								placeholder="Search friends..."
+								className="ibetu-input pl-10"
+							/>
+						</div>
+					)}
 				</div>
 			</div>
 
-			{/* Friends List */}
-			<div className="max-w-4xl mx-auto px-6 py-8">
-				<div className="bg-white rounded-xl shadow-md p-12 text-center">
-					<Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-					<h3 className="text-lg font-medium text-gray-800 mb-2">
-						No friends yet
-					</h3>
-					<p className="text-gray-500 mb-4">
-						Add friends to start betting!
-					</p>
-					<button
-						type="button"
-						onClick={() => setShowAddModal(true)}
-						className="ibetu-btn-primary inline-flex items-center gap-2"
-					>
-						<UserPlus size={20} />
-						Add Your First Friend
-					</button>
-				</div>
+			<div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+				{/* Pending Friend Requests */}
+				{pendingRequests.length > 0 && (
+					<div className="bg-white rounded-xl shadow-md p-6">
+						<h2 className="text-lg font-bold text-gray-800 mb-4">
+							Friend Requests ({pendingRequests.length})
+						</h2>
+						<div className="space-y-3">
+							{pendingRequests.map((request) => (
+								<div
+									key={request.id}
+									className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+								>
+									<div className="flex items-center gap-3">
+										<div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+											{request.requester.avatar_url ? (
+												<img
+													src={request.requester.avatar_url}
+													alt={request.requester.display_name}
+													className="w-full h-full object-cover"
+												/>
+											) : (
+												<span className="text-lg font-bold text-white">
+													{request.requester.display_name?.charAt(0).toUpperCase() || "?"}
+												</span>
+											)}
+										</div>
+										<div>
+											<p className="font-medium text-gray-800">
+												{request.requester.display_name}
+											</p>
+											{request.requester.username && (
+												<p className="text-sm text-gray-500">
+													@{request.requester.username}
+												</p>
+											)}
+										</div>
+									</div>
+									<div className="flex gap-2">
+										<button
+											type="button"
+											onClick={() => handleAcceptRequest(request.id)}
+											disabled={processingRequest === request.id}
+											className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
+										>
+											{processingRequest === request.id ? (
+												<Loader2 size={20} className="animate-spin" />
+											) : (
+												<Check size={20} />
+											)}
+										</button>
+										<button
+											type="button"
+											onClick={() => handleDeclineRequest(request.id)}
+											disabled={processingRequest === request.id}
+											className="p-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
+										>
+											<X size={20} />
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+
+				{/* Friends List */}
+				{friends.length === 0 ? (
+					<div className="bg-white rounded-xl shadow-md p-12 text-center">
+						<Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+						<h3 className="text-lg font-medium text-gray-800 mb-2">
+							No friends yet
+						</h3>
+						<p className="text-gray-500 mb-4">
+							Add friends to start betting!
+						</p>
+						<button
+							type="button"
+							onClick={() => setShowAddModal(true)}
+							className="ibetu-btn-primary inline-flex items-center gap-2"
+						>
+							<UserPlus size={20} />
+							Add Your First Friend
+						</button>
+					</div>
+				) : (
+					<div className="bg-white rounded-xl shadow-md p-6">
+						<h2 className="text-lg font-bold text-gray-800 mb-4">Your Friends</h2>
+						<div className="space-y-3">
+							{filteredFriends.map((f) => {
+								const friend = f.friend;
+								if (!friend) return null;
+								return (
+									<div
+										key={f.id}
+										className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+									>
+										<div className="flex items-center gap-3">
+											<div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+												{friend.avatar_url ? (
+													<img
+														src={friend.avatar_url}
+														alt={friend.display_name}
+														className="w-full h-full object-cover"
+													/>
+												) : (
+													<span className="text-lg font-bold text-white">
+														{friend.display_name?.charAt(0).toUpperCase() || "?"}
+													</span>
+												)}
+											</div>
+											<div>
+												<p className="font-medium text-gray-800">
+													{friend.display_name}
+												</p>
+												{friend.username && (
+													<p className="text-sm text-gray-500">
+														@{friend.username}
+													</p>
+												)}
+											</div>
+										</div>
+										<Link
+											to="/bets/create"
+											search={{ friendId: friend.id }}
+											className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+										>
+											Bet
+										</Link>
+									</div>
+								);
+							})}
+							{filteredFriends.length === 0 && searchQuery && (
+								<p className="text-center text-gray-500 py-4">
+									No friends match "{searchQuery}"
+								</p>
+							)}
+						</div>
+					</div>
+				)}
 			</div>
 
 			{/* Add Friend Modal */}
@@ -100,7 +325,6 @@ function FriendsPage() {
 								onClick={() => {
 									setShowAddModal(false);
 									setAddInput("");
-									setShowQR(false);
 								}}
 								className="text-gray-400 hover:text-gray-600"
 							>
@@ -115,7 +339,6 @@ function FriendsPage() {
 								onClick={() => {
 									setAddMethod("nickname");
 									setAddInput("");
-									setShowQR(false);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
 									addMethod === "nickname"
@@ -131,7 +354,6 @@ function FriendsPage() {
 								onClick={() => {
 									setAddMethod("phone");
 									setAddInput("");
-									setShowQR(false);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
 									addMethod === "phone"
@@ -147,7 +369,6 @@ function FriendsPage() {
 								onClick={() => {
 									setAddMethod("qr");
 									setAddInput("");
-									setShowQR(true);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
 									addMethod === "qr"

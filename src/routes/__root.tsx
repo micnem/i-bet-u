@@ -34,7 +34,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+		<ClerkProvider publishableKey="pk_test_YW1hemVkLWZhbGNvbi01NC5jbGVyay5hY2NvdW50cy5kZXYk">
 			<html lang="en">
 				<head>
 					<HeadContent />

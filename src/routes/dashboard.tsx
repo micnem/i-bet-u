@@ -1,40 +1,101 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useUser } from "@clerk/tanstack-react-start";
 import {
 	Wallet,
 	Trophy,
 	Users,
 	Plus,
 	Clock,
-	CheckCircle,
-	XCircle,
-	ArrowRight,
-	Bell,
 	TrendingUp,
+	Loader2,
 } from "lucide-react";
-import {
-	currentUser,
-	mockBets,
-	mockBetInvites,
-	mockFriends,
-	getUserById,
-} from "../data/mockData";
-import type { Bet, BetInvite } from "../data/types";
+import { syncCurrentUser, getCurrentUser } from "../api/auth";
+import type { User } from "../lib/database.types";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
 function Dashboard() {
-	const user = currentUser;
-	const activeBets = mockBets.filter(
-		(b) =>
-			(b.creatorId === user.id || b.opponentId === user.id) &&
-			b.status === "active"
-	);
-	const pendingInvites = mockBetInvites.filter(
-		(i) => i.receiverId === user.id && i.status === "pending"
-	);
-	const recentBets = mockBets
-		.filter((b) => b.creatorId === user.id || b.opponentId === user.id)
-		.slice(0, 5);
+	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+	const router = useRouter();
+	const [user, setUser] = useState<User | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		async function loadUser() {
+			if (!clerkLoaded) return;
+
+			if (!clerkUser) {
+				router.navigate({ to: "/auth/login" });
+				return;
+			}
+
+			setLoading(true);
+			try {
+				// First try to get existing user
+				let result = await getCurrentUser();
+
+				// If user doesn't exist, sync from Clerk
+				if (!result.data) {
+					result = await syncCurrentUser();
+				}
+
+				if (result.error) {
+					setError(result.error);
+				} else {
+					setUser(result.data);
+				}
+			} catch (err) {
+				setError("Failed to load user data");
+			} finally {
+				setLoading(false);
+			}
+		}
+
+		loadUser();
+	}, [clerkUser, clerkLoaded, router]);
+
+	if (!clerkLoaded || loading) {
+		return (
+			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
+				<div className="text-center">
+					<Loader2 className="w-8 h-8 animate-spin text-orange-500 mx-auto" />
+					<p className="mt-2 text-gray-600">Loading...</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
+				<div className="text-center">
+					<p className="text-red-600">{error}</p>
+					<button
+						onClick={() => window.location.reload()}
+						className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg"
+					>
+						Retry
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	if (!user) {
+		return (
+			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
+				<div className="text-center">
+					<p className="text-gray-600">Unable to load user profile</p>
+				</div>
+			</div>
+		);
+	}
+
+	const winRate = user.total_bets > 0
+		? Math.round((user.bets_won / user.total_bets) * 100)
+		: 0;
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -44,7 +105,7 @@ function Dashboard() {
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 						<div>
 							<h1 className="text-2xl font-bold">
-								Welcome back, {user.displayName}!
+								Welcome back, {user.display_name}!
 							</h1>
 							<p className="text-orange-100">@{user.username}</p>
 						</div>
@@ -67,7 +128,7 @@ function Dashboard() {
 								<div>
 									<p className="text-sm text-orange-100">Wallet Balance</p>
 									<p className="text-2xl font-bold">
-										${user.walletBalance.toFixed(2)}
+										${user.wallet_balance.toFixed(2)}
 									</p>
 								</div>
 							</div>
@@ -77,7 +138,7 @@ function Dashboard() {
 								<Trophy className="w-8 h-8" />
 								<div>
 									<p className="text-sm text-orange-100">Win Rate</p>
-									<p className="text-2xl font-bold">{user.stats.winRate}%</p>
+									<p className="text-2xl font-bold">{winRate}%</p>
 								</div>
 							</div>
 						</div>
@@ -86,7 +147,7 @@ function Dashboard() {
 								<TrendingUp className="w-8 h-8" />
 								<div>
 									<p className="text-sm text-orange-100">Total Bets</p>
-									<p className="text-2xl font-bold">{user.stats.totalBets}</p>
+									<p className="text-2xl font-bold">{user.total_bets}</p>
 								</div>
 							</div>
 						</div>
@@ -94,8 +155,8 @@ function Dashboard() {
 							<div className="flex items-center gap-3">
 								<Users className="w-8 h-8" />
 								<div>
-									<p className="text-sm text-orange-100">Friends</p>
-									<p className="text-2xl font-bold">{mockFriends.length}</p>
+									<p className="text-sm text-orange-100">Record</p>
+									<p className="text-2xl font-bold">{user.bets_won}W - {user.bets_lost}L</p>
 								</div>
 							</div>
 						</div>
@@ -107,27 +168,7 @@ function Dashboard() {
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					{/* Main Content */}
 					<div className="lg:col-span-2 space-y-6">
-						{/* Pending Invites */}
-						{pendingInvites.length > 0 && (
-							<div className="bg-white rounded-xl shadow-md p-6">
-								<div className="flex items-center justify-between mb-4">
-									<h2 className="text-lg font-bold flex items-center gap-2">
-										<Bell className="text-orange-500" size={20} />
-										Bet Invites
-										<span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-											{pendingInvites.length}
-										</span>
-									</h2>
-								</div>
-								<div className="space-y-3">
-									{pendingInvites.map((invite) => (
-										<BetInviteCard key={invite.id} invite={invite} />
-									))}
-								</div>
-							</div>
-						)}
-
-						{/* Active Bets */}
+						{/* Active Bets Placeholder */}
 						<div className="bg-white rounded-xl shadow-md p-6">
 							<div className="flex items-center justify-between mb-4">
 								<h2 className="text-lg font-bold flex items-center gap-2">
@@ -136,88 +177,20 @@ function Dashboard() {
 								</h2>
 								<Link
 									to="/bets"
-									className="text-orange-500 hover:text-orange-600 text-sm font-medium flex items-center gap-1"
+									className="text-orange-500 hover:text-orange-600 text-sm font-medium"
 								>
-									View All <ArrowRight size={16} />
+									View All
 								</Link>
 							</div>
-							{activeBets.length > 0 ? (
-								<div className="space-y-3">
-									{activeBets.map((bet) => (
-										<BetCard key={bet.id} bet={bet} currentUserId={user.id} />
-									))}
-								</div>
-							) : (
-								<div className="text-center py-8 text-gray-500">
-									<Trophy className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-									<p>No active bets</p>
-									<Link
-										to="/bets/create"
-										className="text-orange-500 hover:text-orange-600 font-medium"
-									>
-										Create your first bet
-									</Link>
-								</div>
-							)}
-						</div>
-
-						{/* Recent Activity */}
-						<div className="bg-white rounded-xl shadow-md p-6">
-							<h2 className="text-lg font-bold mb-4">Recent Activity</h2>
-							<div className="space-y-3">
-								{recentBets.map((bet) => (
-									<div
-										key={bet.id}
-										className="flex items-center justify-between py-3 border-b last:border-0"
-									>
-										<div className="flex items-center gap-3">
-											<div
-												className={`w-10 h-10 rounded-full flex items-center justify-center ${
-													bet.status === "completed"
-														? bet.winnerId === user.id
-															? "bg-green-100"
-															: "bg-red-100"
-														: "bg-orange-100"
-												}`}
-											>
-												{bet.status === "completed" ? (
-													bet.winnerId === user.id ? (
-														<CheckCircle className="w-5 h-5 text-green-600" />
-													) : (
-														<XCircle className="w-5 h-5 text-red-600" />
-													)
-												) : (
-													<Clock className="w-5 h-5 text-orange-600" />
-												)}
-											</div>
-											<div>
-												<p className="font-medium text-gray-800">{bet.title}</p>
-												<p className="text-sm text-gray-500">
-													vs{" "}
-													{bet.creatorId === user.id
-														? bet.opponent?.displayName
-														: bet.creator?.displayName}
-												</p>
-											</div>
-										</div>
-										<div className="text-right">
-											<p
-												className={`font-bold ${
-													bet.status === "completed"
-														? bet.winnerId === user.id
-															? "text-green-600"
-															: "text-red-600"
-														: "text-gray-800"
-												}`}
-											>
-												${bet.amount}
-											</p>
-											<p className="text-xs text-gray-500 capitalize">
-												{bet.status}
-											</p>
-										</div>
-									</div>
-								))}
+							<div className="text-center py-8 text-gray-500">
+								<Trophy className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+								<p>No active bets yet</p>
+								<Link
+									to="/bets/create"
+									className="text-orange-500 hover:text-orange-600 font-medium"
+								>
+									Create your first bet
+								</Link>
 							</div>
 						</div>
 					</div>
@@ -268,127 +241,8 @@ function Dashboard() {
 								</Link>
 							</div>
 						</div>
-
-						{/* Friends */}
-						<div className="bg-white rounded-xl shadow-md p-6">
-							<div className="flex items-center justify-between mb-4">
-								<h2 className="text-lg font-bold">Friends</h2>
-								<Link
-									to="/friends"
-									className="text-orange-500 hover:text-orange-600 text-sm font-medium"
-								>
-									View All
-								</Link>
-							</div>
-							<div className="space-y-3">
-								{mockFriends.slice(0, 4).map((friend) => (
-									<div
-										key={friend.id}
-										className="flex items-center justify-between"
-									>
-										<div className="flex items-center gap-3">
-											<img
-												src={friend.user.avatar}
-												alt={friend.user.displayName}
-												className="w-10 h-10 rounded-full bg-gray-200"
-											/>
-											<div>
-												<p className="font-medium text-gray-800">
-													{friend.user.displayName}
-												</p>
-												<p className="text-sm text-gray-500">
-													@{friend.user.username}
-												</p>
-											</div>
-										</div>
-										<Link
-											to="/bets/create"
-											search={{ friendId: friend.user.id }}
-											className="text-orange-500 hover:text-orange-600"
-										>
-											<Plus size={20} />
-										</Link>
-									</div>
-								))}
-							</div>
-						</div>
 					</div>
 				</div>
-			</div>
-		</div>
-	);
-}
-
-function BetCard({ bet, currentUserId }: { bet: Bet; currentUserId: string }) {
-	const isCreator = bet.creatorId === currentUserId;
-	const opponent = isCreator ? bet.opponent : bet.creator;
-
-	return (
-		<Link
-			to="/bets/$betId"
-			params={{ betId: bet.id }}
-			className="block p-4 rounded-lg border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all"
-		>
-			<div className="flex items-start justify-between">
-				<div className="flex-1">
-					<h3 className="font-semibold text-gray-800">{bet.title}</h3>
-					<p className="text-sm text-gray-500 mt-1">
-						vs {opponent?.displayName}
-					</p>
-				</div>
-				<div className="text-right">
-					<p className="text-lg font-bold text-orange-500">${bet.amount}</p>
-					<p className="text-xs text-gray-500">
-						{new Date(bet.deadline).toLocaleDateString()}
-					</p>
-				</div>
-			</div>
-			<div className="flex items-center gap-2 mt-3">
-				<span className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full capitalize">
-					{bet.verificationMethod.replace("_", " ")}
-				</span>
-			</div>
-		</Link>
-	);
-}
-
-function BetInviteCard({ invite }: { invite: BetInvite }) {
-	const sender = getUserById(invite.senderId);
-
-	return (
-		<div className="p-4 rounded-lg border-2 border-orange-200 bg-orange-50">
-			<div className="flex items-start justify-between">
-				<div className="flex-1">
-					<div className="flex items-center gap-2">
-						<img
-							src={sender?.avatar}
-							alt={sender?.displayName}
-							className="w-8 h-8 rounded-full bg-gray-200"
-						/>
-						<span className="font-medium text-gray-800">
-							{sender?.displayName}
-						</span>
-					</div>
-					<h3 className="font-semibold text-gray-800 mt-2">
-						{invite.bet.title}
-					</h3>
-					<p className="text-sm text-gray-600 mt-1">{invite.bet.description}</p>
-				</div>
-				<p className="text-lg font-bold text-orange-500">
-					${invite.bet.amount}
-				</p>
-			</div>
-			<div className="flex gap-2 mt-4">
-				<Link
-					to="/bets/$betId"
-					params={{ betId: invite.bet.id }}
-					className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg font-medium text-center hover:bg-orange-600 transition-colors"
-				>
-					View & Accept
-				</Link>
-				<button className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-100 transition-colors">
-					Decline
-				</button>
 			</div>
 		</div>
 	);

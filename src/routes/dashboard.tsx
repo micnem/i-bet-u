@@ -153,7 +153,7 @@ function Dashboard() {
 								<div>
 									<p className="text-sm text-orange-100">Net Balance</p>
 									<p className="text-2xl font-bold">
-										{netBalance >= 0 ? "+" : ""}${Math.abs(netBalance).toFixed(2)}
+										{netBalance >= 0 ? "+" : "-"}${Math.abs(netBalance).toFixed(2)}
 									</p>
 								</div>
 							</div>

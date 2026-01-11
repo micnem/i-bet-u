@@ -10,11 +10,9 @@ import {
 	Trophy,
 	User,
 	Users,
-	Wallet,
 	X,
 } from "lucide-react";
 import { useState } from "react";
-import { currentUser } from "../data/mockData";
 
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -47,8 +45,8 @@ export default function Header() {
 
 	const displayName = user?.firstName
 		? `${user.firstName} ${user.lastName || ""}`.trim()
-		: currentUser.displayName;
-	const username = user?.username || currentUser.username;
+		: "User";
+	const username = user?.username || "user";
 	const avatarUrl =
 		user?.imageUrl ||
 		`https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
@@ -116,17 +114,8 @@ export default function Header() {
 							)}
 						</nav>
 
-						{/* Mobile Wallet + Menu */}
+						{/* Mobile Menu Button */}
 						<div className="flex items-center gap-3 md:hidden">
-							{!isPublicPage && (
-								<Link
-									to="/profile"
-									className="flex items-center gap-1 px-3 py-1 bg-gray-700 rounded-full text-sm"
-								>
-									<Wallet size={14} />
-									<span>${currentUser.walletBalance.toFixed(0)}</span>
-								</Link>
-							)}
 							<button
 								onClick={() => setIsOpen(true)}
 								className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
@@ -136,18 +125,9 @@ export default function Header() {
 							</button>
 						</div>
 
-						{/* Desktop Wallet (only for authenticated) */}
+						{/* Desktop Avatar (only for authenticated) */}
 						{!isPublicPage && (
 							<div className="hidden md:flex items-center gap-3">
-								<Link
-									to="/profile"
-									className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-								>
-									<Wallet size={18} />
-									<span className="font-medium">
-										${currentUser.walletBalance.toFixed(2)}
-									</span>
-								</Link>
 								<img
 									src={avatarUrl}
 									alt={displayName}
@@ -190,12 +170,6 @@ export default function Header() {
 								<p className="font-medium">{displayName}</p>
 								<p className="text-sm text-gray-400">@{username}</p>
 							</div>
-						</div>
-						<div className="mt-3 flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg">
-							<Wallet size={16} className="text-orange-500" />
-							<span className="font-medium">
-								${currentUser.walletBalance.toFixed(2)}
-							</span>
 						</div>
 					</div>
 				)}

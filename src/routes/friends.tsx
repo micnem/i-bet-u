@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useUser } from "@clerk/tanstack-react-start";
 import {
 	UserPlus,
 	Search,
@@ -7,13 +8,8 @@ import {
 	Phone,
 	AtSign,
 	Users,
-	Trophy,
-	Plus,
 	X,
-	History,
 } from "lucide-react";
-import { currentUser, mockFriends, mockUsers } from "../data/mockData";
-import type { User } from "../data/types";
 import { QRCodeDisplay } from "../components/QRCode";
 import { generateFriendInviteLink, getFriendInviteShareData } from "../lib/sharing";
 
@@ -22,46 +18,17 @@ export const Route = createFileRoute("/friends")({ component: FriendsPage });
 type AddMethod = "qr" | "phone" | "nickname";
 
 function FriendsPage() {
+	const { user } = useUser();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showAddModal, setShowAddModal] = useState(false);
 	const [addMethod, setAddMethod] = useState<AddMethod>("nickname");
 	const [addInput, setAddInput] = useState("");
-	const [searchResults, setSearchResults] = useState<User[]>([]);
 	const [showQR, setShowQR] = useState(false);
 
-	const filteredFriends = mockFriends.filter(
-		(friend) =>
-			friend.user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			friend.user.username.toLowerCase().includes(searchQuery.toLowerCase())
-	);
-
-	const handleSearch = () => {
-		if (addMethod === "nickname" && addInput.trim()) {
-			// Mock search - find users not already friends
-			const results = mockUsers.filter(
-				(u) =>
-					(u.username.toLowerCase().includes(addInput.toLowerCase()) ||
-						u.displayName.toLowerCase().includes(addInput.toLowerCase())) &&
-					!mockFriends.some((f) => f.user.id === u.id)
-			);
-			setSearchResults(results);
-		} else if (addMethod === "phone" && addInput.trim()) {
-			// Mock phone search
-			const results = mockUsers.filter(
-				(u) =>
-					u.phoneNumber?.includes(addInput) &&
-					!mockFriends.some((f) => f.user.id === u.id)
-			);
-			setSearchResults(results);
-		}
-	};
-
-	const handleAddFriend = (user: User) => {
-		// Mock add friend - in real app would call API
-		setShowAddModal(false);
-		setAddInput("");
-		setSearchResults([]);
-	};
+	const username = user?.username || "user";
+	const displayName = user?.firstName
+		? `${user.firstName} ${user.lastName || ""}`.trim()
+		: "User";
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -71,11 +38,10 @@ function FriendsPage() {
 					<div className="flex items-center justify-between">
 						<div>
 							<h1 className="text-2xl font-bold text-gray-800">Friends</h1>
-							<p className="text-gray-500">
-								{mockFriends.length} friends
-							</p>
+							<p className="text-gray-500">0 friends</p>
 						</div>
 						<button
+							type="button"
 							onClick={() => setShowAddModal(true)}
 							className="ibetu-btn-primary inline-flex items-center gap-2"
 						>
@@ -103,103 +69,23 @@ function FriendsPage() {
 
 			{/* Friends List */}
 			<div className="max-w-4xl mx-auto px-6 py-8">
-				{filteredFriends.length > 0 ? (
-					<div className="grid gap-4">
-						{filteredFriends.map((friend) => (
-							<div
-								key={friend.id}
-								className="bg-white rounded-xl shadow-md p-6"
-							>
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-4">
-										<img
-											src={friend.user.avatar}
-											alt={friend.user.displayName}
-											className="w-14 h-14 rounded-full bg-gray-200"
-										/>
-										<div>
-											<h3 className="font-semibold text-gray-800">
-												{friend.user.displayName}
-											</h3>
-											<p className="text-sm text-gray-500">
-												@{friend.user.username}
-											</p>
-											<div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-												<span className="flex items-center gap-1">
-													<Trophy size={12} />
-													{friend.user.stats.winRate}% win rate
-												</span>
-												<span>
-													Added via {friend.addedVia}
-												</span>
-											</div>
-										</div>
-									</div>
-
-									<div className="flex items-center gap-2">
-										<Link
-											to="/friends/$friendId"
-											params={{ friendId: friend.user.id }}
-											className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm flex items-center gap-1 text-gray-700 transition-colors"
-										>
-											<History size={16} />
-											History
-										</Link>
-										<Link
-											to="/bets/create"
-											search={{ friendId: friend.user.id }}
-											className="ibetu-btn-primary py-2 text-sm flex items-center gap-1"
-										>
-											<Plus size={16} />
-											Bet
-										</Link>
-									</div>
-								</div>
-
-								{/* Stats */}
-								<div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t">
-									<div className="text-center">
-										<p className="text-lg font-bold text-gray-800">
-											{friend.user.stats.totalBets}
-										</p>
-										<p className="text-xs text-gray-500">Total Bets</p>
-									</div>
-									<div className="text-center">
-										<p className="text-lg font-bold text-green-500">
-											{friend.user.stats.won}
-										</p>
-										<p className="text-xs text-gray-500">Won</p>
-									</div>
-									<div className="text-center">
-										<p className="text-lg font-bold text-red-500">
-											{friend.user.stats.lost}
-										</p>
-										<p className="text-xs text-gray-500">Lost</p>
-									</div>
-								</div>
-							</div>
-						))}
-					</div>
-				) : (
-					<div className="bg-white rounded-xl shadow-md p-12 text-center">
-						<Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-						<h3 className="text-lg font-medium text-gray-800 mb-2">
-							{searchQuery ? "No friends found" : "No friends yet"}
-						</h3>
-						<p className="text-gray-500 mb-4">
-							{searchQuery
-								? "Try a different search term"
-								: "Add friends to start betting!"}
-						</p>
-						<button
-							onClick={() => setShowAddModal(true)}
-							className="ibetu-btn-primary inline-flex items-center gap-2"
-						>
-							<UserPlus size={20} />
-							Add Your First Friend
-						</button>
-					</div>
-				)}
+				<div className="bg-white rounded-xl shadow-md p-12 text-center">
+					<Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+					<h3 className="text-lg font-medium text-gray-800 mb-2">
+						No friends yet
+					</h3>
+					<p className="text-gray-500 mb-4">
+						Add friends to start betting!
+					</p>
+					<button
+						type="button"
+						onClick={() => setShowAddModal(true)}
+						className="ibetu-btn-primary inline-flex items-center gap-2"
+					>
+						<UserPlus size={20} />
+						Add Your First Friend
+					</button>
+				</div>
 			</div>
 
 			{/* Add Friend Modal */}
@@ -209,10 +95,10 @@ function FriendsPage() {
 						<div className="flex items-center justify-between mb-6">
 							<h2 className="text-xl font-bold text-gray-800">Add Friend</h2>
 							<button
+								type="button"
 								onClick={() => {
 									setShowAddModal(false);
 									setAddInput("");
-									setSearchResults([]);
 									setShowQR(false);
 								}}
 								className="text-gray-400 hover:text-gray-600"
@@ -224,10 +110,10 @@ function FriendsPage() {
 						{/* Method Tabs */}
 						<div className="flex gap-2 mb-6">
 							<button
+								type="button"
 								onClick={() => {
 									setAddMethod("nickname");
 									setAddInput("");
-									setSearchResults([]);
 									setShowQR(false);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
@@ -240,10 +126,10 @@ function FriendsPage() {
 								Nickname
 							</button>
 							<button
+								type="button"
 								onClick={() => {
 									setAddMethod("phone");
 									setAddInput("");
-									setSearchResults([]);
 									setShowQR(false);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
@@ -256,10 +142,10 @@ function FriendsPage() {
 								Phone
 							</button>
 							<button
+								type="button"
 								onClick={() => {
 									setAddMethod("qr");
 									setAddInput("");
-									setSearchResults([]);
 									setShowQR(true);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
@@ -277,10 +163,10 @@ function FriendsPage() {
 						{addMethod === "qr" ? (
 							<div className="py-4">
 								<QRCodeDisplay
-									value={generateFriendInviteLink(currentUser.username)}
-									title={`Add @${currentUser.username}`}
+									value={generateFriendInviteLink(username)}
+									title={`Add @${username}`}
 									description="Scan this QR code or share the link to add me as a friend on IBetU"
-									shareData={getFriendInviteShareData(currentUser.username, currentUser.displayName)}
+									shareData={getFriendInviteShareData(username, displayName)}
 									size={180}
 								/>
 							</div>
@@ -292,7 +178,6 @@ function FriendsPage() {
 										type={addMethod === "phone" ? "tel" : "text"}
 										value={addInput}
 										onChange={(e) => setAddInput(e.target.value)}
-										onKeyDown={(e) => e.key === "Enter" && handleSearch()}
 										placeholder={
 											addMethod === "phone"
 												? "Enter phone number"
@@ -301,57 +186,18 @@ function FriendsPage() {
 										className="ibetu-input pr-20"
 									/>
 									<button
-										onClick={handleSearch}
+										type="button"
 										className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
 									>
 										Search
 									</button>
 								</div>
 
-								{/* Search Results */}
-								{searchResults.length > 0 ? (
-									<div className="space-y-3 max-h-64 overflow-y-auto">
-										{searchResults.map((user) => (
-											<div
-												key={user.id}
-												className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
-											>
-												<div className="flex items-center gap-3">
-													<img
-														src={user.avatar}
-														alt={user.displayName}
-														className="w-10 h-10 rounded-full bg-gray-200"
-													/>
-													<div>
-														<p className="font-medium text-gray-800">
-															{user.displayName}
-														</p>
-														<p className="text-sm text-gray-500">
-															@{user.username}
-														</p>
-													</div>
-												</div>
-												<button
-													onClick={() => handleAddFriend(user)}
-													className="px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 flex items-center gap-1"
-												>
-													<Plus size={16} />
-													Add
-												</button>
-											</div>
-										))}
-									</div>
-								) : addInput && searchResults.length === 0 ? (
-									<p className="text-center text-gray-500 py-4">
-										No users found. Try a different search.
-									</p>
-								) : (
-									<p className="text-center text-gray-400 py-4">
-										{addMethod === "phone"
-											? "Enter a phone number to find friends"
-											: "Search by username or display name"}
-									</p>
-								)}
+								<p className="text-center text-gray-400 py-4">
+									{addMethod === "phone"
+										? "Enter a phone number to find friends"
+										: "Search by username or display name"}
+								</p>
 							</>
 						)}
 					</div>

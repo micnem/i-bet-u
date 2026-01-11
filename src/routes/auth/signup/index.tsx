@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SignUp } from "@clerk/tanstack-react-start";
 import { ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/auth/signup")({ component: SignUpPage });
+export const Route = createFileRoute("/auth/signup/")({ component: SignUpPage });
 
 function SignUpPage() {
 	return (

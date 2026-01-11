@@ -36,7 +36,7 @@ function LoginPage() {
 					<SignIn
 						routing="path"
 						path="/auth/login"
-						signUpUrl="/auth/signup"
+						signUpUrl={redirect_url ? `/auth/signup?redirect_url=${encodeURIComponent(redirect_url)}` : "/auth/signup"}
 						forceRedirectUrl={redirectUrl}
 					/>
 				</div>

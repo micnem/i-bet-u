@@ -15,7 +15,7 @@ import { Route as FriendsRouteImport } from './routes/friends'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BetsIndexRouteImport } from './routes/bets/index'
-import { Route as InviteUsernameRouteImport } from './routes/invite/$username'
+import { Route as InviteUserIdRouteImport } from './routes/invite/$userId'
 import { Route as FriendsFriendIdRouteImport } from './routes/friends/$friendId'
 import { Route as BetsCreateRouteImport } from './routes/bets/create'
 import { Route as BetsBetIdRouteImport } from './routes/bets/$betId'
@@ -55,9 +55,9 @@ const BetsIndexRoute = BetsIndexRouteImport.update({
   path: '/bets/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InviteUsernameRoute = InviteUsernameRouteImport.update({
-  id: '/invite/$username',
-  path: '/invite/$username',
+const InviteUserIdRoute = InviteUserIdRouteImport.update({
+  id: '/invite/$userId',
+  path: '/invite/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FriendsFriendIdRoute = FriendsFriendIdRouteImport.update({
@@ -110,7 +110,7 @@ export interface FileRoutesByFullPath {
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
-  '/invite/$username': typeof InviteUsernameRoute
+  '/invite/$userId': typeof InviteUserIdRoute
   '/bets': typeof BetsIndexRoute
   '/api/webhooks/clerk': typeof ApiWebhooksClerkRoute
   '/auth/login/$': typeof AuthLoginSplatRoute
@@ -127,7 +127,7 @@ export interface FileRoutesByTo {
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
-  '/invite/$username': typeof InviteUsernameRoute
+  '/invite/$userId': typeof InviteUserIdRoute
   '/bets': typeof BetsIndexRoute
   '/api/webhooks/clerk': typeof ApiWebhooksClerkRoute
   '/auth/login/$': typeof AuthLoginSplatRoute
@@ -145,7 +145,7 @@ export interface FileRoutesById {
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
-  '/invite/$username': typeof InviteUsernameRoute
+  '/invite/$userId': typeof InviteUserIdRoute
   '/bets/': typeof BetsIndexRoute
   '/api/webhooks/clerk': typeof ApiWebhooksClerkRoute
   '/auth/login/$': typeof AuthLoginSplatRoute
@@ -164,7 +164,7 @@ export interface FileRouteTypes {
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
-    | '/invite/$username'
+    | '/invite/$userId'
     | '/bets'
     | '/api/webhooks/clerk'
     | '/auth/login/$'
@@ -181,7 +181,7 @@ export interface FileRouteTypes {
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
-    | '/invite/$username'
+    | '/invite/$userId'
     | '/bets'
     | '/api/webhooks/clerk'
     | '/auth/login/$'
@@ -198,7 +198,7 @@ export interface FileRouteTypes {
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
-    | '/invite/$username'
+    | '/invite/$userId'
     | '/bets/'
     | '/api/webhooks/clerk'
     | '/auth/login/$'
@@ -215,7 +215,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   BetsBetIdRoute: typeof BetsBetIdRoute
   BetsCreateRoute: typeof BetsCreateRoute
-  InviteUsernameRoute: typeof InviteUsernameRoute
+  InviteUserIdRoute: typeof InviteUserIdRoute
   BetsIndexRoute: typeof BetsIndexRoute
   ApiWebhooksClerkRoute: typeof ApiWebhooksClerkRoute
   AuthLoginSplatRoute: typeof AuthLoginSplatRoute
@@ -268,11 +268,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BetsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/invite/$username': {
-      id: '/invite/$username'
-      path: '/invite/$username'
-      fullPath: '/invite/$username'
-      preLoaderRoute: typeof InviteUsernameRouteImport
+    '/invite/$userId': {
+      id: '/invite/$userId'
+      path: '/invite/$userId'
+      fullPath: '/invite/$userId'
+      preLoaderRoute: typeof InviteUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/friends/$friendId': {
@@ -353,7 +353,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   BetsBetIdRoute: BetsBetIdRoute,
   BetsCreateRoute: BetsCreateRoute,
-  InviteUsernameRoute: InviteUsernameRoute,
+  InviteUserIdRoute: InviteUserIdRoute,
   BetsIndexRoute: BetsIndexRoute,
   ApiWebhooksClerkRoute: ApiWebhooksClerkRoute,
   AuthLoginSplatRoute: AuthLoginSplatRoute,

@@ -3,14 +3,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { useUser } from "@clerk/tanstack-react-start";
 import { useState, useEffect } from "react";
 import { Users, UserPlus, Check, Clock, Loader2, X } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { supabaseAdmin } from "../../lib/supabase";
 import { sendFriendRequest, checkFriendship } from "../../api/friends";
 
 // Server function to get user by clerk ID (public, no auth required)
+// Uses admin client to bypass RLS since this is a public invite page
 const getInviterById = createServerFn({ method: "GET" })
 	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
-		const { data, error } = await supabase
+		const { data, error } = await supabaseAdmin
 			.from("users")
 			.select("id, clerk_id, username, display_name, avatar_url, total_bets, bets_won")
 			.eq("clerk_id", userId)

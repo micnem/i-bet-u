@@ -1,19 +1,19 @@
+import { useClerk, useUser } from "@clerk/tanstack-react-start";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { useUser, useClerk } from "@clerk/tanstack-react-start";
 import {
-	Menu,
-	X,
 	Home,
-	Trophy,
-	Users,
-	User,
-	Wallet,
-	Plus,
 	LogIn,
-	Medal,
 	LogOut,
+	Medal,
+	Menu,
+	Plus,
+	Trophy,
+	User,
+	Users,
+	Wallet,
+	X,
 } from "lucide-react";
+import { useState } from "react";
 import { currentUser } from "../data/mockData";
 
 export default function Header() {
@@ -45,7 +45,6 @@ export default function Header() {
 
 	const navItems = isPublicPage ? publicNavItems : authNavItems;
 
-	// Get display name - use Clerk user if available, otherwise fallback to mock
 	const displayName = user?.firstName
 		? `${user.firstName} ${user.lastName || ""}`.trim()
 		: currentUser.displayName;

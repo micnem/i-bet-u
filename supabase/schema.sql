@@ -28,7 +28,7 @@ CREATE TABLE users (
 
 -- Friendships table (bidirectional relationship)
 CREATE TABLE friendships (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     friend_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status friend_request_status DEFAULT 'pending' NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE friendships (
 
 -- Bets table
 CREATE TABLE bets (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
     amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
@@ -63,7 +63,7 @@ CREATE TABLE bets (
 
 -- Payment reminders table (for tracking when users nudge others about owed amounts)
 CREATE TABLE payment_reminders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     amount DECIMAL(10, 2) NOT NULL,

@@ -3,7 +3,7 @@
 
 -- Create payment_reminders table
 CREATE TABLE IF NOT EXISTS payment_reminders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     amount DECIMAL(10, 2) NOT NULL,

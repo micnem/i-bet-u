@@ -173,8 +173,8 @@ function BetDetailsPage() {
 		);
 	}
 
-	const isCreator = clerkUser && bet.creator_id === bet.creator.id;
-	const isOpponent = clerkUser && bet.opponent_id === bet.opponent.id;
+	const isCreator = clerkUser && clerkUser.id === bet.creator_id;
+	const isOpponent = clerkUser && clerkUser.id === bet.opponent_id;
 	const isPending = bet.status === "pending";
 	const isActive = bet.status === "active";
 	const isCompleted = bet.status === "completed";

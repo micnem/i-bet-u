@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@clerk/tanstack-react-start";
 import {
 	DollarSign,
@@ -9,13 +9,43 @@ import {
 	Clock,
 	TrendingUp,
 	Loader2,
+	ChevronRight,
+	AlertCircle,
 } from "lucide-react";
+import { getUserBets, getAmountsOwedSummary } from "../api/bets";
+import { getCurrentUserProfile } from "../api/users";
+import type { BetStatus } from "../lib/database.types";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
+
+interface Bet {
+	id: string;
+	title: string;
+	amount: number;
+	status: BetStatus;
+	deadline: string;
+	opponent: {
+		id: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
+}
+
+interface UserProfile {
+	total_bets: number;
+	bets_won: number;
+	bets_lost: number;
+}
 
 function Dashboard() {
 	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 	const router = useRouter();
+
+	const [activeBets, setActiveBets] = useState<Bet[]>([]);
+	const [pendingBets, setPendingBets] = useState<Bet[]>([]);
+	const [profile, setProfile] = useState<UserProfile | null>(null);
+	const [netBalance, setNetBalance] = useState(0);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		if (clerkLoaded && !clerkUser) {
@@ -23,7 +53,43 @@ function Dashboard() {
 		}
 	}, [clerkUser, clerkLoaded, router]);
 
-	if (!clerkLoaded) {
+	useEffect(() => {
+		async function fetchData() {
+			if (!clerkUser) return;
+
+			setLoading(true);
+			try {
+				const [betsResult, amountsResult, profileResult] = await Promise.all([
+					getUserBets({ data: {} }),
+					getAmountsOwedSummary(),
+					getCurrentUserProfile(),
+				]);
+
+				if (betsResult.data) {
+					const bets = betsResult.data as Bet[];
+					setActiveBets(bets.filter((b) => b.status === "active").slice(0, 5));
+					setPendingBets(bets.filter((b) => b.status === "pending").slice(0, 5));
+				}
+
+				if (amountsResult.data) {
+					setNetBalance(amountsResult.data.netBalance);
+				}
+
+				if (profileResult.data) {
+					setProfile(profileResult.data as UserProfile);
+				}
+			} catch (error) {
+				console.error("Failed to fetch dashboard data:", error);
+			}
+			setLoading(false);
+		}
+
+		if (clerkUser) {
+			fetchData();
+		}
+	}, [clerkUser]);
+
+	if (!clerkLoaded || loading) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
 				<div className="text-center">
@@ -38,19 +104,23 @@ function Dashboard() {
 		return null;
 	}
 
-	// Use Clerk user data directly
 	const displayName = clerkUser.fullName || clerkUser.firstName || "User";
-	const username = clerkUser.username || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
+	const username =
+		clerkUser.username ||
+		clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+		"user";
 
-	// Stats will be 0 until synced via webhook and fetched from Supabase
-	const totalBets = 0;
-	const betsWon = 0;
-	const betsLost = 0;
-	const winRate = 0;
+	const totalBets = profile?.total_bets ?? 0;
+	const betsWon = profile?.bets_won ?? 0;
+	const betsLost = profile?.bets_lost ?? 0;
+	const winRate = totalBets > 0 ? Math.round((betsWon / totalBets) * 100) : 0;
 
-	// Net balance (calculated from completed bets)
-	// TODO: Fetch from getAmountsOwedSummary API
-	const netBalance = 0;
+	const formatDate = (dateString: string) => {
+		return new Date(dateString).toLocaleDateString("en-US", {
+			month: "short",
+			day: "numeric",
+		});
+	};
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -82,8 +152,8 @@ function Dashboard() {
 								<DollarSign className="w-8 h-8" />
 								<div>
 									<p className="text-sm text-orange-100">Net Balance</p>
-									<p className={`text-2xl font-bold ${netBalance >= 0 ? '' : ''}`}>
-										{netBalance >= 0 ? '+' : ''}${Math.abs(netBalance).toFixed(2)}
+									<p className="text-2xl font-bold">
+										{netBalance >= 0 ? "+" : ""}${Math.abs(netBalance).toFixed(2)}
 									</p>
 								</div>
 							</div>
@@ -111,7 +181,9 @@ function Dashboard() {
 								<Users className="w-8 h-8" />
 								<div>
 									<p className="text-sm text-orange-100">Record</p>
-									<p className="text-2xl font-bold">{betsWon}W - {betsLost}L</p>
+									<p className="text-2xl font-bold">
+										{betsWon}W - {betsLost}L
+									</p>
 								</div>
 							</div>
 						</div>
@@ -123,7 +195,48 @@ function Dashboard() {
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					{/* Main Content */}
 					<div className="lg:col-span-2 space-y-6">
-						{/* Active Bets Placeholder */}
+						{/* Pending Bets (requiring action) */}
+						{pendingBets.length > 0 && (
+							<div className="bg-white rounded-xl shadow-md p-6">
+								<div className="flex items-center justify-between mb-4">
+									<h2 className="text-lg font-bold flex items-center gap-2">
+										<AlertCircle className="text-yellow-500" size={20} />
+										Pending Bets
+									</h2>
+									<Link
+										to="/bets"
+										className="text-orange-500 hover:text-orange-600 text-sm font-medium"
+									>
+										View All
+									</Link>
+								</div>
+								<div className="space-y-3">
+									{pendingBets.map((bet) => (
+										<Link
+											key={bet.id}
+											to="/bets/$betId"
+											params={{ betId: bet.id }}
+											className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors"
+										>
+											<div>
+												<p className="font-medium text-gray-800">{bet.title}</p>
+												<p className="text-sm text-gray-500">
+													vs {bet.opponent.display_name}
+												</p>
+											</div>
+											<div className="flex items-center gap-3">
+												<span className="font-bold text-orange-500">
+													${bet.amount}
+												</span>
+												<ChevronRight className="w-5 h-5 text-gray-400" />
+											</div>
+										</Link>
+									))}
+								</div>
+							</div>
+						)}
+
+						{/* Active Bets */}
 						<div className="bg-white rounded-xl shadow-md p-6">
 							<div className="flex items-center justify-between mb-4">
 								<h2 className="text-lg font-bold flex items-center gap-2">
@@ -137,16 +250,43 @@ function Dashboard() {
 									View All
 								</Link>
 							</div>
-							<div className="text-center py-8 text-gray-500">
-								<Trophy className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-								<p>No active bets yet</p>
-								<Link
-									to="/bets/create"
-									className="text-orange-500 hover:text-orange-600 font-medium"
-								>
-									Create your first bet
-								</Link>
-							</div>
+							{activeBets.length === 0 ? (
+								<div className="text-center py-8 text-gray-500">
+									<Trophy className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+									<p>No active bets yet</p>
+									<Link
+										to="/bets/create"
+										className="text-orange-500 hover:text-orange-600 font-medium"
+									>
+										Create your first bet
+									</Link>
+								</div>
+							) : (
+								<div className="space-y-3">
+									{activeBets.map((bet) => (
+										<Link
+											key={bet.id}
+											to="/bets/$betId"
+											params={{ betId: bet.id }}
+											className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+										>
+											<div>
+												<p className="font-medium text-gray-800">{bet.title}</p>
+												<p className="text-sm text-gray-500">
+													vs {bet.opponent.display_name} - Due{" "}
+													{formatDate(bet.deadline)}
+												</p>
+											</div>
+											<div className="flex items-center gap-3">
+												<span className="font-bold text-orange-500">
+													${bet.amount}
+												</span>
+												<ChevronRight className="w-5 h-5 text-gray-400" />
+											</div>
+										</Link>
+									))}
+								</div>
+							)}
 						</div>
 					</div>
 
@@ -165,9 +305,7 @@ function Dashboard() {
 									</div>
 									<div>
 										<p className="font-medium text-gray-800">Create Bet</p>
-										<p className="text-sm text-gray-500">
-											Challenge a friend
-										</p>
+										<p className="text-sm text-gray-500">Challenge a friend</p>
 									</div>
 								</Link>
 								<Link

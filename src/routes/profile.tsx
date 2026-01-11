@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { getAmountsOwedSummary } from "../api/bets";
 import { sendPaymentReminder, canSendReminder } from "../api/reminders";
+import { getCurrentUserProfile } from "../api/users";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
@@ -42,6 +43,7 @@ function ProfilePage() {
 	const { signOut } = useClerk();
 
 	const [amountsData, setAmountsData] = useState<AmountsData | null>(null);
+	const [userStats, setUserStats] = useState<{ total_bets: number; bets_won: number; bets_lost: number } | null>(null);
 	const [loadingAmounts, setLoadingAmounts] = useState(true);
 	const [sendingReminder, setSendingReminder] = useState<string | null>(null);
 	const [reminderSent, setReminderSent] = useState<Record<string, boolean>>({});
@@ -54,21 +56,31 @@ function ProfilePage() {
 	}, [clerkUser, clerkLoaded, router]);
 
 	useEffect(() => {
-		async function fetchAmounts() {
+		async function fetchData() {
 			try {
-				const result = await getAmountsOwedSummary();
-				if (result.data) {
-					setAmountsData(result.data);
+				const [amountsResult, profileResult] = await Promise.all([
+					getAmountsOwedSummary(),
+					getCurrentUserProfile(),
+				]);
+				if (amountsResult.data) {
+					setAmountsData(amountsResult.data);
+				}
+				if (profileResult.data) {
+					setUserStats({
+						total_bets: profileResult.data.total_bets,
+						bets_won: profileResult.data.bets_won,
+						bets_lost: profileResult.data.bets_lost,
+					});
 				}
 			} catch (error) {
-				console.error("Failed to fetch amounts:", error);
+				console.error("Failed to fetch data:", error);
 			} finally {
 				setLoadingAmounts(false);
 			}
 		}
 
 		if (clerkUser) {
-			fetchAmounts();
+			fetchData();
 		}
 	}, [clerkUser]);
 
@@ -131,11 +143,11 @@ function ProfilePage() {
 	const email = clerkUser.primaryEmailAddress?.emailAddress || "";
 	const avatarUrl = clerkUser.imageUrl;
 
-	// Stats will be 0 until synced via webhook and fetched from Supabase
-	const totalBets = 0;
-	const betsWon = 0;
-	const betsLost = 0;
-	const winRate = 0;
+	// Stats from Supabase
+	const totalBets = userStats?.total_bets ?? 0;
+	const betsWon = userStats?.bets_won ?? 0;
+	const betsLost = userStats?.bets_lost ?? 0;
+	const winRate = totalBets > 0 ? Math.round((betsWon / totalBets) * 100) : 0;
 
 	// Amounts from API or defaults
 	const totalWon = amountsData?.totalWon ?? 0;

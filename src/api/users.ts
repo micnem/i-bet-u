@@ -30,7 +30,7 @@ export const getCurrentUserProfile = createServerFn({ method: "GET" }).handler(
 
 // Get user by ID
 export const getUserById = createServerFn({ method: "GET" })
-	.validator((data: { userId: string }) => data)
+	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
 		const { data, error } = await supabase
 			.from("users")
@@ -47,7 +47,7 @@ export const getUserById = createServerFn({ method: "GET" })
 
 // Get user by username
 export const getUserByUsername = createServerFn({ method: "GET" })
-	.validator((data: { username: string }) => data)
+	.inputValidator((data: { username: string }) => data)
 	.handler(async ({ data: { username } }) => {
 		const { data, error } = await supabase
 			.from("users")
@@ -64,7 +64,7 @@ export const getUserByUsername = createServerFn({ method: "GET" })
 
 // Search users by username or display name
 export const searchUsers = createServerFn({ method: "GET" })
-	.validator((data: { query: string; limit?: number }) => data)
+	.inputValidator((data: { query: string; limit?: number }) => data)
 	.handler(async ({ data: { query, limit = 10 } }) => {
 		const {
 			data: { user: authUser },
@@ -90,7 +90,7 @@ export const searchUsers = createServerFn({ method: "GET" })
 
 // Search user by phone number
 export const searchUserByPhone = createServerFn({ method: "GET" })
-	.validator((data: { phoneNumber: string }) => data)
+	.inputValidator((data: { phoneNumber: string }) => data)
 	.handler(async ({ data: { phoneNumber } }) => {
 		const {
 			data: { user: authUser },
@@ -116,7 +116,7 @@ export const searchUserByPhone = createServerFn({ method: "GET" })
 
 // Update current user's profile
 export const updateUserProfile = createServerFn({ method: "POST" })
-	.validator(
+	.inputValidator(
 		(data: {
 			displayName?: string;
 			username?: string;
@@ -156,7 +156,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 
 // Get user stats
 export const getUserStats = createServerFn({ method: "GET" })
-	.validator((data: { userId: string }) => data)
+	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
 		const { data: user, error } = await supabase
 			.from("users")
@@ -186,7 +186,7 @@ export const getUserStats = createServerFn({ method: "GET" })
 
 // Check if username is available
 export const checkUsernameAvailable = createServerFn({ method: "GET" })
-	.validator((data: { username: string }) => data)
+	.inputValidator((data: { username: string }) => data)
 	.handler(async ({ data: { username } }) => {
 		const { data, error } = await supabase
 			.from("users")

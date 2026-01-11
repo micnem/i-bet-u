@@ -13,7 +13,7 @@ const getResendClient = () => {
 
 // Send a payment reminder to a friend who owes money
 export const sendPaymentReminder = createServerFn({ method: "POST" })
-	.validator(
+	.inputValidator(
 		(data: { friendId: string; amount: number; friendName: string }) => data
 	)
 	.handler(async ({ data: { friendId, amount, friendName } }) => {
@@ -127,7 +127,7 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 
 // Get reminder history for current user
 export const getReminderHistory = createServerFn({ method: "GET" })
-	.validator((data: { friendId?: string }) => data)
+	.inputValidator((data: { friendId?: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
 		const {
 			data: { user: authUser },
@@ -164,7 +164,7 @@ export const getReminderHistory = createServerFn({ method: "GET" })
 
 // Check if reminder can be sent (not sent in last 24 hours)
 export const canSendReminder = createServerFn({ method: "GET" })
-	.validator((data: { friendId: string }) => data)
+	.inputValidator((data: { friendId: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
 		const {
 			data: { user: authUser },

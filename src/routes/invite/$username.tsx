@@ -9,7 +9,7 @@ import type { User } from "../../lib/database.types";
 
 // Server function to get user by username (public, no auth required)
 const getInviterByUsername = createServerFn({ method: "GET" })
-	.validator((data: { username: string }) => data)
+	.inputValidator((data: { username: string }) => data)
 	.handler(async ({ data: { username } }) => {
 		const { data, error } = await supabase
 			.from("users")

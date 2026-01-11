@@ -128,7 +128,7 @@ export const getSentFriendRequests = createServerFn({ method: "GET" }).handler(
 
 // Send friend request
 export const sendFriendRequest = createServerFn({ method: "POST" })
-	.validator(
+	.inputValidator(
 		(data: { friendId: string; addedVia: "qr" | "phone" | "nickname" }) => data
 	)
 	.handler(async ({ data: { friendId, addedVia } }) => {
@@ -190,7 +190,7 @@ export const sendFriendRequest = createServerFn({ method: "POST" })
 
 // Accept friend request
 export const acceptFriendRequest = createServerFn({ method: "POST" })
-	.validator((data: { friendshipId: string }) => data)
+	.inputValidator((data: { friendshipId: string }) => data)
 	.handler(async ({ data: { friendshipId } }) => {
 		const {
 			data: { user: authUser },
@@ -218,7 +218,7 @@ export const acceptFriendRequest = createServerFn({ method: "POST" })
 
 // Decline friend request
 export const declineFriendRequest = createServerFn({ method: "POST" })
-	.validator((data: { friendshipId: string }) => data)
+	.inputValidator((data: { friendshipId: string }) => data)
 	.handler(async ({ data: { friendshipId } }) => {
 		const {
 			data: { user: authUser },
@@ -246,7 +246,7 @@ export const declineFriendRequest = createServerFn({ method: "POST" })
 
 // Remove friend
 export const removeFriend = createServerFn({ method: "POST" })
-	.validator((data: { friendId: string }) => data)
+	.inputValidator((data: { friendId: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
 		const {
 			data: { user: authUser },
@@ -273,7 +273,7 @@ export const removeFriend = createServerFn({ method: "POST" })
 
 // Check if users are friends
 export const checkFriendship = createServerFn({ method: "GET" })
-	.validator((data: { userId: string }) => data)
+	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
 		const {
 			data: { user: authUser },

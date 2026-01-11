@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 
 // Get leaderboard
 export const getLeaderboard = createServerFn({ method: "GET" })
-	.validator(
+	.inputValidator(
 		(data: {
 			timeframe?: "all" | "month" | "week";
 			limit?: number;
@@ -76,7 +76,7 @@ export const getUserRank = createServerFn({ method: "GET" }).handler(
 
 // Get bet history between two users
 export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
-	.validator((data: { friendId: string; limit?: number; offset?: number }) => data)
+	.inputValidator((data: { friendId: string; limit?: number; offset?: number }) => data)
 	.handler(async ({ data: { friendId, limit = 50, offset = 0 } }) => {
 		const {
 			data: { user: authUser },
@@ -131,7 +131,7 @@ export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
 
 // Get friend stats comparison
 export const getFriendComparison = createServerFn({ method: "GET" })
-	.validator((data: { friendId: string }) => data)
+	.inputValidator((data: { friendId: string }) => data)
 	.handler(async ({ data: { friendId } }) => {
 		const {
 			data: { user: authUser },
@@ -192,7 +192,7 @@ export const getFriendComparison = createServerFn({ method: "GET" })
 
 // Get top friends by bets together
 export const getTopBettingFriends = createServerFn({ method: "GET" })
-	.validator((data: { limit?: number }) => data)
+	.inputValidator((data: { limit?: number }) => data)
 	.handler(async ({ data: { limit = 5 } }) => {
 		const {
 			data: { user: authUser },

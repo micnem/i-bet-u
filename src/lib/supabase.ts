@@ -1,24 +1,9 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
-// Cache for Cloudflare env - loaded at module initialization
-let cfEnvCache: Record<string, string> | null = null;
-
-// Load Cloudflare env at module initialization (top-level await)
-try {
-	// @ts-expect-error - cloudflare:workers is a virtual module only available at runtime
-	const cfModule = await import("cloudflare:workers");
-	cfEnvCache = cfModule.env as Record<string, string>;
-} catch {
-	// Not in Cloudflare environment, will use process.env fallback
-}
-
+// Simple getEnv that uses process.env - should work with nodejs_compat flag
+// and compatibility_date after 2025-04-01
 function getEnv(key: string): string {
-	// Check cached Cloudflare env
-	if (cfEnvCache?.[key]) {
-		return cfEnvCache[key];
-	}
-	// Fallback to process.env (works in Node.js and with nodejs_compat flag)
 	return process.env[key] || "";
 }
 

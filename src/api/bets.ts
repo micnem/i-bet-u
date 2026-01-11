@@ -9,7 +9,7 @@ import type {
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
-	.validator(
+	.inputValidator(
 		(data: { status?: BetStatus; limit?: number; offset?: number }) => data
 	)
 	.handler(async ({ data: { status, limit = 50, offset = 0 } }) => {
@@ -49,7 +49,7 @@ export const getUserBets = createServerFn({ method: "GET" })
 
 // Get a specific bet by ID
 export const getBetById = createServerFn({ method: "GET" })
-	.validator((data: { betId: string }) => data)
+	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
 		const {
 			data: { user: authUser },
@@ -82,7 +82,7 @@ export const getBetById = createServerFn({ method: "GET" })
 
 // Create a new bet
 export const createBet = createServerFn({ method: "POST" })
-	.validator(
+	.inputValidator(
 		(data: {
 			title: string;
 			description: string;
@@ -148,7 +148,7 @@ export const createBet = createServerFn({ method: "POST" })
 
 // Accept a bet (as opponent)
 export const acceptBet = createServerFn({ method: "POST" })
-	.validator((data: { betId: string }) => data)
+	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
 		const {
 			data: { user: authUser },
@@ -191,7 +191,7 @@ export const acceptBet = createServerFn({ method: "POST" })
 
 // Decline a bet (as opponent)
 export const declineBet = createServerFn({ method: "POST" })
-	.validator((data: { betId: string }) => data)
+	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
 		const {
 			data: { user: authUser },
@@ -219,7 +219,7 @@ export const declineBet = createServerFn({ method: "POST" })
 
 // Approve bet result (both parties must approve)
 export const approveBetResult = createServerFn({ method: "POST" })
-	.validator((data: { betId: string; winnerId: string }) => data)
+	.inputValidator((data: { betId: string; winnerId: string }) => data)
 	.handler(async ({ data: { betId, winnerId } }) => {
 		const {
 			data: { user: authUser },
@@ -313,7 +313,7 @@ async function resolveBet({
 
 // Cancel a pending bet (creator only)
 export const cancelBet = createServerFn({ method: "POST" })
-	.validator((data: { betId: string }) => data)
+	.inputValidator((data: { betId: string }) => data)
 	.handler(async ({ data: { betId } }) => {
 		const {
 			data: { user: authUser },

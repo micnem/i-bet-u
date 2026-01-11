@@ -24,6 +24,7 @@
 
   // Secrets should be set via:
   // wrangler secret put CLERK_SECRET_KEY
+  // wrangler secret put CLERK_WEBHOOK_SECRET
   // wrangler secret put SUPABASE_ANON_KEY
   // wrangler secret put SUPABASE_SERVICE_ROLE_KEY
   // Or through Cloudflare Dashboard > Workers > Settings > Variables

@@ -75,24 +75,24 @@ const BetsBetIdRoute = BetsBetIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupIndexRoute = AuthSignupIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthSignupRoute,
+  id: '/auth/signup/',
+  path: '/auth/signup/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthLoginRoute,
+  id: '/auth/login/',
+  path: '/auth/login/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupSplatRoute = AuthSignupSplatRouteImport.update({
-  id: '/$',
-  path: '/$',
-  getParentRoute: () => AuthSignupRoute,
+  id: '/auth/signup/$',
+  path: '/auth/signup/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginSplatRoute = AuthLoginSplatRouteImport.update({
-  id: '/$',
-  path: '/$',
-  getParentRoute: () => AuthLoginRoute,
+  id: '/auth/login/$',
+  path: '/auth/login/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -108,8 +108,8 @@ export interface FileRoutesByFullPath {
   '/bets': typeof BetsIndexRoute
   '/auth/login/$': typeof AuthLoginSplatRoute
   '/auth/signup/$': typeof AuthSignupSplatRoute
-  '/auth/login/': typeof AuthLoginIndexRoute
-  '/auth/signup/': typeof AuthSignupIndexRoute
+  '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/signup': typeof AuthSignupIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -159,8 +159,8 @@ export interface FileRouteTypes {
     | '/bets'
     | '/auth/login/$'
     | '/auth/signup/$'
-    | '/auth/login/'
-    | '/auth/signup/'
+    | '/auth/login'
+    | '/auth/signup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -205,6 +205,10 @@ export interface RootRouteChildren {
   BetsCreateRoute: typeof BetsCreateRoute
   InviteUsernameRoute: typeof InviteUsernameRoute
   BetsIndexRoute: typeof BetsIndexRoute
+  AuthLoginSplatRoute: typeof AuthLoginSplatRoute
+  AuthSignupSplatRoute: typeof AuthSignupSplatRoute
+  AuthLoginIndexRoute: typeof AuthLoginIndexRoute
+  AuthSignupIndexRoute: typeof AuthSignupIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -281,31 +285,31 @@ declare module '@tanstack/react-router' {
     }
     '/auth/signup/': {
       id: '/auth/signup/'
-      path: '/'
-      fullPath: '/auth/signup/'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
       preLoaderRoute: typeof AuthSignupIndexRouteImport
-      parentRoute: typeof AuthSignupRoute
+      parentRoute: typeof rootRouteImport
     }
     '/auth/login/': {
       id: '/auth/login/'
-      path: '/'
-      fullPath: '/auth/login/'
+      path: '/auth/login'
+      fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginIndexRouteImport
-      parentRoute: typeof AuthLoginRoute
+      parentRoute: typeof rootRouteImport
     }
     '/auth/signup/$': {
       id: '/auth/signup/$'
-      path: '/$'
+      path: '/auth/signup/$'
       fullPath: '/auth/signup/$'
       preLoaderRoute: typeof AuthSignupSplatRouteImport
-      parentRoute: typeof AuthSignupRoute
+      parentRoute: typeof rootRouteImport
     }
     '/auth/login/$': {
       id: '/auth/login/$'
-      path: '/$'
+      path: '/auth/login/$'
       fullPath: '/auth/login/$'
       preLoaderRoute: typeof AuthLoginSplatRouteImport
-      parentRoute: typeof AuthLoginRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -331,6 +335,10 @@ const rootRouteChildren: RootRouteChildren = {
   BetsCreateRoute: BetsCreateRoute,
   InviteUsernameRoute: InviteUsernameRoute,
   BetsIndexRoute: BetsIndexRoute,
+  AuthLoginSplatRoute: AuthLoginSplatRoute,
+  AuthSignupSplatRoute: AuthSignupSplatRoute,
+  AuthLoginIndexRoute: AuthLoginIndexRoute,
+  AuthSignupIndexRoute: AuthSignupIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

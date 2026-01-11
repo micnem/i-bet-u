@@ -25,7 +25,8 @@ function FriendsPage() {
 	const [addInput, setAddInput] = useState("");
 	const [showQR, setShowQR] = useState(false);
 
-	const username = user?.username || "user";
+	const userId = user?.id || "";
+	const username = user?.username || user?.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
 	const displayName = user?.firstName
 		? `${user.firstName} ${user.lastName || ""}`.trim()
 		: "User";
@@ -163,10 +164,10 @@ function FriendsPage() {
 						{addMethod === "qr" ? (
 							<div className="py-4">
 								<QRCodeDisplay
-									value={generateFriendInviteLink(username)}
-									title={`Add @${username}`}
+									value={generateFriendInviteLink(userId)}
+									title={`Add ${displayName}`}
 									description="Scan this QR code or share the link to add me as a friend on IBetU"
-									shareData={getFriendInviteShareData(username, displayName)}
+									shareData={getFriendInviteShareData(userId, displayName)}
 									size={180}
 								/>
 							</div>

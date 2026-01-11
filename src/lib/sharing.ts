@@ -1,10 +1,10 @@
 // Deep linking and sharing utilities for IBetU
 
-const APP_URL = typeof window !== "undefined" ? window.location.origin : "https://ibetu.app";
+const APP_URL = typeof window !== "undefined" ? window.location.origin : "https://ibetu-app.michael-nemni.workers.dev";
 
-// Generate friend invite link
-export function generateFriendInviteLink(username: string): string {
-	return `${APP_URL}/invite/${username}`;
+// Generate friend invite link using user ID (safe to share)
+export function generateFriendInviteLink(userId: string): string {
+	return `${APP_URL}/invite/${userId}`;
 }
 
 // Generate bet share link
@@ -23,7 +23,7 @@ export function generateLeaderboardLink(timeframe?: string): string {
 	return timeframe ? `${base}?timeframe=${timeframe}` : base;
 }
 
-// Parse invite link to get username
+// Parse invite link to get user ID
 export function parseInviteLink(url: string): string | null {
 	try {
 		const urlObj = new URL(url);
@@ -88,11 +88,11 @@ export async function shareLink(data: {
 }
 
 // Generate share data for friend invite
-export function getFriendInviteShareData(username: string, displayName: string) {
+export function getFriendInviteShareData(userId: string, displayName: string) {
 	return {
 		title: "Add me on IBetU!",
 		text: `${displayName} wants to be your friend on IBetU. Accept to start betting!`,
-		url: generateFriendInviteLink(username),
+		url: generateFriendInviteLink(userId),
 	};
 }
 

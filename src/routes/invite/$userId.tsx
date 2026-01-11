@@ -5,16 +5,15 @@ import { useState, useEffect } from "react";
 import { Users, UserPlus, Check, Clock, Loader2, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { sendFriendRequest, checkFriendship } from "../../api/friends";
-import type { User } from "../../lib/database.types";
 
-// Server function to get user by username (public, no auth required)
-const getInviterByUsername = createServerFn({ method: "GET" })
-	.inputValidator((data: { username: string }) => data)
-	.handler(async ({ data: { username } }) => {
+// Server function to get user by clerk ID (public, no auth required)
+const getInviterById = createServerFn({ method: "GET" })
+	.inputValidator((data: { userId: string }) => data)
+	.handler(async ({ data: { userId } }) => {
 		const { data, error } = await supabase
 			.from("users")
-			.select("id, username, display_name, avatar_url, total_bets, bets_won")
-			.eq("username", username)
+			.select("id, clerk_id, username, display_name, avatar_url, total_bets, bets_won")
+			.eq("clerk_id", userId)
 			.single();
 
 		if (error) {
@@ -24,16 +23,16 @@ const getInviterByUsername = createServerFn({ method: "GET" })
 		return { error: null, data };
 	});
 
-export const Route = createFileRoute("/invite/$username")({
+export const Route = createFileRoute("/invite/$userId")({
 	component: InvitePage,
 	loader: async ({ params }) => {
-		const result = await getInviterByUsername({ data: { username: params.username } });
+		const result = await getInviterById({ data: { userId: params.userId } });
 		return { inviter: result.data, error: result.error };
 	},
 });
 
 function InvitePage() {
-	const { username } = Route.useParams();
+	const { userId } = Route.useParams();
 	const { inviter: loaderInviter, error: loaderError } = Route.useLoaderData();
 	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 	const navigate = useNavigate();
@@ -75,7 +74,7 @@ function InvitePage() {
 	};
 
 	const handleSignUpToAdd = () => {
-		const redirectUrl = `/invite/${username}`;
+		const redirectUrl = `/invite/${userId}`;
 		navigate({
 			to: "/auth/signup",
 			search: { redirect_url: redirectUrl },
@@ -106,7 +105,7 @@ function InvitePage() {
 						User Not Found
 					</h1>
 					<p className="text-gray-500 mb-6">
-						The user @{username} doesn't exist or the invite link is invalid.
+						This invite link is invalid or the user no longer exists.
 					</p>
 					<Link to="/" className="ibetu-btn-primary inline-block">
 						Go to Home
@@ -141,7 +140,9 @@ function InvitePage() {
 				<h1 className="text-2xl font-bold text-gray-800 mb-1">
 					{inviter.display_name}
 				</h1>
-				<p className="text-gray-500 mb-2">@{inviter.username}</p>
+				{inviter.username && (
+					<p className="text-gray-500 mb-2">@{inviter.username}</p>
+				)}
 
 				{/* Stats */}
 				<div className="flex justify-center gap-6 mb-6 text-sm">
@@ -218,7 +219,7 @@ function InvitePage() {
 						</p>
 						<Link
 							to="/auth/login"
-							search={{ redirect_url: `/invite/${username}` }}
+							search={{ redirect_url: `/invite/${userId}` }}
 							className="text-orange-500 hover:text-orange-600 text-sm font-medium"
 						>
 							Already have an account? Log in

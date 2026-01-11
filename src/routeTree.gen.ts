@@ -19,8 +19,10 @@ import { Route as InviteUsernameRouteImport } from './routes/invite/$username'
 import { Route as FriendsFriendIdRouteImport } from './routes/friends/$friendId'
 import { Route as BetsCreateRouteImport } from './routes/bets/create'
 import { Route as BetsBetIdRouteImport } from './routes/bets/$betId'
-import { Route as AuthSignupRouteImport } from './routes/auth/signup'
-import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
+import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
+import { Route as AuthSignupSplatRouteImport } from './routes/auth/signup/$'
+import { Route as AuthLoginSplatRouteImport } from './routes/auth/login/$'
 
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
@@ -72,15 +74,25 @@ const BetsBetIdRoute = BetsBetIdRouteImport.update({
   path: '/bets/$betId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/auth/signup',
-  path: '/auth/signup',
-  getParentRoute: () => rootRouteImport,
+const AuthSignupIndexRoute = AuthSignupIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthSignupRoute,
 } as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
-  getParentRoute: () => rootRouteImport,
+const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthLoginRoute,
+} as any)
+const AuthSignupSplatRoute = AuthSignupSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => AuthSignupRoute,
+} as any)
+const AuthLoginSplatRoute = AuthLoginSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => AuthLoginRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -89,13 +101,15 @@ export interface FileRoutesByFullPath {
   '/friends': typeof FriendsRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
-  '/auth/login': typeof AuthLoginRoute
-  '/auth/signup': typeof AuthSignupRoute
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
   '/invite/$username': typeof InviteUsernameRoute
   '/bets': typeof BetsIndexRoute
+  '/auth/login/$': typeof AuthLoginSplatRoute
+  '/auth/signup/$': typeof AuthSignupSplatRoute
+  '/auth/login/': typeof AuthLoginIndexRoute
+  '/auth/signup/': typeof AuthSignupIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,13 +117,15 @@ export interface FileRoutesByTo {
   '/friends': typeof FriendsRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
-  '/auth/login': typeof AuthLoginRoute
-  '/auth/signup': typeof AuthSignupRoute
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
   '/invite/$username': typeof InviteUsernameRoute
   '/bets': typeof BetsIndexRoute
+  '/auth/login/$': typeof AuthLoginSplatRoute
+  '/auth/signup/$': typeof AuthSignupSplatRoute
+  '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/signup': typeof AuthSignupIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,13 +134,15 @@ export interface FileRoutesById {
   '/friends': typeof FriendsRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
-  '/auth/login': typeof AuthLoginRoute
-  '/auth/signup': typeof AuthSignupRoute
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
   '/invite/$username': typeof InviteUsernameRoute
   '/bets/': typeof BetsIndexRoute
+  '/auth/login/$': typeof AuthLoginSplatRoute
+  '/auth/signup/$': typeof AuthSignupSplatRoute
+  '/auth/login/': typeof AuthLoginIndexRoute
+  '/auth/signup/': typeof AuthSignupIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -134,13 +152,15 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboard'
     | '/profile'
-    | '/auth/login'
-    | '/auth/signup'
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
     | '/invite/$username'
     | '/bets'
+    | '/auth/login/$'
+    | '/auth/signup/$'
+    | '/auth/login/'
+    | '/auth/signup/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -148,13 +168,15 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboard'
     | '/profile'
-    | '/auth/login'
-    | '/auth/signup'
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
     | '/invite/$username'
     | '/bets'
+    | '/auth/login/$'
+    | '/auth/signup/$'
+    | '/auth/login'
+    | '/auth/signup'
   id:
     | '__root__'
     | '/'
@@ -162,13 +184,15 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboard'
     | '/profile'
-    | '/auth/login'
-    | '/auth/signup'
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
     | '/invite/$username'
     | '/bets/'
+    | '/auth/login/$'
+    | '/auth/signup/$'
+    | '/auth/login/'
+    | '/auth/signup/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,8 +201,6 @@ export interface RootRouteChildren {
   FriendsRoute: typeof FriendsRouteWithChildren
   LeaderboardRoute: typeof LeaderboardRoute
   ProfileRoute: typeof ProfileRoute
-  AuthLoginRoute: typeof AuthLoginRoute
-  AuthSignupRoute: typeof AuthSignupRoute
   BetsBetIdRoute: typeof BetsBetIdRoute
   BetsCreateRoute: typeof BetsCreateRoute
   InviteUsernameRoute: typeof InviteUsernameRoute
@@ -257,19 +279,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BetsBetIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/signup': {
-      id: '/auth/signup'
-      path: '/auth/signup'
-      fullPath: '/auth/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
-      parentRoute: typeof rootRouteImport
+    '/auth/signup/': {
+      id: '/auth/signup/'
+      path: '/'
+      fullPath: '/auth/signup/'
+      preLoaderRoute: typeof AuthSignupIndexRouteImport
+      parentRoute: typeof AuthSignupRoute
     }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/auth/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
+    '/auth/login/': {
+      id: '/auth/login/'
+      path: '/'
+      fullPath: '/auth/login/'
+      preLoaderRoute: typeof AuthLoginIndexRouteImport
+      parentRoute: typeof AuthLoginRoute
+    }
+    '/auth/signup/$': {
+      id: '/auth/signup/$'
+      path: '/$'
+      fullPath: '/auth/signup/$'
+      preLoaderRoute: typeof AuthSignupSplatRouteImport
+      parentRoute: typeof AuthSignupRoute
+    }
+    '/auth/login/$': {
+      id: '/auth/login/$'
+      path: '/$'
+      fullPath: '/auth/login/$'
+      preLoaderRoute: typeof AuthLoginSplatRouteImport
+      parentRoute: typeof AuthLoginRoute
     }
   }
 }
@@ -291,8 +327,6 @@ const rootRouteChildren: RootRouteChildren = {
   FriendsRoute: FriendsRouteWithChildren,
   LeaderboardRoute: LeaderboardRoute,
   ProfileRoute: ProfileRoute,
-  AuthLoginRoute: AuthLoginRoute,
-  AuthSignupRoute: AuthSignupRoute,
   BetsBetIdRoute: BetsBetIdRoute,
   BetsCreateRoute: BetsCreateRoute,
   InviteUsernameRoute: InviteUsernameRoute,

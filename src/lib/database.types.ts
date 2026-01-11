@@ -21,6 +21,7 @@ export interface Database {
 			users: {
 				Row: {
 					id: string;
+					clerk_id: string;
 					username: string;
 					display_name: string;
 					email: string;
@@ -34,7 +35,8 @@ export interface Database {
 					updated_at: string;
 				};
 				Insert: {
-					id: string;
+					id?: string;
+					clerk_id: string;
 					username: string;
 					display_name: string;
 					email: string;
@@ -49,6 +51,7 @@ export interface Database {
 				};
 				Update: {
 					id?: string;
+					clerk_id?: string;
 					username?: string;
 					display_name?: string;
 					email?: string;

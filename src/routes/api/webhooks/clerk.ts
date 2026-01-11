@@ -84,10 +84,10 @@ export const Route = createFileRoute("/api/webhooks/clerk")({
 						.filter(Boolean)
 						.join(" ") || email.split("@")[0];
 
-					const username = userData.username || email.split("@")[0] + "_" + userData.id.slice(-4);
+					const username = userData.username || `${email.split("@")[0]}_${userData.id.slice(-4)}`;
 
 					const { error } = await supabaseAdmin.from("users").insert({
-						id: userData.id,
+						clerk_id: userData.id,
 						email: email,
 						display_name: displayName,
 						username: username,
@@ -116,7 +116,7 @@ export const Route = createFileRoute("/api/webhooks/clerk")({
 							username: userData.username || undefined,
 							avatar_url: userData.image_url,
 						})
-						.eq("id", userData.id);
+						.eq("clerk_id", userData.id);
 
 					if (error) {
 						console.error("Failed to update user:", error);
@@ -130,7 +130,7 @@ export const Route = createFileRoute("/api/webhooks/clerk")({
 					const { error } = await supabaseAdmin
 						.from("users")
 						.delete()
-						.eq("id", userData.id);
+						.eq("clerk_id", userData.id);
 
 					if (error) {
 						console.error("Failed to delete user:", error);

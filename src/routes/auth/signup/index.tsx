@@ -2,9 +2,25 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SignUp } from "@clerk/tanstack-react-start";
 import { ArrowLeft } from "lucide-react";
 
-export const Route = createFileRoute("/auth/signup/")({ component: SignUpPage });
+type SignUpSearch = {
+	redirect_url?: string;
+};
+
+export const Route = createFileRoute("/auth/signup/")({
+	component: SignUpPage,
+	validateSearch: (search: Record<string, unknown>): SignUpSearch => {
+		return {
+			redirect_url: typeof search.redirect_url === "string" ? search.redirect_url : undefined,
+		};
+	},
+});
 
 function SignUpPage() {
+	const { redirect_url } = Route.useSearch();
+
+	// Use redirect_url if provided, otherwise default to dashboard
+	const redirectUrl = redirect_url || "/dashboard";
+
 	return (
 		<div className="min-h-screen bg-gray-50 py-12 px-4">
 			<div className="max-w-md mx-auto">
@@ -21,7 +37,7 @@ function SignUpPage() {
 						routing="path"
 						path="/auth/signup"
 						signInUrl="/auth/login"
-						forceRedirectUrl="/dashboard"
+						forceRedirectUrl={redirectUrl}
 					/>
 				</div>
 			</div>

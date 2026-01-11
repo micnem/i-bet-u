@@ -18,6 +18,11 @@ CREATE INDEX IF NOT EXISTS idx_payment_reminders_recipient_id ON payment_reminde
 -- Enable RLS
 ALTER TABLE payment_reminders ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist, then recreate
+DROP POLICY IF EXISTS "Users can view their sent reminders" ON payment_reminders;
+DROP POLICY IF EXISTS "Users can view reminders sent to them" ON payment_reminders;
+DROP POLICY IF EXISTS "Users can send reminders" ON payment_reminders;
+
 -- Add RLS policies
 CREATE POLICY "Users can view their sent reminders"
     ON payment_reminders FOR SELECT

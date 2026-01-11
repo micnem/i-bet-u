@@ -8,8 +8,8 @@
   // Environment variables
   // NOTE: For secrets (API keys), use Cloudflare dashboard or `wrangler secret put`
   "vars": {
-    "VITE_CLERK_PUBLISHABLE_KEY": "",
-    "SUPABASE_URL": ""
+    "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_YW1hemVkLWZhbGNvbi01NC5jbGVyay5hY2NvdW50cy5kZXYk",
+    "SUPABASE_URL": "https://qalcleoyxvkumurjlsea.supabase.co"
   },
   
     "observability": {

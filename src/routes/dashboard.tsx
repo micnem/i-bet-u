@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useUser } from "@clerk/tanstack-react-start";
 import {
 	Wallet,
@@ -10,53 +10,20 @@ import {
 	TrendingUp,
 	Loader2,
 } from "lucide-react";
-import { syncCurrentUser, getCurrentUser } from "../api/auth";
-import type { User } from "../lib/database.types";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
 function Dashboard() {
 	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 	const router = useRouter();
-	const [user, setUser] = useState<User | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		async function loadUser() {
-			if (!clerkLoaded) return;
-
-			if (!clerkUser) {
-				router.navigate({ to: "/auth/login" });
-				return;
-			}
-
-			setLoading(true);
-			try {
-				// First try to get existing user
-				let result = await getCurrentUser();
-
-				// If user doesn't exist, sync from Clerk
-				if (!result.data) {
-					result = await syncCurrentUser();
-				}
-
-				if (result.error) {
-					setError(result.error);
-				} else {
-					setUser(result.data);
-				}
-			} catch (err) {
-				setError("Failed to load user data");
-			} finally {
-				setLoading(false);
-			}
+		if (clerkLoaded && !clerkUser) {
+			router.navigate({ to: "/auth/login" });
 		}
-
-		loadUser();
 	}, [clerkUser, clerkLoaded, router]);
 
-	if (!clerkLoaded || loading) {
+	if (!clerkLoaded) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
 				<div className="text-center">
@@ -67,35 +34,20 @@ function Dashboard() {
 		);
 	}
 
-	if (error) {
-		return (
-			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
-				<div className="text-center">
-					<p className="text-red-600">{error}</p>
-					<button
-						onClick={() => window.location.reload()}
-						className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg"
-					>
-						Retry
-					</button>
-				</div>
-			</div>
-		);
+	if (!clerkUser) {
+		return null;
 	}
 
-	if (!user) {
-		return (
-			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
-				<div className="text-center">
-					<p className="text-gray-600">Unable to load user profile</p>
-				</div>
-			</div>
-		);
-	}
+	// Use Clerk user data directly
+	const displayName = clerkUser.fullName || clerkUser.firstName || "User";
+	const username = clerkUser.username || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
 
-	const winRate = user.total_bets > 0
-		? Math.round((user.bets_won / user.total_bets) * 100)
-		: 0;
+	// Stats will be 0 until synced via webhook and fetched from Supabase
+	const walletBalance = 0;
+	const totalBets = 0;
+	const betsWon = 0;
+	const betsLost = 0;
+	const winRate = 0;
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -105,9 +57,9 @@ function Dashboard() {
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 						<div>
 							<h1 className="text-2xl font-bold">
-								Welcome back, {user.display_name}!
+								Welcome back, {displayName}!
 							</h1>
-							<p className="text-orange-100">@{user.username}</p>
+							<p className="text-orange-100">@{username}</p>
 						</div>
 						<div className="flex gap-4">
 							<Link
@@ -128,7 +80,7 @@ function Dashboard() {
 								<div>
 									<p className="text-sm text-orange-100">Wallet Balance</p>
 									<p className="text-2xl font-bold">
-										${user.wallet_balance.toFixed(2)}
+										${walletBalance.toFixed(2)}
 									</p>
 								</div>
 							</div>
@@ -147,7 +99,7 @@ function Dashboard() {
 								<TrendingUp className="w-8 h-8" />
 								<div>
 									<p className="text-sm text-orange-100">Total Bets</p>
-									<p className="text-2xl font-bold">{user.total_bets}</p>
+									<p className="text-2xl font-bold">{totalBets}</p>
 								</div>
 							</div>
 						</div>
@@ -156,7 +108,7 @@ function Dashboard() {
 								<Users className="w-8 h-8" />
 								<div>
 									<p className="text-sm text-orange-100">Record</p>
-									<p className="text-2xl font-bold">{user.bets_won}W - {user.bets_lost}L</p>
+									<p className="text-2xl font-bold">{betsWon}W - {betsLost}L</p>
 								</div>
 							</div>
 						</div>

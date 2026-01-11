@@ -158,7 +158,7 @@ function LandingPage() {
 									<span className="text-gray-800 font-medium">Sports Bet</span>
 									<div className="text-right text-gray-600 text-sm">
 										Your Wallet
-										<div className="text-orange-500 font-bold">$567</div>
+										<div className="text-orange-500 font-bold">$---</div>
 									</div>
 								</div>
 								<div className="text-center py-4">

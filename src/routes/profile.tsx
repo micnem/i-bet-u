@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useUser, useClerk } from "@clerk/tanstack-react-start";
 import {
 	User,
@@ -13,8 +13,6 @@ import {
 	ChevronRight,
 	Loader2,
 } from "lucide-react";
-import { syncCurrentUser, getCurrentUser } from "../api/auth";
-import type { User as DBUser } from "../lib/database.types";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
@@ -22,33 +20,11 @@ function ProfilePage() {
 	const router = useRouter();
 	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 	const { signOut } = useClerk();
-	const [user, setUser] = useState<DBUser | null>(null);
-	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		async function loadUser() {
-			if (!clerkLoaded) return;
-
-			if (!clerkUser) {
-				router.navigate({ to: "/auth/login" });
-				return;
-			}
-
-			setLoading(true);
-			try {
-				let result = await getCurrentUser();
-				if (!result.data) {
-					result = await syncCurrentUser();
-				}
-				if (result.data) {
-					setUser(result.data);
-				}
-			} finally {
-				setLoading(false);
-			}
+		if (clerkLoaded && !clerkUser) {
+			router.navigate({ to: "/auth/login" });
 		}
-
-		loadUser();
 	}, [clerkUser, clerkLoaded, router]);
 
 	const handleLogout = async () => {
@@ -56,7 +32,7 @@ function ProfilePage() {
 		router.navigate({ to: "/" });
 	};
 
-	if (!clerkLoaded || loading) {
+	if (!clerkLoaded) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
 				<Loader2 className="w-8 h-8 animate-spin text-orange-500" />
@@ -64,17 +40,22 @@ function ProfilePage() {
 		);
 	}
 
-	if (!user) {
-		return (
-			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
-				<p className="text-gray-600">Unable to load profile</p>
-			</div>
-		);
+	if (!clerkUser) {
+		return null;
 	}
 
-	const winRate = user.total_bets > 0
-		? Math.round((user.bets_won / user.total_bets) * 100)
-		: 0;
+	// Use Clerk user data directly
+	const displayName = clerkUser.fullName || clerkUser.firstName || "User";
+	const username = clerkUser.username || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
+	const email = clerkUser.primaryEmailAddress?.emailAddress || "";
+	const avatarUrl = clerkUser.imageUrl;
+
+	// Stats will be 0 until synced via webhook and fetched from Supabase
+	const walletBalance = 0;
+	const totalBets = 0;
+	const betsWon = 0;
+	const betsLost = 0;
+	const winRate = 0;
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -83,29 +64,29 @@ function ProfilePage() {
 				<div className="max-w-4xl mx-auto">
 					<div className="flex items-center gap-4">
 						<img
-							src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`}
-							alt={user.display_name}
+							src={avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`}
+							alt={displayName}
 							className="w-20 h-20 rounded-full bg-white/20"
 						/>
 						<div>
-							<h1 className="text-2xl font-bold">{user.display_name}</h1>
-							<p className="text-orange-100">@{user.username}</p>
-							<p className="text-orange-100 text-sm">{user.email}</p>
+							<h1 className="text-2xl font-bold">{displayName}</h1>
+							<p className="text-orange-100">@{username}</p>
+							<p className="text-orange-100 text-sm">{email}</p>
 						</div>
 					</div>
 
 					{/* Stats */}
 					<div className="grid grid-cols-4 gap-4 mt-8">
 						<div className="bg-white/20 backdrop-blur rounded-lg p-4 text-center">
-							<p className="text-3xl font-bold">{user.total_bets}</p>
+							<p className="text-3xl font-bold">{totalBets}</p>
 							<p className="text-sm text-orange-100">Total Bets</p>
 						</div>
 						<div className="bg-white/20 backdrop-blur rounded-lg p-4 text-center">
-							<p className="text-3xl font-bold">{user.bets_won}</p>
+							<p className="text-3xl font-bold">{betsWon}</p>
 							<p className="text-sm text-orange-100">Won</p>
 						</div>
 						<div className="bg-white/20 backdrop-blur rounded-lg p-4 text-center">
-							<p className="text-3xl font-bold">{user.bets_lost}</p>
+							<p className="text-3xl font-bold">{betsLost}</p>
 							<p className="text-sm text-orange-100">Lost</p>
 						</div>
 						<div className="bg-white/20 backdrop-blur rounded-lg p-4 text-center">
@@ -133,7 +114,7 @@ function ProfilePage() {
 						<div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white mb-6">
 							<p className="text-sm text-gray-400">Available Balance</p>
 							<p className="text-4xl font-bold mt-1">
-								${user.wallet_balance.toFixed(2)}
+								${walletBalance.toFixed(2)}
 							</p>
 						</div>
 

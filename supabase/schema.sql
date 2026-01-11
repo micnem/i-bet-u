@@ -61,6 +61,15 @@ CREATE TABLE bets (
     CHECK (creator_id != opponent_id)
 );
 
+-- Payment reminders table (for tracking when users nudge others about owed amounts)
+CREATE TABLE payment_reminders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    CHECK (sender_id != recipient_id)
+);
 
 -- Indexes for performance
 CREATE INDEX idx_friendships_user_id ON friendships(user_id);
@@ -69,6 +78,8 @@ CREATE INDEX idx_friendships_status ON friendships(status);
 CREATE INDEX idx_bets_creator_id ON bets(creator_id);
 CREATE INDEX idx_bets_opponent_id ON bets(opponent_id);
 CREATE INDEX idx_bets_status ON bets(status);
+CREATE INDEX idx_payment_reminders_sender_id ON payment_reminders(sender_id);
+CREATE INDEX idx_payment_reminders_recipient_id ON payment_reminders(recipient_id);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -96,6 +107,7 @@ CREATE TRIGGER update_friendships_updated_at
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_reminders ENABLE ROW LEVEL SECURITY;
 
 -- Users policies
 CREATE POLICY "Users can view their own profile"
@@ -148,6 +160,19 @@ CREATE POLICY "Users can create bets"
 CREATE POLICY "Participants can update bets"
     ON bets FOR UPDATE
     USING (auth.uid() = creator_id OR auth.uid() = opponent_id);
+
+-- Payment reminders policies
+CREATE POLICY "Users can view their sent reminders"
+    ON payment_reminders FOR SELECT
+    USING (auth.uid() = sender_id);
+
+CREATE POLICY "Users can view reminders sent to them"
+    ON payment_reminders FOR SELECT
+    USING (auth.uid() = recipient_id);
+
+CREATE POLICY "Users can send reminders"
+    ON payment_reminders FOR INSERT
+    WITH CHECK (auth.uid() = sender_id);
 
 -- Function to increment wins count
 CREATE OR REPLACE FUNCTION increment_wins(user_id UUID)

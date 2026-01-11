@@ -1,8 +1,7 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUser, useClerk } from "@clerk/tanstack-react-start";
 import {
-	User,
 	Trophy,
 	TrendingUp,
 	TrendingDown,
@@ -11,14 +10,42 @@ import {
 	ChevronRight,
 	Loader2,
 	DollarSign,
+	Bell,
+	Check,
+	Clock,
 } from "lucide-react";
+import { getAmountsOwedSummary } from "../api/bets";
+import { sendPaymentReminder, canSendReminder } from "../api/reminders";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
+
+interface FriendBalance {
+	friend: {
+		id: string;
+		username: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
+	amount: number;
+}
+
+interface AmountsData {
+	totalWon: number;
+	totalLost: number;
+	netBalance: number;
+	friendBalances: FriendBalance[];
+}
 
 function ProfilePage() {
 	const router = useRouter();
 	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 	const { signOut } = useClerk();
+
+	const [amountsData, setAmountsData] = useState<AmountsData | null>(null);
+	const [loadingAmounts, setLoadingAmounts] = useState(true);
+	const [sendingReminder, setSendingReminder] = useState<string | null>(null);
+	const [reminderSent, setReminderSent] = useState<Record<string, boolean>>({});
+	const [reminderError, setReminderError] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (clerkLoaded && !clerkUser) {
@@ -26,9 +53,64 @@ function ProfilePage() {
 		}
 	}, [clerkUser, clerkLoaded, router]);
 
+	useEffect(() => {
+		async function fetchAmounts() {
+			try {
+				const result = await getAmountsOwedSummary();
+				if (result.data) {
+					setAmountsData(result.data);
+				}
+			} catch (error) {
+				console.error("Failed to fetch amounts:", error);
+			} finally {
+				setLoadingAmounts(false);
+			}
+		}
+
+		if (clerkUser) {
+			fetchAmounts();
+		}
+	}, [clerkUser]);
+
 	const handleLogout = async () => {
 		await signOut();
 		router.navigate({ to: "/" });
+	};
+
+	const handleSendReminder = async (friend: FriendBalance["friend"], amount: number) => {
+		setSendingReminder(friend.id);
+		setReminderError(null);
+
+		try {
+			// Check if we can send a reminder
+			const canSend = await canSendReminder({ friendId: friend.id });
+			if (!canSend.canSend) {
+				setReminderError("You already sent a reminder in the last 24 hours");
+				setSendingReminder(null);
+				return;
+			}
+
+			// Send the reminder
+			const result = await sendPaymentReminder({
+				friendId: friend.id,
+				amount: Math.abs(amount),
+				friendName: friend.display_name,
+			});
+
+			if (result.error) {
+				setReminderError(result.error);
+			} else {
+				setReminderSent((prev) => ({ ...prev, [friend.id]: true }));
+				// Reset the "sent" state after 3 seconds
+				setTimeout(() => {
+					setReminderSent((prev) => ({ ...prev, [friend.id]: false }));
+				}, 3000);
+			}
+		} catch (error) {
+			setReminderError("Failed to send reminder");
+		} finally {
+			setSendingReminder(null);
+		}
 	};
 
 	if (!clerkLoaded) {
@@ -55,11 +137,15 @@ function ProfilePage() {
 	const betsLost = 0;
 	const winRate = 0;
 
-	// Amounts owed (calculated from completed bets)
-	// TODO: Fetch from getAmountsOwedSummary API
-	const totalWon = 0;
-	const totalLost = 0;
-	const netBalance = 0;
+	// Amounts from API or defaults
+	const totalWon = amountsData?.totalWon ?? 0;
+	const totalLost = amountsData?.totalLost ?? 0;
+	const netBalance = amountsData?.netBalance ?? 0;
+	const friendBalances = amountsData?.friendBalances ?? [];
+
+	// Separate friends who owe you vs friends you owe
+	const friendsWhoOweYou = friendBalances.filter((f) => f.amount > 0);
+	const friendsYouOwe = friendBalances.filter((f) => f.amount < 0);
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -115,54 +201,174 @@ function ProfilePage() {
 							</div>
 						</div>
 
-						<div className="grid grid-cols-3 gap-4">
-							<div className="bg-green-50 rounded-xl p-4 text-center">
-								<div className="flex items-center justify-center gap-2 mb-2">
-									<TrendingUp className="w-5 h-5 text-green-600" />
-									<span className="text-sm text-green-600 font-medium">Won</span>
-								</div>
-								<p className="text-2xl font-bold text-green-700">
-									${totalWon.toFixed(2)}
-								</p>
+						{loadingAmounts ? (
+							<div className="flex justify-center py-8">
+								<Loader2 className="w-8 h-8 animate-spin text-orange-500" />
 							</div>
-							<div className="bg-red-50 rounded-xl p-4 text-center">
-								<div className="flex items-center justify-center gap-2 mb-2">
-									<TrendingDown className="w-5 h-5 text-red-600" />
-									<span className="text-sm text-red-600 font-medium">Lost</span>
+						) : (
+							<div className="grid grid-cols-3 gap-4">
+								<div className="bg-green-50 rounded-xl p-4 text-center">
+									<div className="flex items-center justify-center gap-2 mb-2">
+										<TrendingUp className="w-5 h-5 text-green-600" />
+										<span className="text-sm text-green-600 font-medium">Won</span>
+									</div>
+									<p className="text-2xl font-bold text-green-700">
+										${totalWon.toFixed(2)}
+									</p>
 								</div>
-								<p className="text-2xl font-bold text-red-700">
-									${totalLost.toFixed(2)}
-								</p>
-							</div>
-							<div className={`rounded-xl p-4 text-center ${netBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-								<div className="flex items-center justify-center gap-2 mb-2">
-									<DollarSign className={`w-5 h-5 ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`} />
-									<span className={`text-sm font-medium ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`}>Net</span>
+								<div className="bg-red-50 rounded-xl p-4 text-center">
+									<div className="flex items-center justify-center gap-2 mb-2">
+										<TrendingDown className="w-5 h-5 text-red-600" />
+										<span className="text-sm text-red-600 font-medium">Lost</span>
+									</div>
+									<p className="text-2xl font-bold text-red-700">
+										${totalLost.toFixed(2)}
+									</p>
 								</div>
-								<p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-800' : 'text-red-800'}`}>
-									{netBalance >= 0 ? '+' : ''}{netBalance.toFixed(2)}
-								</p>
+								<div className={`rounded-xl p-4 text-center ${netBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+									<div className="flex items-center justify-center gap-2 mb-2">
+										<DollarSign className={`w-5 h-5 ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`} />
+										<span className={`text-sm font-medium ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`}>Net</span>
+									</div>
+									<p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+										{netBalance >= 0 ? '+' : ''}{netBalance.toFixed(2)}
+									</p>
+								</div>
 							</div>
-						</div>
+						)}
 					</div>
 
-					{/* Amounts Owed Section */}
-					<div className="lg:col-span-2 bg-white rounded-xl shadow-md p-6">
+					{/* Friends Who Owe You Section */}
+					<div className="bg-white rounded-xl shadow-md p-6">
 						<div className="flex items-center gap-3 mb-6">
-							<div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-								<Trophy className="w-5 h-5 text-blue-500" />
+							<div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+								<TrendingUp className="w-5 h-5 text-green-500" />
 							</div>
 							<div>
-								<h2 className="text-lg font-semibold">Amounts Owed</h2>
-								<p className="text-sm text-gray-500">Settle up with your friends</p>
+								<h2 className="text-lg font-semibold">Owed to You</h2>
+								<p className="text-sm text-gray-500">Friends who owe you money</p>
 							</div>
 						</div>
 
-						<div className="text-center py-8 text-gray-500">
-							<Trophy className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-							<p>No completed bets yet</p>
-							<p className="text-sm mt-2">Complete some bets to see amounts owed</p>
+						{reminderError && (
+							<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+								{reminderError}
+								<button
+									type="button"
+									onClick={() => setReminderError(null)}
+									className="ml-2 text-red-500 hover:text-red-700"
+								>
+									Dismiss
+								</button>
+							</div>
+						)}
+
+						{loadingAmounts ? (
+							<div className="flex justify-center py-8">
+								<Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+							</div>
+						) : friendsWhoOweYou.length === 0 ? (
+							<div className="text-center py-8 text-gray-500">
+								<Trophy className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+								<p>No one owes you money</p>
+								<p className="text-sm mt-2">Win some bets to change that!</p>
+							</div>
+						) : (
+							<div className="space-y-3">
+								{friendsWhoOweYou.map((fb) => (
+									<div
+										key={fb.friend.id}
+										className="flex items-center justify-between p-3 bg-green-50 rounded-lg"
+									>
+										<div className="flex items-center gap-3">
+											<img
+												src={fb.friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fb.friend.username}`}
+												alt={fb.friend.display_name}
+												className="w-10 h-10 rounded-full"
+											/>
+											<div>
+												<p className="font-medium text-gray-800">{fb.friend.display_name}</p>
+												<p className="text-sm text-gray-500">@{fb.friend.username}</p>
+											</div>
+										</div>
+										<div className="flex items-center gap-3">
+											<span className="font-bold text-green-700">${fb.amount.toFixed(2)}</span>
+											<button
+												type="button"
+												onClick={() => handleSendReminder(fb.friend, fb.amount)}
+												disabled={sendingReminder === fb.friend.id || reminderSent[fb.friend.id]}
+												className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+													reminderSent[fb.friend.id]
+														? 'bg-green-500 text-white'
+														: 'bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50'
+												}`}
+											>
+												{sendingReminder === fb.friend.id ? (
+													<Loader2 className="w-4 h-4 animate-spin" />
+												) : reminderSent[fb.friend.id] ? (
+													<>
+														<Check className="w-4 h-4" />
+														Sent
+													</>
+												) : (
+													<>
+														<Bell className="w-4 h-4" />
+														Remind
+													</>
+												)}
+											</button>
+										</div>
+									</div>
+								))}
+							</div>
+						)}
+					</div>
+
+					{/* Friends You Owe Section */}
+					<div className="bg-white rounded-xl shadow-md p-6">
+						<div className="flex items-center gap-3 mb-6">
+							<div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+								<TrendingDown className="w-5 h-5 text-red-500" />
+							</div>
+							<div>
+								<h2 className="text-lg font-semibold">You Owe</h2>
+								<p className="text-sm text-gray-500">Friends you owe money to</p>
+							</div>
 						</div>
+
+						{loadingAmounts ? (
+							<div className="flex justify-center py-8">
+								<Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+							</div>
+						) : friendsYouOwe.length === 0 ? (
+							<div className="text-center py-8 text-gray-500">
+								<Check className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+								<p>You don't owe anyone</p>
+								<p className="text-sm mt-2">Keep up the winning streak!</p>
+							</div>
+						) : (
+							<div className="space-y-3">
+								{friendsYouOwe.map((fb) => (
+									<div
+										key={fb.friend.id}
+										className="flex items-center justify-between p-3 bg-red-50 rounded-lg"
+									>
+										<div className="flex items-center gap-3">
+											<img
+												src={fb.friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fb.friend.username}`}
+												alt={fb.friend.display_name}
+												className="w-10 h-10 rounded-full"
+											/>
+											<div>
+												<p className="font-medium text-gray-800">{fb.friend.display_name}</p>
+												<p className="text-sm text-gray-500">@{fb.friend.username}</p>
+											</div>
+										</div>
+										<span className="font-bold text-red-700">${Math.abs(fb.amount).toFixed(2)}</span>
+									</div>
+								))}
+							</div>
+						)}
 					</div>
 
 					{/* Account Settings */}

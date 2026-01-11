@@ -1,29 +1,84 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
+// Cache for Cloudflare env - loaded at module initialization
+let cfEnvCache: Record<string, string> | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-	console.warn(
-		"Supabase credentials not found. Set SUPABASE_URL and SUPABASE_ANON_KEY environment variables."
-	);
+// Load Cloudflare env at module initialization (top-level await)
+try {
+	// @ts-expect-error - cloudflare:workers is a virtual module only available at runtime
+	const cfModule = await import("cloudflare:workers");
+	cfEnvCache = cfModule.env as Record<string, string>;
+} catch {
+	// Not in Cloudflare environment, will use process.env fallback
 }
 
-// Client for browser (uses anon key, respects RLS)
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+function getEnv(key: string): string {
+	// Check cached Cloudflare env
+	if (cfEnvCache?.[key]) {
+		return cfEnvCache[key];
+	}
+	// Fallback to process.env (works in Node.js and with nodejs_compat flag)
+	return process.env[key] || "";
+}
 
-// Server client with service role for admin operations
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// Lazy initialization to avoid issues with module-level env access
+let _supabase: SupabaseClient<Database> | null = null;
+let _supabaseAdmin: SupabaseClient<Database> | null = null;
 
-export const supabaseAdmin = supabaseServiceKey
-	? createClient<Database>(supabaseUrl, supabaseServiceKey, {
-			auth: {
-				autoRefreshToken: false,
-				persistSession: false,
-			},
-		})
-	: supabase;
+export function getSupabaseClient(): SupabaseClient<Database> {
+	if (!_supabase) {
+		const supabaseUrl = getEnv("SUPABASE_URL");
+		const supabaseAnonKey = getEnv("SUPABASE_ANON_KEY");
+
+		if (!supabaseUrl || !supabaseAnonKey) {
+			console.warn(
+				"Supabase credentials not found. Set SUPABASE_URL and SUPABASE_ANON_KEY environment variables."
+			);
+		}
+
+		_supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+	}
+	return _supabase;
+}
+
+export function getSupabaseAdmin(): SupabaseClient<Database> {
+	if (!_supabaseAdmin) {
+		const supabaseUrl = getEnv("SUPABASE_URL");
+		const supabaseServiceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+		if (supabaseServiceKey) {
+			_supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+				auth: {
+					autoRefreshToken: false,
+					persistSession: false,
+				},
+			});
+		} else {
+			// Fallback to regular client
+			_supabaseAdmin = getSupabaseClient();
+		}
+	}
+	return _supabaseAdmin;
+}
+
+// Legacy exports for backwards compatibility
+// These are getters so they're evaluated lazily
+export const supabase = new Proxy({} as SupabaseClient<Database>, {
+	get(_, prop) {
+		return (getSupabaseClient() as unknown as Record<string, unknown>)[
+			prop as string
+		];
+	},
+});
+
+export const supabaseAdmin = new Proxy({} as SupabaseClient<Database>, {
+	get(_, prop) {
+		return (getSupabaseAdmin() as unknown as Record<string, unknown>)[
+			prop as string
+		];
+	},
+});
 
 // Helper to get user from session
 export async function getCurrentUser() {

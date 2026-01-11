@@ -136,6 +136,25 @@ export interface Database {
 					resolved_at?: string | null;
 				};
 			};
+			payment_reminders: {
+				Row: {
+					id: string;
+					sender_id: string;
+					recipient_id: string;
+					amount: number;
+					created_at: string;
+				};
+				Insert: {
+					id?: string;
+					sender_id: string;
+					recipient_id: string;
+					amount: number;
+					created_at?: string;
+				};
+				Update: {
+					amount?: number;
+				};
+			};
 		};
 		Views: {
 			[_ in never]: never;
@@ -163,6 +182,9 @@ export type FriendshipInsert = Database["public"]["Tables"]["friendships"]["Inse
 export type Bet = Database["public"]["Tables"]["bets"]["Row"];
 export type BetInsert = Database["public"]["Tables"]["bets"]["Insert"];
 export type BetUpdate = Database["public"]["Tables"]["bets"]["Update"];
+
+export type PaymentReminder = Database["public"]["Tables"]["payment_reminders"]["Row"];
+export type PaymentReminderInsert = Database["public"]["Tables"]["payment_reminders"]["Insert"];
 
 // Extended types with relationships
 export type BetWithUsers = Bet & {

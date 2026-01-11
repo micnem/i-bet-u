@@ -1,68 +1,68 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import { useUser } from "@clerk/tanstack-react-start";
 import { useState, useEffect } from "react";
 import { Users, UserPlus, Check, Clock, Loader2, X } from "lucide-react";
-import { getUserByUsername } from "../../api/users";
+import { supabase } from "../../lib/supabase";
 import { sendFriendRequest, checkFriendship } from "../../api/friends";
 import type { User } from "../../lib/database.types";
 
+// Server function to get user by username (public, no auth required)
+const getInviterByUsername = createServerFn({ method: "GET" })
+	.validator((data: { username: string }) => data)
+	.handler(async ({ data: { username } }) => {
+		const { data, error } = await supabase
+			.from("users")
+			.select("id, username, display_name, avatar_url, total_bets, bets_won")
+			.eq("username", username)
+			.single();
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data };
+	});
+
 export const Route = createFileRoute("/invite/$username")({
 	component: InvitePage,
+	loader: async ({ params }) => {
+		const result = await getInviterByUsername({ data: { username: params.username } });
+		return { inviter: result.data, error: result.error };
+	},
 });
 
 function InvitePage() {
 	const { username } = Route.useParams();
+	const { inviter: loaderInviter, error: loaderError } = Route.useLoaderData();
 	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
 	const navigate = useNavigate();
 
-	const [inviter, setInviter] = useState<User | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
 	const [sendingRequest, setSendingRequest] = useState(false);
 	const [requestSent, setRequestSent] = useState(false);
-
-	// Fetch the inviting user
-	useEffect(() => {
-		async function fetchInviter() {
-			setLoading(true);
-			setError(null);
-
-			const result = await getUserByUsername({ data: { username } });
-
-			if (result.error || !result.data) {
-				setError("User not found");
-				setLoading(false);
-				return;
-			}
-
-			setInviter(result.data);
-			setLoading(false);
-		}
-
-		fetchInviter();
-	}, [username]);
+	const [error, setError] = useState<string | null>(loaderError);
 
 	// Check friendship status when authenticated
 	useEffect(() => {
 		async function checkStatus() {
-			if (!clerkLoaded || !clerkUser || !inviter) return;
+			if (!clerkLoaded || !clerkUser || !loaderInviter) return;
 
-			const result = await checkFriendship({ data: { userId: inviter.id } });
+			const result = await checkFriendship({ data: { userId: loaderInviter.id } });
 			if (!result.error) {
 				setFriendshipStatus(result.status);
 			}
 		}
 
 		checkStatus();
-	}, [clerkLoaded, clerkUser, inviter]);
+	}, [clerkLoaded, clerkUser, loaderInviter]);
 
 	const handleAddFriend = async () => {
-		if (!inviter) return;
+		if (!loaderInviter) return;
 
 		setSendingRequest(true);
 		const result = await sendFriendRequest({
-			data: { friendId: inviter.id, addedVia: "qr" },
+			data: { friendId: loaderInviter.id, addedVia: "qr" },
 		});
 
 		if (result.error) {
@@ -75,7 +75,6 @@ function InvitePage() {
 	};
 
 	const handleSignUpToAdd = () => {
-		// Store the invite username and redirect to signup
 		const redirectUrl = `/invite/${username}`;
 		navigate({
 			to: "/auth/signup",
@@ -83,8 +82,8 @@ function InvitePage() {
 		});
 	};
 
-	// Loading state
-	if (loading || !clerkLoaded) {
+	// Loading state for Clerk
+	if (!clerkLoaded) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
 				<div className="text-center">
@@ -96,7 +95,7 @@ function InvitePage() {
 	}
 
 	// User not found
-	if (error === "User not found" || !inviter) {
+	if (loaderError || !loaderInviter) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
 				<div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
@@ -116,6 +115,8 @@ function InvitePage() {
 			</div>
 		);
 	}
+
+	const inviter = loaderInviter;
 
 	// Render invite page with user info
 	return (
@@ -187,7 +188,7 @@ function InvitePage() {
 							</button>
 						)}
 
-						{error && error !== "User not found" && (
+						{error && (
 							<div className="flex items-center justify-center gap-2 text-red-500 mb-4">
 								<X className="w-5 h-5" />
 								<span>{error}</span>

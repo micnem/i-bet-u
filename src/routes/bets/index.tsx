@@ -10,9 +10,11 @@ import {
 	XCircle,
 	AlertCircle,
 	ChevronRight,
+	TimerOff,
 } from "lucide-react";
 import { getUserBets, acceptBet, declineBet } from "../../api/bets";
 import type { BetStatus } from "../../lib/database.types";
+import { getDisplayStatus, type DisplayStatus } from "../../lib/bet-utils";
 
 export const Route = createFileRoute("/bets/")({ component: BetsPage });
 
@@ -107,7 +109,7 @@ function BetsPage() {
 	const filteredBets =
 		filter === "all" ? bets : bets.filter((b) => b.status === filter);
 
-	const getStatusIcon = (status: BetStatus) => {
+	const getStatusIcon = (status: DisplayStatus) => {
 		switch (status) {
 			case "active":
 				return <Clock className="w-4 h-4 text-orange-500" />;
@@ -118,20 +120,30 @@ function BetsPage() {
 			case "declined":
 			case "expired":
 				return <XCircle className="w-4 h-4 text-red-500" />;
+			case "deadline_passed":
+				return <TimerOff className="w-4 h-4 text-red-500" />;
 			default:
 				return null;
 		}
 	};
 
-	const getStatusBadge = (status: BetStatus) => {
-		const styles: Record<BetStatus, string> = {
+	const getStatusBadge = (status: DisplayStatus) => {
+		const styles: Record<DisplayStatus, string> = {
 			active: "bg-orange-100 text-orange-700",
 			pending: "bg-yellow-100 text-yellow-700",
 			completed: "bg-green-100 text-green-700",
 			declined: "bg-red-100 text-red-700",
 			expired: "bg-gray-100 text-gray-700",
+			deadline_passed: "bg-red-100 text-red-700",
 		};
 		return styles[status] || "bg-gray-100 text-gray-700";
+	};
+
+	const getStatusLabel = (status: DisplayStatus) => {
+		if (status === "deadline_passed") {
+			return "Deadline Passed";
+		}
+		return status.charAt(0).toUpperCase() + status.slice(1);
 	};
 
 	const formatDate = (dateString: string) => {
@@ -285,9 +297,11 @@ function BetsPage() {
 				) : (
 					<div className="space-y-4">
 						{filteredBets.map((bet) => {
+							const displayStatus = getDisplayStatus(bet.status, bet.deadline);
 							const isPendingForMe =
 								bet.status === "pending" &&
-								clerkUser?.id === bet.opponent.clerk_id;
+								clerkUser?.id === bet.opponent.clerk_id &&
+								displayStatus !== "deadline_passed";
 							const isActionLoading = actionLoadingId === bet.id;
 							// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
 							const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
@@ -305,14 +319,13 @@ function BetsPage() {
 									<div className="flex items-start justify-between">
 										<div className="flex-1">
 											<div className="flex items-center gap-2 mb-1">
-												{getStatusIcon(bet.status)}
+												{getStatusIcon(displayStatus)}
 												<span
 													className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(
-														bet.status
+														displayStatus
 													)}`}
 												>
-													{bet.status.charAt(0).toUpperCase() +
-														bet.status.slice(1)}
+													{getStatusLabel(displayStatus)}
 												</span>
 											</div>
 											<h3 className="font-semibold text-gray-800">{bet.title}</h3>

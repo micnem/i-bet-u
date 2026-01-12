@@ -60,9 +60,24 @@ function InvitePage() {
 			} else if (!result.status || result.status === "none" || result.status === "pending" || result.status === "declined") {
 				// Auto-add friend via invite link (also handles previously declined friendships)
 				setAddingFriend(true);
-				const addResult = await addFriendViaInvite({
+
+				// Retry logic for new users - the Supabase user might not exist yet
+				// due to webhook delay after Clerk signup
+				let addResult = await addFriendViaInvite({
 					data: { friendId: loaderInviter.id },
 				});
+
+				// If "Not authenticated", the user might not be in Supabase yet
+				// Retry a few times with delays to wait for webhook
+				if (addResult.error === "Not authenticated") {
+					for (let i = 0; i < 5; i++) {
+						await new Promise(resolve => setTimeout(resolve, 1000));
+						addResult = await addFriendViaInvite({
+							data: { friendId: loaderInviter.id },
+						});
+						if (addResult.error !== "Not authenticated") break;
+					}
+				}
 
 				if (addResult.error) {
 					setError(addResult.error);
@@ -81,9 +96,22 @@ function InvitePage() {
 		if (!loaderInviter) return;
 
 		setAddingFriend(true);
-		const result = await addFriendViaInvite({
+		setError(null);
+
+		let result = await addFriendViaInvite({
 			data: { friendId: loaderInviter.id },
 		});
+
+		// Retry if user not in Supabase yet (new signup)
+		if (result.error === "Not authenticated") {
+			for (let i = 0; i < 5; i++) {
+				await new Promise(resolve => setTimeout(resolve, 1000));
+				result = await addFriendViaInvite({
+					data: { friendId: loaderInviter.id },
+				});
+				if (result.error !== "Not authenticated") break;
+			}
+		}
 
 		if (result.error) {
 			setError(result.error);

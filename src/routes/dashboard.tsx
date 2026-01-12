@@ -11,8 +11,10 @@ import {
 	Loader2,
 	ChevronRight,
 	AlertCircle,
+	CheckCircle,
+	XCircle,
 } from "lucide-react";
-import { getUserBets, getAmountsOwedSummary } from "../api/bets";
+import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet } from "../api/bets";
 import { getCurrentUserProfile } from "../api/users";
 import type { BetStatus } from "../lib/database.types";
 
@@ -24,8 +26,11 @@ interface Bet {
 	amount: number;
 	status: BetStatus;
 	deadline: string;
+	creator_id: string;
+	opponent_id: string;
 	opponent: {
 		id: string;
+		clerk_id: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
@@ -46,12 +51,44 @@ function Dashboard() {
 	const [profile, setProfile] = useState<UserProfile | null>(null);
 	const [netBalance, setNetBalance] = useState(0);
 	const [loading, setLoading] = useState(true);
+	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (clerkLoaded && !clerkUser) {
 			router.navigate({ to: "/auth/login" });
 		}
 	}, [clerkUser, clerkLoaded, router]);
+
+	const refreshBets = async () => {
+		const betsResult = await getUserBets({ data: {} });
+		if (betsResult.data) {
+			const bets = betsResult.data as Bet[];
+			setActiveBets(bets.filter((b) => b.status === "active").slice(0, 5));
+			setPendingBets(bets.filter((b) => b.status === "pending").slice(0, 5));
+		}
+	};
+
+	const handleAccept = async (e: React.MouseEvent, betId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(betId);
+		const result = await acceptBet({ data: { betId } });
+		if (!result.error) {
+			await refreshBets();
+		}
+		setActionLoadingId(null);
+	};
+
+	const handleDecline = async (e: React.MouseEvent, betId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(betId);
+		const result = await declineBet({ data: { betId } });
+		if (!result.error) {
+			await refreshBets();
+		}
+		setActionLoadingId(null);
+	};
 
 	useEffect(() => {
 		async function fetchData() {
@@ -211,27 +248,61 @@ function Dashboard() {
 									</Link>
 								</div>
 								<div className="space-y-3">
-									{pendingBets.map((bet) => (
-										<Link
-											key={bet.id}
-											to="/bets/$betId"
-											params={{ betId: bet.id }}
-											className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors"
-										>
-											<div>
-												<p className="font-medium text-gray-800">{bet.title}</p>
-												<p className="text-sm text-gray-500">
-													vs {bet.opponent.display_name}
-												</p>
-											</div>
-											<div className="flex items-center gap-3">
-												<span className="font-bold text-orange-500">
-													${bet.amount}
-												</span>
-												<ChevronRight className="w-5 h-5 text-gray-400" />
-											</div>
-										</Link>
-									))}
+									{pendingBets.map((bet) => {
+										const isPendingForMe =
+											clerkUser?.id === bet.opponent.clerk_id;
+										const isActionLoading = actionLoadingId === bet.id;
+
+										return (
+											<Link
+												key={bet.id}
+												to="/bets/$betId"
+												params={{ betId: bet.id }}
+												className="block p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors"
+											>
+												<div className="flex items-center justify-between">
+													<div>
+														<p className="font-medium text-gray-800">{bet.title}</p>
+														<p className="text-sm text-gray-500">
+															vs {bet.opponent.display_name}
+														</p>
+													</div>
+													<div className="flex items-center gap-3">
+														<span className="font-bold text-orange-500">
+															${bet.amount}
+														</span>
+														<ChevronRight className="w-5 h-5 text-gray-400" />
+													</div>
+												</div>
+												{isPendingForMe && (
+													<div className="flex gap-2 mt-3 pt-3 border-t border-yellow-200">
+														<button
+															type="button"
+															onClick={(e) => handleAccept(e, bet.id)}
+															disabled={isActionLoading}
+															className="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+														>
+															{isActionLoading ? (
+																<Loader2 className="w-4 h-4 animate-spin" />
+															) : (
+																<CheckCircle className="w-4 h-4" />
+															)}
+															Accept
+														</button>
+														<button
+															type="button"
+															onClick={(e) => handleDecline(e, bet.id)}
+															disabled={isActionLoading}
+															className="flex-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+														>
+															<XCircle className="w-4 h-4" />
+															Decline
+														</button>
+													</div>
+												)}
+											</Link>
+										);
+									})}
 								</div>
 							</div>
 						)}

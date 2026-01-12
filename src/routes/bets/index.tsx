@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useUser } from "@clerk/tanstack-react-start";
 import {
 	Trophy,
 	Plus,
@@ -10,7 +11,7 @@ import {
 	AlertCircle,
 	ChevronRight,
 } from "lucide-react";
-import { getUserBets } from "../../api/bets";
+import { getUserBets, acceptBet, declineBet } from "../../api/bets";
 import type { BetStatus } from "../../lib/database.types";
 
 export const Route = createFileRoute("/bets/")({ component: BetsPage });
@@ -28,12 +29,14 @@ interface Bet {
 	winner_id: string | null;
 	creator: {
 		id: string;
+		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	opponent: {
 		id: string;
+		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
@@ -43,9 +46,11 @@ interface Bet {
 type FilterStatus = "all" | BetStatus;
 
 function BetsPage() {
+	const { user: clerkUser } = useUser();
 	const [bets, setBets] = useState<Bet[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState<FilterStatus>("all");
+	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
 	useEffect(() => {
 		async function fetchBets() {
@@ -58,6 +63,36 @@ function BetsPage() {
 		}
 		fetchBets();
 	}, []);
+
+	const handleAccept = async (e: React.MouseEvent, betId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(betId);
+		const result = await acceptBet({ data: { betId } });
+		if (!result.error) {
+			// Refresh bets list
+			const refreshed = await getUserBets({ data: {} });
+			if (!refreshed.error && refreshed.data) {
+				setBets(refreshed.data as Bet[]);
+			}
+		}
+		setActionLoadingId(null);
+	};
+
+	const handleDecline = async (e: React.MouseEvent, betId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(betId);
+		const result = await declineBet({ data: { betId } });
+		if (!result.error) {
+			// Refresh bets list
+			const refreshed = await getUserBets({ data: {} });
+			if (!refreshed.error && refreshed.data) {
+				setBets(refreshed.data as Bet[]);
+			}
+		}
+		setActionLoadingId(null);
+	};
 
 	// Calculate stats
 	const stats = {
@@ -249,48 +284,81 @@ function BetsPage() {
 					</div>
 				) : (
 					<div className="space-y-4">
-						{filteredBets.map((bet) => (
-							<Link
-								key={bet.id}
-								to="/bets/$betId"
-								params={{ betId: bet.id }}
-								className="block bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow"
-							>
-								<div className="flex items-start justify-between">
-									<div className="flex-1">
-										<div className="flex items-center gap-2 mb-1">
-											{getStatusIcon(bet.status)}
-											<span
-												className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(
-													bet.status
-												)}`}
+						{filteredBets.map((bet) => {
+							const isPendingForMe =
+								bet.status === "pending" &&
+								clerkUser?.id === bet.opponent.clerk_id;
+							const isActionLoading = actionLoadingId === bet.id;
+
+							return (
+								<Link
+									key={bet.id}
+									to="/bets/$betId"
+									params={{ betId: bet.id }}
+									className="block bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow"
+								>
+									<div className="flex items-start justify-between">
+										<div className="flex-1">
+											<div className="flex items-center gap-2 mb-1">
+												{getStatusIcon(bet.status)}
+												<span
+													className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(
+														bet.status
+													)}`}
+												>
+													{bet.status.charAt(0).toUpperCase() +
+														bet.status.slice(1)}
+												</span>
+											</div>
+											<h3 className="font-semibold text-gray-800">{bet.title}</h3>
+											{bet.description && (
+												<p className="text-sm text-gray-500 mt-1 line-clamp-1">
+													{bet.description}
+												</p>
+											)}
+											<div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+												<span>vs {bet.opponent.display_name}</span>
+												<span>Due {formatDate(bet.deadline)}</span>
+											</div>
+										</div>
+										<div className="flex items-center gap-3">
+											<div className="text-right">
+												<p className="text-lg font-bold text-orange-500">
+													${bet.amount}
+												</p>
+											</div>
+											<ChevronRight className="w-5 h-5 text-gray-400" />
+										</div>
+									</div>
+									{isPendingForMe && (
+										<div className="flex gap-2 mt-3 pt-3 border-t">
+											<button
+												type="button"
+												onClick={(e) => handleAccept(e, bet.id)}
+												disabled={isActionLoading}
+												className="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
 											>
-												{bet.status.charAt(0).toUpperCase() +
-													bet.status.slice(1)}
-											</span>
+												{isActionLoading ? (
+													<Loader2 className="w-4 h-4 animate-spin" />
+												) : (
+													<CheckCircle className="w-4 h-4" />
+												)}
+												Accept
+											</button>
+											<button
+												type="button"
+												onClick={(e) => handleDecline(e, bet.id)}
+												disabled={isActionLoading}
+												className="flex-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+											>
+												<XCircle className="w-4 h-4" />
+												Decline
+											</button>
 										</div>
-										<h3 className="font-semibold text-gray-800">{bet.title}</h3>
-										{bet.description && (
-											<p className="text-sm text-gray-500 mt-1 line-clamp-1">
-												{bet.description}
-											</p>
-										)}
-										<div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-											<span>vs {bet.opponent.display_name}</span>
-											<span>Due {formatDate(bet.deadline)}</span>
-										</div>
-									</div>
-									<div className="flex items-center gap-3">
-										<div className="text-right">
-											<p className="text-lg font-bold text-orange-500">
-												${bet.amount}
-											</p>
-										</div>
-										<ChevronRight className="w-5 h-5 text-gray-400" />
-									</div>
-								</div>
-							</Link>
-						))}
+									)}
+								</Link>
+							);
+						})}
 					</div>
 				)}
 			</div>

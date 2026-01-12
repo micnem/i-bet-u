@@ -7,6 +7,7 @@ import type {
 	VerificationMethod,
 } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
+import { sendWinnerConfirmationEmail } from "./reminders";
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
@@ -230,10 +231,14 @@ export const approveBetResult = createServerFn({ method: "POST" })
 
 		const userId = currentUser.user.id;
 
-		// Get the bet
+		// Get the bet with user details for email
 		const { data: bet } = await supabaseAdmin
 			.from("bets")
-			.select("*")
+			.select(`
+				*,
+				creator:users!bets_creator_id_fkey(id, display_name),
+				opponent:users!bets_opponent_id_fkey(id, display_name)
+			`)
 			.eq("id", betId)
 			.eq("status", "active")
 			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
@@ -273,6 +278,25 @@ export const approveBetResult = createServerFn({ method: "POST" })
 		) {
 			// Resolve the bet
 			await resolveBet({ betId, winnerId: updatedBet.winner_id });
+		} else {
+			// Only one party has approved - send confirmation email to the other
+			const declarerName = currentUser.user.display_name;
+			const winnerName = winnerId === bet.creator_id
+				? bet.creator.display_name
+				: bet.opponent.display_name;
+			const recipientId = isCreator ? bet.opponent_id : bet.creator_id;
+
+			// Send email in background (don't block the response)
+			sendWinnerConfirmationEmail({
+				recipientId,
+				declarerName,
+				winnerName,
+				betTitle: bet.title,
+				betAmount: Number(bet.amount),
+				betId,
+			}).catch((err) => {
+				console.error("Failed to send winner confirmation email:", err);
+			});
 		}
 
 		return { error: null, data: updatedBet };

@@ -57,8 +57,8 @@ function InvitePage() {
 			const result = await checkFriendship({ data: { userId: loaderInviter.id } });
 			if (!result.error && result.status === "accepted") {
 				setFriendshipStatus("accepted");
-			} else if (!result.status || result.status === "none" || result.status === "pending") {
-				// Auto-add friend via invite link
+			} else if (!result.status || result.status === "none" || result.status === "pending" || result.status === "declined") {
+				// Auto-add friend via invite link (also handles previously declined friendships)
 				setAddingFriend(true);
 				const addResult = await addFriendViaInvite({
 					data: { friendId: loaderInviter.id },

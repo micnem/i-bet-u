@@ -156,8 +156,8 @@ export const addFriendViaInvite = createServerFn({ method: "POST" })
 			if (existing.status === "accepted") {
 				return { error: null, data: existing, alreadyFriends: true };
 			}
-			// If pending request exists, accept it
-			if (existing.status === "pending") {
+			// If pending or declined request exists, accept/update it
+			if (existing.status === "pending" || existing.status === "declined") {
 				const { data: updated, error } = await supabaseAdmin
 					.from("friendships")
 					.update({ status: "accepted" })

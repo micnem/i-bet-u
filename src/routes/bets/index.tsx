@@ -29,12 +29,14 @@ interface Bet {
 	winner_id: string | null;
 	creator: {
 		id: string;
+		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	opponent: {
 		id: string;
+		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
@@ -285,7 +287,7 @@ function BetsPage() {
 						{filteredBets.map((bet) => {
 							const isPendingForMe =
 								bet.status === "pending" &&
-								clerkUser?.id === bet.opponent_id;
+								clerkUser?.id === bet.opponent.clerk_id;
 							const isActionLoading = actionLoadingId === bet.id;
 
 							return (

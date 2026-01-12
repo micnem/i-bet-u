@@ -30,6 +30,7 @@ interface Bet {
 	opponent_id: string;
 	opponent: {
 		id: string;
+		clerk_id: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
@@ -249,7 +250,7 @@ function Dashboard() {
 								<div className="space-y-3">
 									{pendingBets.map((bet) => {
 										const isPendingForMe =
-											clerkUser?.id === bet.opponent_id;
+											clerkUser?.id === bet.opponent.clerk_id;
 										const isActionLoading = actionLoadingId === bet.id;
 
 										return (

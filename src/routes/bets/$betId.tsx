@@ -43,18 +43,21 @@ interface Bet {
 	verification_method: string;
 	creator: {
 		id: string;
+		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	opponent: {
 		id: string;
+		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	winner?: {
 		id: string;
+		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
@@ -173,8 +176,8 @@ function BetDetailsPage() {
 		);
 	}
 
-	const isCreator = clerkUser && clerkUser.id === bet.creator_id;
-	const isOpponent = clerkUser && clerkUser.id === bet.opponent_id;
+	const isCreator = clerkUser && clerkUser.id === bet.creator.clerk_id;
+	const isOpponent = clerkUser && clerkUser.id === bet.opponent.clerk_id;
 	const isPending = bet.status === "pending";
 	const isActive = bet.status === "active";
 	const isCompleted = bet.status === "completed";

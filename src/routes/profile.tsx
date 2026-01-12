@@ -178,7 +178,7 @@ function ProfilePage() {
 					</div>
 
 					{/* Stats */}
-					<div className="grid grid-cols-4 gap-4 mt-8">
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-8">
 						<div className="bg-white/20 backdrop-blur rounded-lg p-4 text-center">
 							<p className="text-3xl font-bold">{totalBets}</p>
 							<p className="text-sm text-orange-100">Total Bets</p>
@@ -218,31 +218,31 @@ function ProfilePage() {
 								<Loader2 className="w-8 h-8 animate-spin text-orange-500" />
 							</div>
 						) : (
-							<div className="grid grid-cols-3 gap-4">
-								<div className="bg-green-50 rounded-xl p-4 text-center">
-									<div className="flex items-center justify-center gap-2 mb-2">
-										<TrendingUp className="w-5 h-5 text-green-600" />
-										<span className="text-sm text-green-600 font-medium">Won</span>
+							<div className="grid grid-cols-3 gap-2 sm:gap-4">
+								<div className="bg-green-50 rounded-xl p-2 sm:p-4 text-center">
+									<div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+										<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+										<span className="text-xs sm:text-sm text-green-600 font-medium">Won</span>
 									</div>
-									<p className="text-2xl font-bold text-green-700">
+									<p className="text-lg sm:text-2xl font-bold text-green-700">
 										${totalWon.toFixed(2)}
 									</p>
 								</div>
-								<div className="bg-red-50 rounded-xl p-4 text-center">
-									<div className="flex items-center justify-center gap-2 mb-2">
-										<TrendingDown className="w-5 h-5 text-red-600" />
-										<span className="text-sm text-red-600 font-medium">Lost</span>
+								<div className="bg-red-50 rounded-xl p-2 sm:p-4 text-center">
+									<div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+										<TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+										<span className="text-xs sm:text-sm text-red-600 font-medium">Lost</span>
 									</div>
-									<p className="text-2xl font-bold text-red-700">
+									<p className="text-lg sm:text-2xl font-bold text-red-700">
 										${totalLost.toFixed(2)}
 									</p>
 								</div>
-								<div className={`rounded-xl p-4 text-center ${netBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-									<div className="flex items-center justify-center gap-2 mb-2">
-										<DollarSign className={`w-5 h-5 ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`} />
-										<span className={`text-sm font-medium ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`}>Net</span>
+								<div className={`rounded-xl p-2 sm:p-4 text-center ${netBalance >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+									<div className="flex items-center justify-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+										<DollarSign className={`w-4 h-4 sm:w-5 sm:h-5 ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`} />
+										<span className={`text-xs sm:text-sm font-medium ${netBalance >= 0 ? 'text-green-700' : 'text-red-700'}`}>Net</span>
 									</div>
-									<p className={`text-2xl font-bold ${netBalance >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+									<p className={`text-lg sm:text-2xl font-bold ${netBalance >= 0 ? 'text-green-800' : 'text-red-800'}`}>
 										{netBalance >= 0 ? '+' : ''}{netBalance.toFixed(2)}
 									</p>
 								</div>
@@ -290,41 +290,41 @@ function ProfilePage() {
 								{friendsWhoOweYou.map((fb) => (
 									<div
 										key={fb.friend.id}
-										className="flex items-center justify-between p-3 bg-green-50 rounded-lg"
+										className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-green-50 rounded-lg gap-2 sm:gap-3"
 									>
-										<div className="flex items-center gap-3">
+										<div className="flex items-center gap-2 sm:gap-3 min-w-0">
 											<img
 												src={fb.friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fb.friend.username}`}
 												alt={fb.friend.display_name}
-												className="w-10 h-10 rounded-full"
+												className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
 											/>
-											<div>
-												<p className="font-medium text-gray-800">{fb.friend.display_name}</p>
-												<p className="text-sm text-gray-500">@{fb.friend.username}</p>
+											<div className="min-w-0">
+												<p className="font-medium text-gray-800 text-sm sm:text-base truncate">{fb.friend.display_name}</p>
+												<p className="text-xs sm:text-sm text-gray-500 truncate">@{fb.friend.username}</p>
 											</div>
 										</div>
-										<div className="flex items-center gap-3">
-											<span className="font-bold text-green-700">${fb.amount.toFixed(2)}</span>
+										<div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 ml-10 sm:ml-0">
+											<span className="font-bold text-green-700 text-sm sm:text-base">${fb.amount.toFixed(2)}</span>
 											<button
 												type="button"
 												onClick={() => handleSendReminder(fb.friend, fb.amount)}
 												disabled={sendingReminder === fb.friend.id || reminderSent[fb.friend.id]}
-												className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+												className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors flex-shrink-0 ${
 													reminderSent[fb.friend.id]
 														? 'bg-green-500 text-white'
 														: 'bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50'
 												}`}
 											>
 												{sendingReminder === fb.friend.id ? (
-													<Loader2 className="w-4 h-4 animate-spin" />
+													<Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
 												) : reminderSent[fb.friend.id] ? (
 													<>
-														<Check className="w-4 h-4" />
+														<Check className="w-3 h-3 sm:w-4 sm:h-4" />
 														Sent
 													</>
 												) : (
 													<>
-														<Bell className="w-4 h-4" />
+														<Bell className="w-3 h-3 sm:w-4 sm:h-4" />
 														Remind
 													</>
 												)}
@@ -363,20 +363,20 @@ function ProfilePage() {
 								{friendsYouOwe.map((fb) => (
 									<div
 										key={fb.friend.id}
-										className="flex items-center justify-between p-3 bg-red-50 rounded-lg"
+										className="flex items-center justify-between p-3 bg-red-50 rounded-lg gap-2 sm:gap-3"
 									>
-										<div className="flex items-center gap-3">
+										<div className="flex items-center gap-2 sm:gap-3 min-w-0">
 											<img
 												src={fb.friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fb.friend.username}`}
 												alt={fb.friend.display_name}
-												className="w-10 h-10 rounded-full"
+												className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex-shrink-0"
 											/>
-											<div>
-												<p className="font-medium text-gray-800">{fb.friend.display_name}</p>
-												<p className="text-sm text-gray-500">@{fb.friend.username}</p>
+											<div className="min-w-0">
+												<p className="font-medium text-gray-800 text-sm sm:text-base truncate">{fb.friend.display_name}</p>
+												<p className="text-xs sm:text-sm text-gray-500 truncate">@{fb.friend.username}</p>
 											</div>
 										</div>
-										<span className="font-bold text-red-700">${Math.abs(fb.amount).toFixed(2)}</span>
+										<span className="font-bold text-red-700 text-sm sm:text-base flex-shrink-0">${Math.abs(fb.amount).toFixed(2)}</span>
 									</div>
 								))}
 							</div>

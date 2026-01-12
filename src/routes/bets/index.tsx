@@ -289,6 +289,11 @@ function BetsPage() {
 								bet.status === "pending" &&
 								clerkUser?.id === bet.opponent.clerk_id;
 							const isActionLoading = actionLoadingId === bet.id;
+							// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
+							const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
+							const otherPartyName = isOpponent
+								? bet.creator.display_name
+								: bet.opponent.display_name;
 
 							return (
 								<Link
@@ -317,7 +322,7 @@ function BetsPage() {
 												</p>
 											)}
 											<div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-												<span>vs {bet.opponent.display_name}</span>
+												<span>vs {otherPartyName}</span>
 												<span>Due {formatDate(bet.deadline)}</span>
 											</div>
 										</div>

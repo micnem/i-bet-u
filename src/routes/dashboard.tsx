@@ -28,6 +28,12 @@ interface Bet {
 	deadline: string;
 	creator_id: string;
 	opponent_id: string;
+	creator: {
+		id: string;
+		clerk_id: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
 	opponent: {
 		id: string;
 		clerk_id: string;
@@ -252,6 +258,10 @@ function Dashboard() {
 										const isPendingForMe =
 											clerkUser?.id === bet.opponent.clerk_id;
 										const isActionLoading = actionLoadingId === bet.id;
+										// Show opponent name if I'm the creator, show creator name if I'm the opponent
+										const otherPartyName = isPendingForMe
+											? bet.creator.display_name
+											: bet.opponent.display_name;
 
 										return (
 											<Link
@@ -264,7 +274,7 @@ function Dashboard() {
 													<div>
 														<p className="font-medium text-gray-800">{bet.title}</p>
 														<p className="text-sm text-gray-500">
-															vs {bet.opponent.display_name}
+															vs {otherPartyName}
 														</p>
 													</div>
 													<div className="flex items-center gap-3">
@@ -334,28 +344,36 @@ function Dashboard() {
 								</div>
 							) : (
 								<div className="space-y-3">
-									{activeBets.map((bet) => (
-										<Link
-											key={bet.id}
-											to="/bets/$betId"
-											params={{ betId: bet.id }}
-											className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-										>
-											<div>
-												<p className="font-medium text-gray-800">{bet.title}</p>
-												<p className="text-sm text-gray-500">
-													vs {bet.opponent.display_name} - Due{" "}
-													{formatDate(bet.deadline)}
-												</p>
-											</div>
-											<div className="flex items-center gap-3">
-												<span className="font-bold text-orange-500">
-													${bet.amount}
-												</span>
-												<ChevronRight className="w-5 h-5 text-gray-400" />
-											</div>
-										</Link>
-									))}
+									{activeBets.map((bet) => {
+										// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
+										const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
+										const otherPartyName = isOpponent
+											? bet.creator.display_name
+											: bet.opponent.display_name;
+
+										return (
+											<Link
+												key={bet.id}
+												to="/bets/$betId"
+												params={{ betId: bet.id }}
+												className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+											>
+												<div>
+													<p className="font-medium text-gray-800">{bet.title}</p>
+													<p className="text-sm text-gray-500">
+														vs {otherPartyName} - Due{" "}
+														{formatDate(bet.deadline)}
+													</p>
+												</div>
+												<div className="flex items-center gap-3">
+													<span className="font-bold text-orange-500">
+														${bet.amount}
+													</span>
+													<ChevronRight className="w-5 h-5 text-gray-400" />
+												</div>
+											</Link>
+										);
+									})}
 								</div>
 							)}
 						</div>

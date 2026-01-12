@@ -428,14 +428,26 @@ function BetDetailsPage() {
 							</button>
 						</div>
 						{(bet.creator_approved || bet.opponent_approved) && (
-							<p className="text-sm text-gray-500 mt-4 text-center">
+							<div className="mt-4 text-center space-y-2">
+								{/* Show current user's approval status */}
+								{((isCreator && bet.creator_approved) || (isOpponent && bet.opponent_approved)) && (
+									<div className="flex items-center justify-center gap-2 text-green-600">
+										<CheckCircle className="w-4 h-4" />
+										<span className="text-sm font-medium">Approved</span>
+									</div>
+								)}
+								{/* Show waiting message with actual user name */}
 								{bet.creator_approved && !bet.opponent_approved && (
-									<>Creator has approved. Waiting for opponent.</>
+									<p className="text-sm text-gray-500">
+										Waiting for approval from {bet.opponent.display_name}
+									</p>
 								)}
 								{!bet.creator_approved && bet.opponent_approved && (
-									<>Opponent has approved. Waiting for creator.</>
+									<p className="text-sm text-gray-500">
+										Waiting for approval from {bet.creator.display_name}
+									</p>
 								)}
-							</p>
+							</div>
 						)}
 					</div>
 				)}

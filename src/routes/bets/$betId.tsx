@@ -12,6 +12,7 @@ import {
 	Calendar,
 	DollarSign,
 	User,
+	TimerOff,
 } from "lucide-react";
 import {
 	getBetById,
@@ -20,6 +21,7 @@ import {
 	approveBetResult,
 } from "../../api/bets";
 import type { BetStatus } from "../../lib/database.types";
+import { getDisplayStatus, type DisplayStatus } from "../../lib/bet-utils";
 
 export const Route = createFileRoute("/bets/$betId")({
 	component: BetDetailsPage,
@@ -136,17 +138,26 @@ function BetDetailsPage() {
 		});
 	};
 
-	const getStatusColor = (status: BetStatus) => {
+	const getStatusBadgeStyle = (status: DisplayStatus) => {
 		switch (status) {
 			case "active":
-				return "text-orange-500";
+				return "bg-orange-100 text-orange-700";
 			case "pending":
-				return "text-yellow-500";
+				return "bg-yellow-100 text-yellow-700";
 			case "completed":
-				return "text-green-500";
+				return "bg-green-100 text-green-700";
+			case "deadline_passed":
+				return "bg-red-100 text-red-700";
 			default:
-				return "text-gray-500";
+				return "bg-gray-100 text-gray-700";
 		}
+	};
+
+	const getStatusLabel = (status: DisplayStatus) => {
+		if (status === "deadline_passed") {
+			return "Deadline Passed";
+		}
+		return status.charAt(0).toUpperCase() + status.slice(1);
 	};
 
 	if (loading) {
@@ -181,6 +192,8 @@ function BetDetailsPage() {
 	const isPending = bet.status === "pending";
 	const isActive = bet.status === "active";
 	const isCompleted = bet.status === "completed";
+	const displayStatus = getDisplayStatus(bet.status, bet.deadline);
+	const isDeadlinePassed = displayStatus === "deadline_passed";
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -197,17 +210,9 @@ function BetDetailsPage() {
 					<div className="flex items-center justify-between">
 						<h1 className="text-2xl font-bold text-gray-800">{bet.title}</h1>
 						<span
-							className={`text-sm font-medium px-3 py-1 rounded-full ${
-								bet.status === "active"
-									? "bg-orange-100 text-orange-700"
-									: bet.status === "pending"
-										? "bg-yellow-100 text-yellow-700"
-										: bet.status === "completed"
-											? "bg-green-100 text-green-700"
-											: "bg-gray-100 text-gray-700"
-							}`}
+							className={`text-sm font-medium px-3 py-1 rounded-full ${getStatusBadgeStyle(displayStatus)}`}
 						>
-							{bet.status.charAt(0).toUpperCase() + bet.status.slice(1)}
+							{getStatusLabel(displayStatus)}
 						</span>
 					</div>
 				</div>
@@ -318,8 +323,23 @@ function BetDetailsPage() {
 					</div>
 				</div>
 
+				{/* Deadline Passed Warning */}
+				{isDeadlinePassed && (
+					<div className="bg-red-50 rounded-xl p-6">
+						<div className="flex items-center gap-3">
+							<TimerOff className="w-6 h-6 text-red-500" />
+							<div>
+								<p className="font-medium text-gray-800">Deadline Has Passed</p>
+								<p className="text-sm text-gray-600">
+									The deadline for this bet has passed. No further actions can be taken.
+								</p>
+							</div>
+						</div>
+					</div>
+				)}
+
 				{/* Actions */}
-				{isPending && isOpponent && (
+				{isPending && isOpponent && !isDeadlinePassed && (
 					<div className="bg-white rounded-xl shadow-md p-6">
 						<h3 className="font-semibold text-gray-800 mb-4">
 							Bet Invitation
@@ -355,7 +375,7 @@ function BetDetailsPage() {
 					</div>
 				)}
 
-				{isPending && isCreator && (
+				{isPending && isCreator && !isDeadlinePassed && (
 					<div className="bg-yellow-50 rounded-xl p-6">
 						<div className="flex items-center gap-3">
 							<Clock className="w-6 h-6 text-yellow-500" />

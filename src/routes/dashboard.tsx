@@ -13,10 +13,12 @@ import {
 	AlertCircle,
 	CheckCircle,
 	XCircle,
+	TimerOff,
 } from "lucide-react";
 import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet } from "../api/bets";
 import { getCurrentUserProfile } from "../api/users";
 import type { BetStatus } from "../lib/database.types";
+import { getDisplayStatus, type DisplayStatus } from "../lib/bet-utils";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -255,11 +257,14 @@ function Dashboard() {
 								</div>
 								<div className="space-y-3">
 									{pendingBets.map((bet) => {
+										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
+										const isDeadlinePassed = displayStatus === "deadline_passed";
 										const isPendingForMe =
-											clerkUser?.id === bet.opponent.clerk_id;
+											clerkUser?.id === bet.opponent.clerk_id && !isDeadlinePassed;
 										const isActionLoading = actionLoadingId === bet.id;
 										// Show opponent name if I'm the creator, show creator name if I'm the opponent
-										const otherPartyName = isPendingForMe
+										const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
+										const otherPartyName = isOpponent
 											? bet.creator.display_name
 											: bet.opponent.display_name;
 
@@ -268,10 +273,22 @@ function Dashboard() {
 												key={bet.id}
 												to="/bets/$betId"
 												params={{ betId: bet.id }}
-												className="block p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors"
+												className={`block p-3 rounded-lg transition-colors ${
+													isDeadlinePassed
+														? "bg-red-50 hover:bg-red-100"
+														: "bg-yellow-50 hover:bg-yellow-100"
+												}`}
 											>
 												<div className="flex items-center justify-between">
 													<div>
+														<div className="flex items-center gap-2 mb-1">
+															{isDeadlinePassed && (
+																<span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 flex items-center gap-1">
+																	<TimerOff className="w-3 h-3" />
+																	Deadline Passed
+																</span>
+															)}
+														</div>
 														<p className="font-medium text-gray-800">{bet.title}</p>
 														<p className="text-sm text-gray-500">
 															vs {otherPartyName}
@@ -345,6 +362,8 @@ function Dashboard() {
 							) : (
 								<div className="space-y-3">
 									{activeBets.map((bet) => {
+										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
+										const isDeadlinePassed = displayStatus === "deadline_passed";
 										// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
 										const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
 										const otherPartyName = isOpponent
@@ -356,9 +375,19 @@ function Dashboard() {
 												key={bet.id}
 												to="/bets/$betId"
 												params={{ betId: bet.id }}
-												className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+												className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
+													isDeadlinePassed
+														? "bg-red-50 hover:bg-red-100"
+														: "bg-gray-50 hover:bg-gray-100"
+												}`}
 											>
 												<div>
+													{isDeadlinePassed && (
+														<span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700 inline-flex items-center gap-1 mb-1">
+															<TimerOff className="w-3 h-3" />
+															Deadline Passed
+														</span>
+													)}
 													<p className="font-medium text-gray-800">{bet.title}</p>
 													<p className="text-sm text-gray-500">
 														vs {otherPartyName} - Due{" "}

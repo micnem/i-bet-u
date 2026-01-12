@@ -400,32 +400,53 @@ function BetDetailsPage() {
 							Who won this bet? Both participants must agree on the winner.
 						</p>
 						<div className="flex gap-3">
-							<button
-								type="button"
-								onClick={() => handleApproveWinner(bet.creator_id)}
-								disabled={actionLoading}
-								className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-							>
-								{actionLoading ? (
-									<Loader2 className="w-5 h-5 animate-spin" />
-								) : (
-									<User className="w-5 h-5" />
-								)}
-								{bet.creator.display_name}
-							</button>
-							<button
-								type="button"
-								onClick={() => handleApproveWinner(bet.opponent_id)}
-								disabled={actionLoading}
-								className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-							>
-								{actionLoading ? (
-									<Loader2 className="w-5 h-5 animate-spin" />
-								) : (
-									<User className="w-5 h-5" />
-								)}
-								{bet.opponent.display_name}
-							</button>
+							{(() => {
+								const currentUserApproved = (isCreator && bet.creator_approved) || (isOpponent && bet.opponent_approved);
+								const creatorSelected = currentUserApproved && bet.winner_id === bet.creator_id;
+								const opponentSelected = currentUserApproved && bet.winner_id === bet.opponent_id;
+								return (
+									<>
+										<button
+											type="button"
+											onClick={() => handleApproveWinner(bet.creator_id)}
+											disabled={actionLoading}
+											className={`flex-1 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
+												creatorSelected
+													? "bg-yellow-100 text-yellow-800 border-2 border-yellow-400"
+													: "bg-gray-100 hover:bg-gray-200"
+											}`}
+										>
+											{actionLoading ? (
+												<Loader2 className="w-5 h-5 animate-spin" />
+											) : creatorSelected ? (
+												<Trophy className="w-5 h-5 text-yellow-500" />
+											) : (
+												<User className="w-5 h-5" />
+											)}
+											{bet.creator.display_name}
+										</button>
+										<button
+											type="button"
+											onClick={() => handleApproveWinner(bet.opponent_id)}
+											disabled={actionLoading}
+											className={`flex-1 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
+												opponentSelected
+													? "bg-yellow-100 text-yellow-800 border-2 border-yellow-400"
+													: "bg-gray-100 hover:bg-gray-200"
+											}`}
+										>
+											{actionLoading ? (
+												<Loader2 className="w-5 h-5 animate-spin" />
+											) : opponentSelected ? (
+												<Trophy className="w-5 h-5 text-yellow-500" />
+											) : (
+												<User className="w-5 h-5" />
+											)}
+											{bet.opponent.display_name}
+										</button>
+									</>
+								);
+							})()}
 						</div>
 						{(bet.creator_approved || bet.opponent_approved) && (
 							<div className="mt-4 text-center space-y-2">

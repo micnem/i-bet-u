@@ -12,10 +12,27 @@ import {
 	Users,
 	X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
+	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const dropdownRef = useRef<HTMLDivElement>(null);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				dropdownRef.current &&
+				!dropdownRef.current.contains(event.target as Node)
+			) {
+				setIsDropdownOpen(false);
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
 	const location = useLocation();
 	const navigate = useNavigate();
 	const { user, isSignedIn } = useUser();
@@ -125,14 +142,43 @@ export default function Header() {
 							</button>
 						</div>
 
-						{/* Desktop Avatar (only for authenticated) */}
+						{/* Desktop Avatar with Dropdown (only for authenticated) */}
 						{!isPublicPage && (
-							<div className="hidden md:flex items-center gap-3">
-								<img
-									src={avatarUrl}
-									alt={displayName}
-									className="w-10 h-10 rounded-full bg-gray-600"
-								/>
+							<div className="hidden md:flex items-center gap-3 relative" ref={dropdownRef}>
+								<button
+									onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+									className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-700 transition-colors"
+									aria-label="User menu"
+								>
+									<img
+										src={avatarUrl}
+										alt={displayName}
+										className="w-10 h-10 rounded-full bg-gray-600"
+									/>
+								</button>
+
+								{/* Dropdown Menu */}
+								{isDropdownOpen && (
+									<div className="absolute right-0 top-full mt-2 w-56 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-2 z-50">
+										{/* User Info */}
+										<div className="px-4 py-3 border-b border-gray-700">
+											<p className="font-medium text-white">{displayName}</p>
+											<p className="text-sm text-gray-400">@{username}</p>
+										</div>
+
+										{/* Logout Button */}
+										<button
+											onClick={() => {
+												setIsDropdownOpen(false);
+												handleSignOut();
+											}}
+											className="w-full flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+										>
+											<LogOut size={18} />
+											<span>Sign Out</span>
+										</button>
+									</div>
+								)}
 							</div>
 						)}
 					</div>

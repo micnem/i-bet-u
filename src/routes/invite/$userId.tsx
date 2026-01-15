@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState, useEffect } from "react";
-import { Users, UserPlus, Check, Clock, Loader2, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Users, UserPlus, Check, Loader2, X } from "lucide-react";
 import { useUser } from "../../components/AuthProvider";
 import { supabaseAdmin } from "../../lib/supabase";
 import { addFriendViaInvite, checkFriendship } from "../../api/friends";
@@ -42,11 +42,14 @@ function InvitePage() {
 	const [addingFriend, setAddingFriend] = useState(false);
 	const [friendAdded, setFriendAdded] = useState(false);
 	const [error, setError] = useState<string | null>(loaderError);
+	const hasAttemptedAutoAdd = useRef(false);
 
 	// Check friendship status and auto-add friend when authenticated
 	useEffect(() => {
 		async function checkAndAutoAdd() {
 			if (!isLoaded || !isSignedIn || !user || !loaderInviter) return;
+			if (hasAttemptedAutoAdd.current) return;
+			hasAttemptedAutoAdd.current = true;
 
 			// Don't add yourself as a friend
 			if (user.id === loaderInviter.id) {

@@ -1,25 +1,27 @@
-import { createServerClient, parseCookieHeader } from "@supabase/ssr";
-import { getRequestHeaders } from "@tanstack/react-start/server";
+import { createServerClient } from "@supabase/ssr";
+import { getCookies, setCookie } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "./supabase";
 import type { User } from "./database.types";
 import type { Database } from "./database.types";
 
 // Get Supabase client with request cookies for server-side auth
-function getServerSupabaseClient() {
-	const headers = getRequestHeaders();
-	const cookies = parseCookieHeader(headers?.cookie ?? "");
-
+// Based on: https://tanstack.com/start/latest/docs/framework/react/examples/start-supabase-basic
+export function getSupabaseServerClient() {
 	return createServerClient<Database>(
 		process.env.SUPABASE_URL!,
 		process.env.SUPABASE_ANON_KEY!,
 		{
 			cookies: {
 				getAll() {
-					return cookies;
+					return Object.entries(getCookies()).map(([name, value]) => ({
+						name,
+						value,
+					}));
 				},
-				setAll() {
-					// Note: This is for reading only in server functions
-					// Cookie setting is handled by the browser client
+				setAll(cookies) {
+					cookies.forEach((cookie) => {
+						setCookie(cookie.name, cookie.value);
+					});
 				},
 			},
 		}
@@ -31,12 +33,17 @@ export async function getCurrentUser(): Promise<{
 	authUserId: string;
 	user: User;
 } | null> {
-	const supabase = getServerSupabaseClient();
+	const cookies = getCookies();
+	console.log("[getCurrentUser] cookies:", Object.keys(cookies));
+
+	const supabase = getSupabaseServerClient();
 
 	const {
 		data: { user: authUser },
 		error: authError,
 	} = await supabase.auth.getUser();
+
+	console.log("[getCurrentUser] authUser:", authUser?.id, "error:", authError?.message);
 
 	if (authError || !authUser) {
 		return null;
@@ -57,7 +64,7 @@ export async function getCurrentUser(): Promise<{
 
 // Get just the auth user ID for quick auth checks
 export async function getAuthUserId(): Promise<string | null> {
-	const supabase = getServerSupabaseClient();
+	const supabase = getSupabaseServerClient();
 
 	const {
 		data: { user },

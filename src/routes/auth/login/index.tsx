@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Mail, Loader2, KeyRound } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Mail } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useUser } from "../../../components/AuthProvider";
 import { getSupabaseBrowserClient } from "../../../lib/supabase-browser";
 import { isValidEmail, isValidOtp } from "../../../lib/validation";
-import { useUser } from "../../../components/AuthProvider";
 
 type LoginSearch = {
 	redirect_url?: string;
@@ -84,16 +84,13 @@ function LoginPage() {
 		}
 
 		try {
-			console.log("Calling verifyOtp...", { email: email.trim().toLowerCase(), token: trimmedOtp });
 
 			const supabase = getSupabaseBrowserClient();
-			const { error, data } = await supabase.auth.verifyOtp({
+			const { error } = await supabase.auth.verifyOtp({
 				email: email.trim().toLowerCase(),
 				token: trimmedOtp,
 				type: "email",
 			});
-
-			console.log("verifyOtp result:", { error, data });
 
 			if (error) {
 				setError(error.message);

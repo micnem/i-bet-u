@@ -13,6 +13,7 @@ let _supabaseAdmin: SupabaseClient<Database> | null = null;
 
 export function getSupabaseClient(): SupabaseClient<Database> {
 	if (!_supabase) {
+		
 		const supabaseUrl = getEnv("SUPABASE_URL");
 		const supabaseAnonKey = getEnv("SUPABASE_ANON_KEY");
 

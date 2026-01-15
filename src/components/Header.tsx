@@ -1,5 +1,5 @@
-import { useClerk, useUser } from "@clerk/tanstack-react-start";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useUser, useAuth } from "./AuthProvider";
 import {
 	Home,
 	LogIn,
@@ -36,7 +36,7 @@ export default function Header() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const { user, isSignedIn } = useUser();
-	const { signOut } = useClerk();
+	const { signOut } = useAuth();
 
 	// Check if user is on auth pages or landing page
 	const isAuthPage = location.pathname.startsWith("/auth");
@@ -66,7 +66,7 @@ export default function Header() {
 	const username = user?.username || "user";
 	const avatarUrl =
 		user?.imageUrl ||
-		`https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+		`https://api.dicebear.com/7.x/avataaars/svg?seed=${username || "user"}`;
 
 	const handleSignOut = async () => {
 		await signOut();

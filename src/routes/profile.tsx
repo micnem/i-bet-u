@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useUser, useClerk } from "@clerk/tanstack-react-start";
+import { useUser, useAuth } from "../components/AuthProvider";
 import {
 	Trophy,
 	TrendingUp,
@@ -39,8 +39,8 @@ interface AmountsData {
 
 function ProfilePage() {
 	const router = useRouter();
-	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
-	const { signOut } = useClerk();
+	const { user, isSignedIn, isLoaded } = useUser();
+	const { signOut } = useAuth();
 
 	const [amountsData, setAmountsData] = useState<AmountsData | null>(null);
 	const [userStats, setUserStats] = useState<{ total_bets: number; bets_won: number; bets_lost: number } | null>(null);
@@ -50,10 +50,10 @@ function ProfilePage() {
 	const [reminderError, setReminderError] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (clerkLoaded && !clerkUser) {
+		if (isLoaded && !isSignedIn) {
 			router.navigate({ to: "/auth/login" });
 		}
-	}, [clerkUser, clerkLoaded, router]);
+	}, [isSignedIn, isLoaded, router]);
 
 	useEffect(() => {
 		async function fetchData() {
@@ -79,10 +79,10 @@ function ProfilePage() {
 			}
 		}
 
-		if (clerkUser) {
+		if (isSignedIn) {
 			fetchData();
 		}
-	}, [clerkUser]);
+	}, [isSignedIn]);
 
 	const handleLogout = async () => {
 		await signOut();
@@ -125,7 +125,7 @@ function ProfilePage() {
 		}
 	};
 
-	if (!clerkLoaded) {
+	if (!isLoaded) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
 				<Loader2 className="w-8 h-8 animate-spin text-orange-500" />
@@ -133,15 +133,17 @@ function ProfilePage() {
 		);
 	}
 
-	if (!clerkUser) {
+	if (!isSignedIn || !user) {
 		return null;
 	}
 
-	// Use Clerk user data directly
-	const displayName = clerkUser.fullName || clerkUser.firstName || "User";
-	const username = clerkUser.username || clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
-	const email = clerkUser.primaryEmailAddress?.emailAddress || "";
-	const avatarUrl = clerkUser.imageUrl;
+	// Use user data from AuthProvider
+	const displayName = user.firstName
+		? `${user.firstName} ${user.lastName || ""}`.trim()
+		: "User";
+	const username = user.username || user.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
+	const email = user.primaryEmailAddress?.emailAddress || "";
+	const avatarUrl = user.imageUrl;
 
 	// Stats from Supabase
 	const totalBets = userStats?.total_bets ?? 0;

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/tanstack-react-start";
+import { useUser } from "../../components/AuthProvider";
 import {
 	ArrowLeft,
 	AlertCircle,
@@ -45,21 +45,18 @@ interface Bet {
 	verification_method: string;
 	creator: {
 		id: string;
-		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	opponent: {
 		id: string;
-		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	winner?: {
 		id: string;
-		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
@@ -68,7 +65,7 @@ interface Bet {
 
 function BetDetailsPage() {
 	const { betId } = Route.useParams();
-	const { user: clerkUser } = useUser();
+	const { user } = useUser();
 	const navigate = useNavigate();
 
 	const [bet, setBet] = useState<Bet | null>(null);
@@ -187,8 +184,8 @@ function BetDetailsPage() {
 		);
 	}
 
-	const isCreator = clerkUser && clerkUser.id === bet.creator.clerk_id;
-	const isOpponent = clerkUser && clerkUser.id === bet.opponent.clerk_id;
+	const isCreator = user && user.id === bet.creator.id;
+	const isOpponent = user && user.id === bet.opponent.id;
 	const isPending = bet.status === "pending";
 	const isActive = bet.status === "active";
 	const isCompleted = bet.status === "completed";

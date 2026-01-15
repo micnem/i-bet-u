@@ -1,20 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useUser } from "@clerk/tanstack-react-start";
 import { useState, useEffect } from "react";
 import { Users, UserPlus, Check, Clock, Loader2, X } from "lucide-react";
+import { useUser } from "../../components/AuthProvider";
 import { supabaseAdmin } from "../../lib/supabase";
 import { addFriendViaInvite, checkFriendship } from "../../api/friends";
 
-// Server function to get user by clerk ID (public, no auth required)
+// Server function to get user by ID (public, no auth required)
 // Uses admin client to bypass RLS since this is a public invite page
 const getInviterById = createServerFn({ method: "GET" })
 	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
 		const { data, error } = await supabaseAdmin
 			.from("users")
-			.select("id, clerk_id, username, display_name, avatar_url, total_bets, bets_won")
-			.eq("clerk_id", userId)
+			.select("id, username, display_name, avatar_url, total_bets, bets_won")
+			.eq("id", userId)
 			.single();
 
 		if (error) {
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/invite/$userId")({
 function InvitePage() {
 	const { userId } = Route.useParams();
 	const { inviter: loaderInviter, error: loaderError } = Route.useLoaderData();
-	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+	const { user, isLoaded, isSignedIn } = useUser();
 	const navigate = useNavigate();
 
 	const [friendshipStatus, setFriendshipStatus] = useState<string | null>(null);
@@ -46,10 +46,10 @@ function InvitePage() {
 	// Check friendship status and auto-add friend when authenticated
 	useEffect(() => {
 		async function checkAndAutoAdd() {
-			if (!clerkLoaded || !clerkUser || !loaderInviter) return;
+			if (!isLoaded || !isSignedIn || !user || !loaderInviter) return;
 
 			// Don't add yourself as a friend
-			if (clerkUser.id === loaderInviter.clerk_id) {
+			if (user.id === loaderInviter.id) {
 				setFriendshipStatus("self");
 				return;
 			}
@@ -75,7 +75,7 @@ function InvitePage() {
 		}
 
 		checkAndAutoAdd();
-	}, [clerkLoaded, clerkUser, loaderInviter]);
+	}, [isLoaded, isSignedIn, user, loaderInviter]);
 
 	const handleAddFriend = async () => {
 		if (!loaderInviter) return;
@@ -102,8 +102,8 @@ function InvitePage() {
 		});
 	};
 
-	// Loading state for Clerk
-	if (!clerkLoaded) {
+	// Loading state
+	if (!isLoaded) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
 				<div className="text-center">
@@ -182,7 +182,7 @@ function InvitePage() {
 				</p>
 
 				{/* Action buttons based on auth state */}
-				{clerkUser ? (
+				{isSignedIn ? (
 					// Authenticated user
 					<div>
 						{friendshipStatus === "self" ? (

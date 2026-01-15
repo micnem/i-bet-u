@@ -33,17 +33,12 @@ export async function getCurrentUser(): Promise<{
 	authUserId: string;
 	user: User;
 } | null> {
-	const cookies = getCookies();
-	console.log("[getCurrentUser] cookies:", Object.keys(cookies));
-
 	const supabase = getSupabaseServerClient();
 
 	const {
 		data: { user: authUser },
 		error: authError,
 	} = await supabase.auth.getUser();
-
-	console.log("[getCurrentUser] authUser:", authUser?.id, "error:", authError?.message);
 
 	if (authError || !authUser) {
 		return null;

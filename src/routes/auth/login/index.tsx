@@ -32,7 +32,6 @@ function LoginPage() {
 
 	const redirectUrl = redirect_url || "/dashboard";
 
-	// Redirect if already signed in
 	useEffect(() => {
 		if (isLoaded && isSignedIn) {
 			navigate({ to: redirectUrl });

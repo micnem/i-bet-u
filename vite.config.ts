@@ -9,7 +9,11 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 const config = defineConfig({
   plugins: [
     devtools(),
-    cloudflare({ viteEnvironment: { name: 'ssr' } }),
+    cloudflare({
+      configPath: './wrangler.jsonc',
+      viteEnvironment: { name: 'ssr' },
+      persistState: false
+    }),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ['./tsconfig.json'],

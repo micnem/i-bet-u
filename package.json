@@ -10,7 +10,7 @@
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "pnpm run build && npx wrangler deploy"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.13.8",

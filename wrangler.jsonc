@@ -3,10 +3,7 @@
   "name": "ibetu-app",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
-  "routes": [
-    { "pattern": "i-bet-u.com/*", "zone_name": "i-bet-u.com" },
-    { "pattern": "www.i-bet-u.com/*", "zone_name": "i-bet-u.com" }
-  ],
+  "main": "@tanstack/react-start/server-entry",
 
   // Environment variables (non-secret)
   "vars": {

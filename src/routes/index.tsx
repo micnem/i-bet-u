@@ -1,15 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-	UserPlus,
-	Send,
-	Bell,
-	Handshake,
-	Shield,
-	Users,
-	Trophy,
 	ArrowRight,
+	Bell,
 	CheckCircle,
+	Handshake,
 	Medal,
+	Send,
+	Shield,
+	Trophy,
+	UserPlus,
+	Users,
 	Zap,
 } from "lucide-react";
 

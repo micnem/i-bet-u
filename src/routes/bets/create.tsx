@@ -48,7 +48,18 @@ function CreateBetPage() {
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
-	const [deadline, setDeadline] = useState("");
+	const [deadline, setDeadline] = useState(() => {
+		// Default to tomorrow at the same time
+		const tomorrow = new Date();
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		// Format as YYYY-MM-DDTHH:mm for datetime-local input
+		const year = tomorrow.getFullYear();
+		const month = String(tomorrow.getMonth() + 1).padStart(2, "0");
+		const day = String(tomorrow.getDate()).padStart(2, "0");
+		const hours = String(tomorrow.getHours()).padStart(2, "0");
+		const minutes = String(tomorrow.getMinutes()).padStart(2, "0");
+		return `${year}-${month}-${day}T${hours}:${minutes}`;
+	});
 	const [verificationMethod, setVerificationMethod] = useState<VerificationMethod>("mutual_agreement");
 
 	// Fetch friends

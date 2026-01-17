@@ -13,10 +13,12 @@ import {
 	Bell,
 	Check,
 	Clock,
+	Pencil,
+	X,
 } from "lucide-react";
 import { getAmountsOwedSummary } from "../api/bets";
 import { sendPaymentReminder, canSendReminder } from "../api/reminders";
-import { getCurrentUserProfile } from "../api/users";
+import { getCurrentUserProfile, updateUserProfile } from "../api/users";
 
 export const Route = createFileRoute("/profile")({ component: ProfilePage });
 
@@ -49,6 +51,13 @@ function ProfilePage() {
 	const [reminderSent, setReminderSent] = useState<Record<string, boolean>>({});
 	const [reminderError, setReminderError] = useState<string | null>(null);
 
+	// Profile editing state
+	const [isEditingName, setIsEditingName] = useState(false);
+	const [editDisplayName, setEditDisplayName] = useState("");
+	const [savingName, setSavingName] = useState(false);
+	const [nameError, setNameError] = useState<string | null>(null);
+	const [supabaseDisplayName, setSupabaseDisplayName] = useState<string | null>(null);
+
 	useEffect(() => {
 		if (isLoaded && !isSignedIn) {
 			router.navigate({ to: "/auth/login" });
@@ -71,6 +80,7 @@ function ProfilePage() {
 						bets_won: profileResult.data.bets_won,
 						bets_lost: profileResult.data.bets_lost,
 					});
+					setSupabaseDisplayName(profileResult.data.display_name);
 				}
 			} catch (error) {
 				console.error("Failed to fetch data:", error);
@@ -125,6 +135,55 @@ function ProfilePage() {
 		}
 	};
 
+	const handleStartEditName = () => {
+		const fallbackName = user?.firstName
+			? `${user.firstName} ${user.lastName || ""}`.trim()
+			: "";
+		setEditDisplayName(supabaseDisplayName || fallbackName || "");
+		setIsEditingName(true);
+		setNameError(null);
+	};
+
+	const handleCancelEditName = () => {
+		setIsEditingName(false);
+		setEditDisplayName("");
+		setNameError(null);
+	};
+
+	const handleSaveName = async () => {
+		const trimmedName = editDisplayName.trim();
+		if (!trimmedName) {
+			setNameError("Display name cannot be empty");
+			return;
+		}
+		if (trimmedName.length < 2) {
+			setNameError("Display name must be at least 2 characters");
+			return;
+		}
+		if (trimmedName.length > 100) {
+			setNameError("Display name must be less than 100 characters");
+			return;
+		}
+
+		setSavingName(true);
+		setNameError(null);
+
+		try {
+			const result = await updateUserProfile({ displayName: trimmedName });
+			if (result.error) {
+				setNameError(result.error);
+			} else {
+				setSupabaseDisplayName(trimmedName);
+				setIsEditingName(false);
+				setEditDisplayName("");
+			}
+		} catch (error) {
+			setNameError("Failed to update display name");
+		} finally {
+			setSavingName(false);
+		}
+	};
+
 	if (!isLoaded) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -137,10 +196,10 @@ function ProfilePage() {
 		return null;
 	}
 
-	// Use user data from AuthProvider
-	const displayName = user.firstName
+	// Use Supabase display name if available, otherwise fall back to AuthProvider data
+	const displayName = supabaseDisplayName || (user.firstName
 		? `${user.firstName} ${user.lastName || ""}`.trim()
-		: "User";
+		: "User");
 	const username = user.username || user.primaryEmailAddress?.emailAddress?.split("@")[0] || "user";
 	const email = user.primaryEmailAddress?.emailAddress || "";
 	const avatarUrl = user.imageUrl;
@@ -172,8 +231,63 @@ function ProfilePage() {
 							alt={displayName}
 							className="w-20 h-20 rounded-full bg-white/20"
 						/>
-						<div>
-							<h1 className="text-2xl font-bold">{displayName}</h1>
+						<div className="flex-1">
+							{isEditingName ? (
+								<div className="space-y-2">
+									<div className="flex items-center gap-2">
+										<input
+											type="text"
+											value={editDisplayName}
+											onChange={(e) => setEditDisplayName(e.target.value)}
+											className="px-3 py-1.5 rounded-lg text-gray-800 text-lg font-semibold w-48 focus:outline-none focus:ring-2 focus:ring-white/50"
+											placeholder="Display name"
+											disabled={savingName}
+											autoFocus
+											onKeyDown={(e) => {
+												if (e.key === "Enter") handleSaveName();
+												if (e.key === "Escape") handleCancelEditName();
+											}}
+										/>
+										<button
+											type="button"
+											onClick={handleSaveName}
+											disabled={savingName}
+											className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+											title="Save"
+										>
+											{savingName ? (
+												<Loader2 className="w-5 h-5 animate-spin" />
+											) : (
+												<Check className="w-5 h-5" />
+											)}
+										</button>
+										<button
+											type="button"
+											onClick={handleCancelEditName}
+											disabled={savingName}
+											className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+											title="Cancel"
+										>
+											<X className="w-5 h-5" />
+										</button>
+									</div>
+									{nameError && (
+										<p className="text-red-200 text-sm">{nameError}</p>
+									)}
+								</div>
+							) : (
+								<div className="flex items-center gap-2">
+									<h1 className="text-2xl font-bold">{displayName}</h1>
+									<button
+										type="button"
+										onClick={handleStartEditName}
+										className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+										title="Edit display name"
+									>
+										<Pencil className="w-4 h-4" />
+									</button>
+								</div>
+							)}
 							<p className="text-orange-100">@{username}</p>
 							<p className="text-orange-100 text-sm">{email}</p>
 						</div>

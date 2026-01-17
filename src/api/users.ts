@@ -108,10 +108,10 @@ export const searchUserByPhone = createServerFn({ method: "GET" })
 	});
 
 // Update current user's profile
-export const updateUserProfile = createServerFn({ method: "POST" }).handler(
-	async (ctx: { displayName: string }) => {
+export const updateUserProfile = createServerFn({ method: "POST" })
+	.inputValidator((data: { displayName: string }) => data)
+	.handler(async ({ data: { displayName } }) => {
 		try {
-			const { displayName } = ctx;
 
 			if (!displayName || typeof displayName !== "string") {
 				return { error: "Display name is required", data: null };

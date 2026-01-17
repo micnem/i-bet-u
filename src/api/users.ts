@@ -109,8 +109,10 @@ export const searchUserByPhone = createServerFn({ method: "GET" })
 
 // Update current user's profile
 export const updateUserProfile = createServerFn({ method: "POST" })
-	.inputValidator((input: { displayName: string }) => input)
-	.handler(async ({ data }) => {
+	.inputValidator(
+		(data: { displayName: string }) => data
+	)
+	.handler(async ({ data: { displayName } }) => {
 		try {
 			const currentUser = await getCurrentUser();
 
@@ -121,7 +123,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			const userId = currentUser.user.id;
 
 			const updateData: UserUpdate = {
-				display_name: data.displayName,
+				display_name: displayName,
 			};
 
 			const { data: updatedUser, error } = await supabaseAdmin

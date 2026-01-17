@@ -169,7 +169,7 @@ function ProfilePage() {
 		setNameError(null);
 
 		try {
-			const result = await updateUserProfile({ displayName: trimmedName });
+			const result = await updateUserProfile({ data: { displayName: trimmedName } });
 			if (result.error) {
 				setNameError(result.error);
 			} else {

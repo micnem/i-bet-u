@@ -112,7 +112,6 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 	.inputValidator((data: { displayName: string }) => data)
 	.handler(async ({ data: { displayName } }) => {
 		try {
-
 			if (!displayName || typeof displayName !== "string") {
 				return { error: "Display name is required", data: null };
 			}

@@ -105,7 +105,7 @@ function ProfilePage() {
 
 		try {
 			// Check if we can send a reminder
-			const canSend = await canSendReminder({ friendId: friend.id });
+			const canSend = await canSendReminder({ data: { friendId: friend.id } });
 			if (!canSend.canSend) {
 				setReminderError("You already sent a reminder in the last 24 hours");
 				setSendingReminder(null);
@@ -114,9 +114,11 @@ function ProfilePage() {
 
 			// Send the reminder
 			const result = await sendPaymentReminder({
-				friendId: friend.id,
-				amount: Math.abs(amount),
-				friendName: friend.display_name,
+				data: {
+					friendId: friend.id,
+					amount: Math.abs(amount),
+					friendName: friend.display_name,
+				},
 			});
 
 			if (result.error) {

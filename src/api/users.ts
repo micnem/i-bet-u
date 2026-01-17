@@ -109,28 +109,9 @@ export const searchUserByPhone = createServerFn({ method: "GET" })
 
 // Update current user's profile
 export const updateUserProfile = createServerFn({ method: "POST" })
-	.inputValidator(
-		(data: {
-			displayName?: string;
-			username?: string;
-			phoneNumber?: string;
-			avatarUrl?: string;
-		}) => {
-			// Ensure data is valid before passing to handler
-			if (!data || typeof data !== "object") {
-				throw new Error("Invalid input data");
-			}
-			return data;
-		}
-	)
+	.inputValidator((input: { displayName: string }) => input)
 	.handler(async ({ data }) => {
 		try {
-			// Defensive check for undefined data
-			if (!data) {
-				console.error("updateUserProfile: data is undefined");
-				return { error: "No data provided", data: null };
-			}
-
 			const currentUser = await getCurrentUser();
 
 			if (!currentUser) {
@@ -139,17 +120,9 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 
 			const userId = currentUser.user.id;
 
-			const updateData: UserUpdate = {};
-			if (data.displayName) updateData.display_name = data.displayName;
-			if (data.username) updateData.username = data.username;
-			if (data.phoneNumber !== undefined)
-				updateData.phone_number = data.phoneNumber;
-			if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
-
-			// Check if there's anything to update
-			if (Object.keys(updateData).length === 0) {
-				return { error: "No fields to update", data: null };
-			}
+			const updateData: UserUpdate = {
+				display_name: data.displayName,
+			};
 
 			const { data: updatedUser, error } = await supabaseAdmin
 				.from("users")
@@ -166,7 +139,10 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			return { error: null, data: updatedUser };
 		} catch (err) {
 			console.error("updateUserProfile error:", err);
-			return { error: err instanceof Error ? err.message : "Unknown error", data: null };
+			return {
+				error: err instanceof Error ? err.message : "Unknown error",
+				data: null,
+			};
 		}
 	});
 

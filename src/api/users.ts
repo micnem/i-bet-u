@@ -108,12 +108,15 @@ export const searchUserByPhone = createServerFn({ method: "GET" })
 	});
 
 // Update current user's profile
-export const updateUserProfile = createServerFn({ method: "POST" })
-	.inputValidator(
-		(data: { displayName: string }) => data
-	)
-	.handler(async ({ data: { displayName } }) => {
+export const updateUserProfile = createServerFn({ method: "POST" }).handler(
+	async (ctx: { displayName: string }) => {
 		try {
+			const { displayName } = ctx;
+
+			if (!displayName || typeof displayName !== "string") {
+				return { error: "Display name is required", data: null };
+			}
+
 			const currentUser = await getCurrentUser();
 
 			if (!currentUser) {
@@ -146,7 +149,8 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 				data: null,
 			};
 		}
-	});
+	}
+);
 
 // Get user stats
 export const getUserStats = createServerFn({ method: "GET" })

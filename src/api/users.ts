@@ -115,10 +115,22 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			username?: string;
 			phoneNumber?: string;
 			avatarUrl?: string;
-		}) => data
+		}) => {
+			// Ensure data is valid before passing to handler
+			if (!data || typeof data !== "object") {
+				throw new Error("Invalid input data");
+			}
+			return data;
+		}
 	)
 	.handler(async ({ data }) => {
 		try {
+			// Defensive check for undefined data
+			if (!data) {
+				console.error("updateUserProfile: data is undefined");
+				return { error: "No data provided", data: null };
+			}
+
 			const currentUser = await getCurrentUser();
 
 			if (!currentUser) {
@@ -133,6 +145,11 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			if (data.phoneNumber !== undefined)
 				updateData.phone_number = data.phoneNumber;
 			if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
+
+			// Check if there's anything to update
+			if (Object.keys(updateData).length === 0) {
+				return { error: "No fields to update", data: null };
+			}
 
 			const { data: updatedUser, error } = await supabaseAdmin
 				.from("users")

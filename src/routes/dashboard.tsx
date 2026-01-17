@@ -14,11 +14,18 @@ import {
 	CheckCircle,
 	XCircle,
 	TimerOff,
+	UserPlus,
+	AtSign,
+	Phone,
+	QrCode,
+	X,
 } from "lucide-react";
 import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet } from "../api/bets";
 import { getCurrentUserProfile } from "../api/users";
 import type { BetStatus } from "../lib/database.types";
 import { getDisplayStatus, type DisplayStatus } from "../lib/bet-utils";
+import { QRCodeDisplay } from "../components/QRCode";
+import { generateFriendInviteLink, getFriendInviteShareData } from "../lib/sharing";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -48,6 +55,8 @@ interface UserProfile {
 	bets_lost: number;
 }
 
+type AddMethod = "qr" | "phone" | "nickname";
+
 function Dashboard() {
 	const { user, isSignedIn, isLoaded } = useUser();
 	const router = useRouter();
@@ -58,6 +67,9 @@ function Dashboard() {
 	const [netBalance, setNetBalance] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+	const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+	const [addMethod, setAddMethod] = useState<AddMethod>("nickname");
+	const [addInput, setAddInput] = useState("");
 
 	useEffect(() => {
 		if (isLoaded && !isSignedIn) {
@@ -154,6 +166,7 @@ function Dashboard() {
 		user.username ||
 		user.primaryEmailAddress?.emailAddress?.split("@")[0] ||
 		"user";
+	const userId = user.id || "";
 
 	const totalBets = profile?.total_bets ?? 0;
 	const betsWon = profile?.bets_won ?? 0;
@@ -179,7 +192,7 @@ function Dashboard() {
 							</h1>
 							<p className="text-orange-100">@{username}</p>
 						</div>
-						<div className="flex gap-4">
+						<div className="flex gap-3">
 							<Link
 								to="/bets/create"
 								className="inline-flex items-center gap-2 px-4 py-2 bg-white text-orange-500 rounded-lg font-medium hover:bg-orange-50 transition-colors"
@@ -187,6 +200,14 @@ function Dashboard() {
 								<Plus size={20} />
 								New Bet
 							</Link>
+							<button
+								type="button"
+								onClick={() => setShowAddFriendModal(true)}
+								className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-colors"
+							>
+								<UserPlus size={20} />
+								Add Friend
+							</button>
 						</div>
 					</div>
 
@@ -455,6 +476,118 @@ function Dashboard() {
 					</div>
 				</div>
 			</div>
+
+			{/* Add Friend Modal */}
+			{showAddFriendModal && (
+				<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+					<div className="bg-white rounded-xl max-w-md w-full p-6">
+						<div className="flex items-center justify-between mb-6">
+							<h2 className="text-xl font-bold text-gray-800">Add Friend</h2>
+							<button
+								type="button"
+								onClick={() => {
+									setShowAddFriendModal(false);
+									setAddInput("");
+								}}
+								className="text-gray-400 hover:text-gray-600"
+							>
+								<X size={24} />
+							</button>
+						</div>
+
+						{/* Method Tabs */}
+						<div className="flex gap-2 mb-6">
+							<button
+								type="button"
+								onClick={() => {
+									setAddMethod("nickname");
+									setAddInput("");
+								}}
+								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+									addMethod === "nickname"
+										? "bg-orange-500 text-white"
+										: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+								}`}
+							>
+								<AtSign size={16} />
+								Nickname
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setAddMethod("phone");
+									setAddInput("");
+								}}
+								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+									addMethod === "phone"
+										? "bg-orange-500 text-white"
+										: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+								}`}
+							>
+								<Phone size={16} />
+								Phone
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setAddMethod("qr");
+									setAddInput("");
+								}}
+								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+									addMethod === "qr"
+										? "bg-orange-500 text-white"
+										: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+								}`}
+							>
+								<QrCode size={16} />
+								QR Code
+							</button>
+						</div>
+
+						{/* QR Code Display */}
+						{addMethod === "qr" ? (
+							<div className="py-4">
+								<QRCodeDisplay
+									value={generateFriendInviteLink(userId)}
+									title={`Add ${displayName}`}
+									description="Scan this QR code or share the link to add me as a friend on IBetU"
+									shareData={getFriendInviteShareData(userId, displayName)}
+									size={180}
+								/>
+							</div>
+						) : (
+							<>
+								{/* Search Input */}
+								<div className="relative mb-4">
+									<input
+										type={addMethod === "phone" ? "tel" : "text"}
+										value={addInput}
+										onChange={(e) => setAddInput(e.target.value)}
+										placeholder={
+											addMethod === "phone"
+												? "Enter phone number"
+												: "Enter username or name"
+										}
+										className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all pr-20"
+									/>
+									<button
+										type="button"
+										className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+									>
+										Search
+									</button>
+								</div>
+
+								<p className="text-center text-gray-400 py-4">
+									{addMethod === "phone"
+										? "Enter a phone number to find friends"
+										: "Search by username or display name"}
+								</p>
+							</>
+						)}
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

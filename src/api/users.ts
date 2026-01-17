@@ -118,33 +118,39 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 		}) => data
 	)
 	.handler(async ({ data }) => {
-		const currentUser = await getCurrentUser();
+		try {
+			const currentUser = await getCurrentUser();
 
-		if (!currentUser) {
-			return { error: "Not authenticated", data: null };
+			if (!currentUser) {
+				return { error: "Not authenticated", data: null };
+			}
+
+			const userId = currentUser.user.id;
+
+			const updateData: UserUpdate = {};
+			if (data.displayName) updateData.display_name = data.displayName;
+			if (data.username) updateData.username = data.username;
+			if (data.phoneNumber !== undefined)
+				updateData.phone_number = data.phoneNumber;
+			if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
+
+			const { data: updatedUser, error } = await supabaseAdmin
+				.from("users")
+				.update(updateData)
+				.eq("id", userId)
+				.select()
+				.single();
+
+			if (error) {
+				console.error("updateUserProfile Supabase error:", error);
+				return { error: error.message, data: null };
+			}
+
+			return { error: null, data: updatedUser };
+		} catch (err) {
+			console.error("updateUserProfile error:", err);
+			return { error: err instanceof Error ? err.message : "Unknown error", data: null };
 		}
-
-		const userId = currentUser.user.id;
-
-		const updateData: UserUpdate = {};
-		if (data.displayName) updateData.display_name = data.displayName;
-		if (data.username) updateData.username = data.username;
-		if (data.phoneNumber !== undefined)
-			updateData.phone_number = data.phoneNumber;
-		if (data.avatarUrl !== undefined) updateData.avatar_url = data.avatarUrl;
-
-		const { data: updatedUser, error } = await supabaseAdmin
-			.from("users")
-			.update(updateData)
-			.eq("id", userId)
-			.select()
-			.single();
-
-		if (error) {
-			return { error: error.message, data: null };
-		}
-
-		return { error: null, data: updatedUser };
 	});
 
 // Get user stats

@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Users, Loader2, Check, UserPlus, Share2, Copy, X, AtSign, Phone, QrCode } from "lucide-react";
 import { getFriends } from "../../api/friends";
 import { createBet } from "../../api/bets";
 import type { VerificationMethod } from "../../lib/database.types";
+import { useUser } from "../../components/AuthProvider";
+import { QRCodeDisplay } from "../../components/QRCode";
+import { generateFriendInviteLink, getFriendInviteShareData, shareLink, copyToClipboard } from "../../lib/sharing";
 
 export const Route = createFileRoute("/bets/create")({
 	component: CreateBetPage,
@@ -22,14 +25,23 @@ interface Friend {
 	};
 }
 
+type AddMethod = "qr" | "phone" | "nickname";
+
 function CreateBetPage() {
 	const { friendId: preselectedFriendId } = Route.useSearch();
 	const navigate = useNavigate();
+	const { user } = useUser();
 
 	const [friends, setFriends] = useState<Friend[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+
+	// Add Friend modal state
+	const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+	const [addMethod, setAddMethod] = useState<AddMethod>("qr");
+	const [addInput, setAddInput] = useState("");
+	const [linkCopied, setLinkCopied] = useState(false);
 
 	// Form state
 	const [selectedFriendId, setSelectedFriendId] = useState<string | null>(preselectedFriendId || null);
@@ -53,6 +65,10 @@ function CreateBetPage() {
 	}, []);
 
 	const selectedFriend = friends.find((f) => f.friend?.id === selectedFriendId)?.friend;
+	const userId = user?.id || "";
+	const displayName = user?.firstName
+		? `${user.firstName} ${user.lastName || ""}`.trim()
+		: "User";
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -185,6 +201,16 @@ function CreateBetPage() {
 										</button>
 									);
 								})}
+
+								{/* Add Friend Button */}
+								<button
+									type="button"
+									onClick={() => setShowAddFriendModal(true)}
+									className="flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-orange-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+								>
+									<UserPlus className="w-5 h-5" />
+									<span className="font-medium">Add New Friend</span>
+								</button>
 							</div>
 						</div>
 
@@ -292,6 +318,157 @@ function CreateBetPage() {
 					</form>
 				)}
 			</div>
+
+			{/* Add Friend Modal */}
+			{showAddFriendModal && (
+				<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+					<div className="bg-white rounded-xl max-w-md w-full p-6">
+						<div className="flex items-center justify-between mb-6">
+							<h2 className="text-xl font-bold text-gray-800">Add Friend</h2>
+							<button
+								type="button"
+								onClick={() => {
+									setShowAddFriendModal(false);
+									setAddInput("");
+								}}
+								className="text-gray-400 hover:text-gray-600"
+							>
+								<X size={24} />
+							</button>
+						</div>
+
+						{/* Method Tabs */}
+						<div className="flex gap-2 mb-6">
+							<button
+								type="button"
+								onClick={() => {
+									setAddMethod("nickname");
+									setAddInput("");
+								}}
+								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+									addMethod === "nickname"
+										? "bg-orange-500 text-white"
+										: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+								}`}
+							>
+								<AtSign size={16} />
+								Nickname
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setAddMethod("phone");
+									setAddInput("");
+								}}
+								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+									addMethod === "phone"
+										? "bg-orange-500 text-white"
+										: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+								}`}
+							>
+								<Phone size={16} />
+								Phone
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setAddMethod("qr");
+									setAddInput("");
+								}}
+								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+									addMethod === "qr"
+										? "bg-orange-500 text-white"
+										: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+								}`}
+							>
+								<QrCode size={16} />
+								QR Code
+							</button>
+						</div>
+
+						{/* QR Code Display */}
+						{addMethod === "qr" ? (
+							<div className="py-2">
+								{/* Prominent Share Button */}
+								<button
+									type="button"
+									onClick={() => shareLink(getFriendInviteShareData(userId, displayName))}
+									className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-lg transition-colors mb-4"
+								>
+									<Share2 size={24} />
+									Share Invite Link
+								</button>
+
+								{/* Copy Link Section */}
+								<div className="flex items-center gap-2 mb-4">
+									<div className="flex-1 bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-600 truncate">
+										{generateFriendInviteLink(userId)}
+									</div>
+									<button
+										type="button"
+										onClick={async () => {
+											const success = await copyToClipboard(generateFriendInviteLink(userId));
+											if (success) {
+												setLinkCopied(true);
+												setTimeout(() => setLinkCopied(false), 2000);
+											}
+										}}
+										className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+											linkCopied
+												? "bg-green-100 text-green-700"
+												: "bg-gray-200 hover:bg-gray-300 text-gray-700"
+										}`}
+									>
+										{linkCopied ? <Check size={18} /> : <Copy size={18} />}
+										{linkCopied ? "Copied!" : "Copy"}
+									</button>
+								</div>
+
+								{/* QR Code */}
+								<div className="border-t pt-4">
+									<p className="text-sm text-gray-500 text-center mb-3">Or scan QR code</p>
+									<QRCodeDisplay
+										value={generateFriendInviteLink(userId)}
+										title=""
+										description=""
+										shareData={getFriendInviteShareData(userId, displayName)}
+										size={160}
+									/>
+								</div>
+							</div>
+						) : (
+							<>
+								{/* Search Input */}
+								<div className="relative mb-4">
+									<input
+										type={addMethod === "phone" ? "tel" : "text"}
+										value={addInput}
+										onChange={(e) => setAddInput(e.target.value)}
+										placeholder={
+											addMethod === "phone"
+												? "Enter phone number"
+												: "Enter username or name"
+										}
+										className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all pr-20"
+									/>
+									<button
+										type="button"
+										className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+									>
+										Search
+									</button>
+								</div>
+
+								<p className="text-center text-gray-400 py-4">
+									{addMethod === "phone"
+										? "Enter a phone number to find friends"
+										: "Search by username or display name"}
+								</p>
+							</>
+						)}
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

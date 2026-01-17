@@ -1,33 +1,69 @@
-import { auth } from "@clerk/tanstack-react-start/server";
+import { createServerClient } from "@supabase/ssr";
+import { getCookies, setCookie } from "@tanstack/react-start/server";
 import { supabaseAdmin } from "./supabase";
 import type { User } from "./database.types";
+import type { Database } from "./database.types";
 
-// Get current authenticated user from Clerk and their Supabase record
+// Get Supabase client with request cookies for server-side auth
+// Based on: https://tanstack.com/start/latest/docs/framework/react/examples/start-supabase-basic
+export function getSupabaseServerClient() {
+	return createServerClient<Database>(
+		process.env.SUPABASE_URL!,
+		process.env.SUPABASE_ANON_KEY!,
+		{
+			cookies: {
+				getAll() {
+					return Object.entries(getCookies()).map(([name, value]) => ({
+						name,
+						value,
+					}));
+				},
+				setAll(cookies) {
+					cookies.forEach((cookie) => {
+						setCookie(cookie.name, cookie.value);
+					});
+				},
+			},
+		}
+	);
+}
+
+// Get current authenticated user from Supabase Auth and their profile
 export async function getCurrentUser(): Promise<{
-	clerkId: string;
+	authUserId: string;
 	user: User;
 } | null> {
-	const { userId: clerkId } = await auth();
+	const supabase = getSupabaseServerClient();
 
-	if (!clerkId) {
+	const {
+		data: { user: authUser },
+		error: authError,
+	} = await supabase.auth.getUser();
+
+	if (authError || !authUser) {
 		return null;
 	}
 
 	const { data: user, error } = await supabaseAdmin
 		.from("users")
 		.select("*")
-		.eq("clerk_id", clerkId)
+		.eq("id", authUser.id)
 		.single();
 
 	if (error || !user) {
 		return null;
 	}
 
-	return { clerkId, user };
+	return { authUserId: authUser.id, user };
 }
 
-// Get just the clerk ID for quick auth checks
-export async function getClerkId(): Promise<string | null> {
-	const { userId } = await auth();
-	return userId;
+// Get just the auth user ID for quick auth checks
+export async function getAuthUserId(): Promise<string | null> {
+	const supabase = getSupabaseServerClient();
+
+	const {
+		data: { user },
+	} = await supabase.auth.getUser();
+
+	return user?.id ?? null;
 }

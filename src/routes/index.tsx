@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-	UserPlus,
-	Send,
-	CreditCard,
-	Handshake,
-	Shield,
-	Users,
-	Trophy,
 	ArrowRight,
+	Bell,
 	CheckCircle,
+	Handshake,
+	Medal,
+	Send,
+	Shield,
+	Trophy,
+	UserPlus,
+	Users,
+	Zap,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: LandingPage });
@@ -22,16 +24,20 @@ function LandingPage() {
 					<h1 className="text-5xl md:text-6xl font-bold text-orange-500 mb-6">
 						IBetU
 					</h1>
-					<p className="text-xl md:text-2xl text-gray-700 mb-8 max-w-2xl">
-						A website and application where friends, spouses, colleagues, family
-						members get to do bets on random outcomes against each other.
+					<p className="text-xl md:text-2xl text-gray-700 mb-4 max-w-2xl font-medium">
+						Turn friendly wagers into unforgettable moments.
+					</p>
+					<p className="text-lg text-gray-600 mb-8 max-w-2xl">
+						The fun way to make bets with friends, family, and colleagues — track
+						everything, climb the leaderboards, and never let anyone forget who
+						called it first.
 					</p>
 					<div className="flex flex-col sm:flex-row gap-4">
 						<Link
 							to="/auth/signup"
 							className="ibetu-btn-primary inline-flex items-center justify-center gap-2"
 						>
-							Get Started
+							Get Started Free
 							<ArrowRight size={20} />
 						</Link>
 						<Link
@@ -48,28 +54,35 @@ function LandingPage() {
 			<section className="bg-orange-500 py-16 px-6 text-white">
 				<div className="max-w-4xl mx-auto">
 					<div className="bg-white rounded-xl p-8 text-gray-800 shadow-lg">
-						<h2 className="text-3xl font-bold text-gray-800 mb-6">1. Intro</h2>
+						<h2 className="text-3xl font-bold text-gray-800 mb-6">
+							The Problem with Friendly Bets
+						</h2>
 						<p className="text-lg mb-4">
-							How often does a person in your close setting tells you let's bet
-							on this or that?
+							"I bet you $20 the Lakers win tonight." Sound familiar? We've all
+							made these casual wagers with friends — but what happens next?
 						</p>
 						<p className="text-lg mb-6">
-							Yet even though you win the bet you don't get any benefit due to
-							not being done officially or a way to track it.
+							The bet gets forgotten, nobody tracks who won, and bragging rights
+							disappear into thin air. Until now.
 						</p>
 
 						<div className="space-y-4">
 							<div className="flex items-start gap-3">
-								<ArrowRight className="text-orange-500 mt-1 flex-shrink-0" />
+								<CheckCircle className="text-orange-500 mt-1 flex-shrink-0" />
 								<p className="text-orange-500 font-medium">
-									Clear definition of the bet and the winnings.
+									Every bet recorded with clear terms and stakes
 								</p>
 							</div>
 							<div className="flex items-start gap-3">
-								<ArrowRight className="text-orange-500 mt-1 flex-shrink-0" />
+								<CheckCircle className="text-orange-500 mt-1 flex-shrink-0" />
 								<p className="text-orange-500 font-medium">
-									Both have to approve the winner and if this isn't possible a
-									third party verification.
+									Both parties approve the outcome — no more "I never said that!"
+								</p>
+							</div>
+							<div className="flex items-start gap-3">
+								<CheckCircle className="text-orange-500 mt-1 flex-shrink-0" />
+								<p className="text-orange-500 font-medium">
+									Build your reputation on the leaderboard as the ultimate predictor
 								</p>
 							</div>
 						</div>
@@ -126,29 +139,29 @@ function LandingPage() {
 							<ol className="text-lg space-y-2 text-orange-400">
 								<li className="flex gap-2">
 									<span className="font-bold">1)</span>
-									You find something you want to bet on.
+									Pick something to bet on — sports, trivia, predictions, anything!
 								</li>
 								<li className="flex gap-2">
 									<span className="font-bold">2)</span>
-									Send a bet invite to your friend.
+									Challenge your friend with a bet invite.
 								</li>
 							</ol>
 							<ul className="mt-4 space-y-1 text-orange-400">
 								<li className="flex gap-2">
 									<span className="text-white">•</span>
-									What you are betting on.
+									Define what you're betting on
 								</li>
 								<li className="flex gap-2">
 									<span className="text-white">•</span>
-									The amount
+									Set the stakes (bragging rights, favors, or anything you agree on)
 								</li>
 								<li className="flex gap-2">
 									<span className="text-white">•</span>
-									Timeline
+									Set a deadline
 								</li>
 								<li className="flex gap-2">
 									<span className="text-white">•</span>
-									How the outcome will be verified
+									Choose how the winner is decided
 								</li>
 							</ul>
 						</div>
@@ -157,8 +170,8 @@ function LandingPage() {
 								<div className="border-b pb-2 mb-4">
 									<span className="text-gray-800 font-medium">Sports Bet</span>
 									<div className="text-right text-gray-600 text-sm">
-										Your Wallet
-										<div className="text-orange-500 font-bold">$---</div>
+										Stakes
+										<div className="text-orange-500 font-bold">Loser buys lunch</div>
 									</div>
 								</div>
 								<div className="text-center py-4">
@@ -169,7 +182,7 @@ function LandingPage() {
 												<Trophy className="w-5 h-5 text-blue-500" />
 											</div>
 											<div className="text-xs text-gray-600 mt-1">
-												Lorem Team
+												Lakers
 											</div>
 										</div>
 										<span className="text-xl font-bold text-gray-400">VS</span>
@@ -178,7 +191,7 @@ function LandingPage() {
 												<Trophy className="w-5 h-5 text-red-500" />
 											</div>
 											<div className="text-xs text-gray-600 mt-1">
-												Ipsum Team
+												Celtics
 											</div>
 										</div>
 									</div>
@@ -201,21 +214,34 @@ function LandingPage() {
 							<ol className="text-lg space-y-2 text-orange-400">
 								<li className="flex gap-2">
 									<span className="font-bold">1)</span>
-									You put in your credit card details
+									Track your bets and get nudge reminders when deadlines approach
 								</li>
 								<li className="flex gap-2">
 									<span className="font-bold">2)</span>
-									Lastly wait for your friend to accept (and insert his cc
-									details)
+									Settle the bet — both approve the winner
+								</li>
+								<li className="flex gap-2">
+									<span className="font-bold">3)</span>
+									Climb the leaderboard and cement your legacy!
 								</li>
 							</ol>
 						</div>
 						<div className="flex-1 flex justify-center">
-							<div className="bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl p-6 shadow-lg">
-								<CreditCard className="w-16 h-16 text-white mb-4" />
-								<div className="text-white font-mono">
-									<div className="text-lg tracking-widest">•••• •••• •••• 4242</div>
-									<div className="text-sm mt-2 opacity-80">VALID THRU 12/27</div>
+							<div className="bg-gradient-to-br from-orange-400 to-yellow-500 rounded-xl p-6 shadow-lg">
+								<Medal className="w-16 h-16 text-white mb-4" />
+								<div className="text-white">
+									<div className="text-lg font-bold">Leaderboard</div>
+									<div className="text-sm mt-2 space-y-1">
+										<div className="flex items-center gap-2">
+											<span className="text-yellow-200">🥇</span> 12 wins
+										</div>
+										<div className="flex items-center gap-2">
+											<span className="text-gray-200">🥈</span> 8 wins
+										</div>
+										<div className="flex items-center gap-2">
+											<span className="text-orange-200">🥉</span> 5 wins
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -229,15 +255,25 @@ function LandingPage() {
 					<h2 className="text-3xl font-bold text-center text-gray-800 mb-12">
 						Why Choose IBetU?
 					</h2>
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 						<div className="bg-white rounded-xl p-6 shadow-md text-center">
 							<div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-								<Shield className="w-7 h-7 text-orange-500" />
+								<Bell className="w-7 h-7 text-orange-500" />
 							</div>
-							<h3 className="font-bold text-lg mb-2">Secure & Verified</h3>
+							<h3 className="font-bold text-lg mb-2">Nudge Reminders</h3>
 							<p className="text-gray-600 text-sm">
-								All bets are tracked and verified by both parties or third-party
-								verification.
+								Never forget a bet again. Get timely reminders as deadlines
+								approach and nudge friends to settle up.
+							</p>
+						</div>
+						<div className="bg-white rounded-xl p-6 shadow-md text-center">
+							<div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Trophy className="w-7 h-7 text-orange-500" />
+							</div>
+							<h3 className="font-bold text-lg mb-2">Leaderboards</h3>
+							<p className="text-gray-600 text-sm">
+								Compete with friends and climb the rankings. Show off your
+								prediction skills and bragging rights.
 							</p>
 						</div>
 						<div className="bg-white rounded-xl p-6 shadow-md text-center">
@@ -256,8 +292,28 @@ function LandingPage() {
 							</div>
 							<h3 className="font-bold text-lg mb-2">Fair & Transparent</h3>
 							<p className="text-gray-600 text-sm">
-								Clear bet terms, agreed upon winnings, and mutual approval of
-								outcomes.
+								Clear bet terms and mutual approval of outcomes. No more
+								disputed results.
+							</p>
+						</div>
+						<div className="bg-white rounded-xl p-6 shadow-md text-center">
+							<div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Zap className="w-7 h-7 text-orange-500" />
+							</div>
+							<h3 className="font-bold text-lg mb-2">Quick & Easy</h3>
+							<p className="text-gray-600 text-sm">
+								Create a bet in seconds. Simple interface, no complicated
+								setup required.
+							</p>
+						</div>
+						<div className="bg-white rounded-xl p-6 shadow-md text-center">
+							<div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Shield className="w-7 h-7 text-orange-500" />
+							</div>
+							<h3 className="font-bold text-lg mb-2">Bet History</h3>
+							<p className="text-gray-600 text-sm">
+								Keep a permanent record of all your bets. Look back on your
+								greatest predictions.
 							</p>
 						</div>
 					</div>
@@ -268,17 +324,18 @@ function LandingPage() {
 			<section className="bg-orange-500 py-16 px-6">
 				<div className="max-w-4xl mx-auto text-center">
 					<h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-						Ready to make it official?
+						Ready to prove you called it?
 					</h2>
 					<p className="text-xl text-orange-100 mb-8">
-						Join IBetU and never lose track of a bet again.
+						Join IBetU — track your bets, climb the leaderboard, and never let
+						a friend forget who was right.
 					</p>
 					<Link
 						to="/auth/signup"
 						className="inline-flex items-center gap-2 px-8 py-4 bg-white text-orange-500 font-bold rounded-lg hover:bg-gray-100 transition-colors text-lg"
 					>
 						<CheckCircle size={24} />
-						Sign Up Now
+						Start Betting Free
 					</Link>
 				</div>
 			</section>
@@ -286,7 +343,7 @@ function LandingPage() {
 			{/* Footer */}
 			<footer className="bg-gray-900 py-8 px-6 text-center text-gray-400">
 				<p>&copy; 2026 IBetU. All rights reserved.</p>
-				<p className="text-sm mt-2">Bet responsibly with friends.</p>
+				<p className="text-sm mt-2">Making friendly wagers unforgettable.</p>
 			</footer>
 		</div>
 	);

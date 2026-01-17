@@ -4,28 +4,22 @@
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "main": "@tanstack/react-start/server-entry",
-
-  // Environment variables
-  // NOTE: For secrets (API keys), use Cloudflare dashboard or `wrangler secret put`
   "vars": {
-    "VITE_CLERK_PUBLISHABLE_KEY": "pk_test_YW1hemVkLWZhbGNvbi01NC5jbGVyay5hY2NvdW50cy5kZXYk",
     "SUPABASE_URL": "https://qalcleoyxvkumurjlsea.supabase.co"
   },
-  
-    "observability": {
-      "logs": {
-        "enabled": true,
-        "head_sampling_rate": 1,
-        "invocation_logs": true,
-        "persist": true
-      }
+
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
     }
-  
+  }
 
   // Secrets should be set via:
-  // wrangler secret put CLERK_SECRET_KEY
-  // wrangler secret put CLERK_WEBHOOK_SECRET
   // wrangler secret put SUPABASE_ANON_KEY
   // wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  // wrangler secret put RESEND_API_KEY
   // Or through Cloudflare Dashboard > Workers > Settings > Variables
 }

@@ -1,8 +1,7 @@
-import { clerkMiddleware } from "@clerk/tanstack-react-start/server";
 import { createMiddleware, createStart } from "@tanstack/react-start";
 
 // Error logging middleware - logs full error details with stack traces
-// Based on: https://tanstack.com/start/latest/docs/framework/react/guide/observability
+// Based on: https://tanstack.com/start/latest/docs/framework/react/observability
 const errorLoggingMiddleware = createMiddleware().server(
 	async ({ request, next }) => {
 		const timestamp = new Date().toISOString();
@@ -36,9 +35,6 @@ export const startInstance = createStart(() => {
 		requestMiddleware: [
 			// Error logging should be first to catch all errors
 			errorLoggingMiddleware,
-			clerkMiddleware({
-				secretKey: process.env.CLERK_SECRET_KEY,
-			}),
 		],
 	};
 });

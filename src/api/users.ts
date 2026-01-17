@@ -6,13 +6,18 @@ import { getCurrentUser } from "../lib/auth";
 // Get current authenticated user's profile
 export const getCurrentUserProfile = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const currentUser = await getCurrentUser();
+		try {
+			const currentUser = await getCurrentUser();
 
-		if (!currentUser) {
-			return { error: "Not authenticated", data: null };
+			if (!currentUser) {
+				return { error: "Not authenticated", data: null };
+			}
+
+			return { error: null, data: currentUser.user };
+		} catch (err) {
+			console.error("getCurrentUserProfile error:", err);
+			return { error: err instanceof Error ? err.message : "Unknown error", data: null };
 		}
-
-		return { error: null, data: currentUser.user };
 	}
 );
 

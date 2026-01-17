@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/tanstack-react-start";
+import { useUser } from "../components/AuthProvider";
 import {
 	UserPlus,
 	Search,
@@ -47,7 +47,7 @@ interface FriendRequest {
 }
 
 function FriendsPage() {
-	const { user, isLoaded } = useUser();
+	const { user, isLoaded, isSignedIn } = useUser();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showAddModal, setShowAddModal] = useState(false);
 	const [addMethod, setAddMethod] = useState<AddMethod>("nickname");
@@ -67,7 +67,7 @@ function FriendsPage() {
 	// Fetch friends and pending requests
 	useEffect(() => {
 		async function fetchData() {
-			if (!isLoaded || !user) return;
+			if (!isLoaded || !isSignedIn) return;
 
 			setLoading(true);
 			try {
@@ -89,7 +89,7 @@ function FriendsPage() {
 		}
 
 		fetchData();
-	}, [isLoaded, user]);
+	}, [isLoaded, isSignedIn]);
 
 	const handleAcceptRequest = async (friendshipId: string) => {
 		setProcessingRequest(friendshipId);

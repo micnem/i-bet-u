@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useUser } from "@clerk/tanstack-react-start";
+import { useUser } from "../components/AuthProvider";
 import {
 	DollarSign,
 	Trophy,
@@ -32,13 +32,11 @@ interface Bet {
 	opponent_id: string;
 	creator: {
 		id: string;
-		clerk_id: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	opponent: {
 		id: string;
-		clerk_id: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
@@ -51,7 +49,7 @@ interface UserProfile {
 }
 
 function Dashboard() {
-	const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
+	const { user, isSignedIn, isLoaded } = useUser();
 	const router = useRouter();
 
 	const [activeBets, setActiveBets] = useState<Bet[]>([]);
@@ -62,10 +60,10 @@ function Dashboard() {
 	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (clerkLoaded && !clerkUser) {
+		if (isLoaded && !isSignedIn) {
 			router.navigate({ to: "/auth/login" });
 		}
-	}, [clerkUser, clerkLoaded, router]);
+	}, [isSignedIn, isLoaded, router]);
 
 	const refreshBets = async () => {
 		const betsResult = await getUserBets({ data: {} });
@@ -100,7 +98,7 @@ function Dashboard() {
 
 	useEffect(() => {
 		async function fetchData() {
-			if (!clerkUser) return;
+			if (!isSignedIn) return;
 
 			setLoading(true);
 			try {
@@ -129,12 +127,12 @@ function Dashboard() {
 			setLoading(false);
 		}
 
-		if (clerkUser) {
+		if (isSignedIn) {
 			fetchData();
 		}
-	}, [clerkUser]);
+	}, [isSignedIn]);
 
-	if (!clerkLoaded || loading) {
+	if (!isLoaded || loading) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
 				<div className="text-center">
@@ -145,14 +143,16 @@ function Dashboard() {
 		);
 	}
 
-	if (!clerkUser) {
+	if (!isSignedIn || !user) {
 		return null;
 	}
 
-	const displayName = clerkUser.fullName || clerkUser.firstName || "User";
+	const displayName = user.firstName
+		? `${user.firstName} ${user.lastName || ""}`.trim()
+		: "User";
 	const username =
-		clerkUser.username ||
-		clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+		user.username ||
+		user.primaryEmailAddress?.emailAddress?.split("@")[0] ||
 		"user";
 
 	const totalBets = profile?.total_bets ?? 0;
@@ -260,10 +260,10 @@ function Dashboard() {
 										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
 										const isDeadlinePassed = displayStatus === "deadline_passed";
 										const isPendingForMe =
-											clerkUser?.id === bet.opponent.clerk_id && !isDeadlinePassed;
+											user?.id === bet.opponent.id && !isDeadlinePassed;
 										const isActionLoading = actionLoadingId === bet.id;
 										// Show opponent name if I'm the creator, show creator name if I'm the opponent
-										const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
+										const isOpponent = user?.id === bet.opponent.id;
 										const otherPartyName = isOpponent
 											? bet.creator.display_name
 											: bet.opponent.display_name;
@@ -365,7 +365,7 @@ function Dashboard() {
 										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
 										const isDeadlinePassed = displayStatus === "deadline_passed";
 										// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
-										const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
+										const isOpponent = user?.id === bet.opponent.id;
 										const otherPartyName = isOpponent
 											? bet.creator.display_name
 											: bet.opponent.display_name;

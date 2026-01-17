@@ -1,8 +1,8 @@
 // Auth guard component for protecting routes
-import { useUser } from "@clerk/tanstack-react-start";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { useUser } from "./AuthProvider";
 
 interface AuthGuardProps {
 	children: React.ReactNode;

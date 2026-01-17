@@ -20,7 +20,6 @@ export interface Database {
 			users: {
 				Row: {
 					id: string;
-					clerk_id: string;
 					username: string;
 					display_name: string;
 					email: string;
@@ -33,8 +32,7 @@ export interface Database {
 					updated_at: string;
 				};
 				Insert: {
-					id?: string;
-					clerk_id: string;
+					id: string; // Required: must match auth.users.id
 					username: string;
 					display_name: string;
 					email: string;
@@ -47,8 +45,6 @@ export interface Database {
 					updated_at?: string;
 				};
 				Update: {
-					id?: string;
-					clerk_id?: string;
 					username?: string;
 					display_name?: string;
 					email?: string;

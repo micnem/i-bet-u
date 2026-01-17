@@ -10,12 +10,11 @@
     "format": "biome format",
     "lint": "biome lint",
     "check": "biome check",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "pnpm run build && npx wrangler deploy"
   },
   "dependencies": {
-    "@clerk/tanstack-react-start": "^0.27.14",
-    "@clerk/types": "^4.101.10",
     "@cloudflare/vite-plugin": "^1.13.8",
+    "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",
@@ -29,7 +28,6 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "resend": "^6.7.0",
-    "svix": "^1.84.1",
     "tailwindcss": "^4.0.6",
     "vite-tsconfig-paths": "^6.0.2"
   },
@@ -45,6 +43,7 @@
     "jsdom": "^27.0.0",
     "typescript": "^5.7.2",
     "vite": "^7.1.7",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^3.0.5",
     "web-vitals": "^5.1.0",
     "wrangler": "^4.40.3"

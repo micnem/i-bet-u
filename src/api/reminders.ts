@@ -153,6 +153,94 @@ export const getReminderHistory = createServerFn({ method: "GET" })
 		return { error: null, data };
 	});
 
+// Send winner confirmation email when one participant declares a winner
+export async function sendWinnerConfirmationEmail({
+	recipientId,
+	declarerName,
+	winnerName,
+	betTitle,
+	betAmount,
+	betId,
+}: {
+	recipientId: string;
+	declarerName: string;
+	winnerName: string;
+	betTitle: string;
+	betAmount: number;
+	betId: string;
+}): Promise<{ success: boolean; error?: string }> {
+	// Get recipient's email
+	const { data: recipient, error: recipientError } = await supabaseAdmin
+		.from("users")
+		.select("email, display_name")
+		.eq("id", recipientId)
+		.single();
+
+	if (recipientError || !recipient) {
+		console.error("Could not fetch recipient details:", recipientError);
+		return { success: false, error: "Could not fetch recipient details" };
+	}
+
+	try {
+		const resend = getResendClient();
+		const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@ibetu.app";
+		const appUrl = process.env.APP_URL || "https://ibetu-app.michael-nemni.workers.dev";
+
+		await resend.emails.send({
+			from: `iBetU <${fromEmail}>`,
+			to: recipient.email,
+			subject: `${declarerName} declared a winner - Please confirm!`,
+			html: `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="utf-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				</head>
+				<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+					<div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+						<h1 style="color: white; margin: 0; font-size: 28px;">iBetU</h1>
+					</div>
+					<div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+						<h2 style="color: #1f2937; margin-top: 0;">Hey ${recipient.display_name}!</h2>
+						<p style="font-size: 16px; color: #4b5563;">
+							<strong>${declarerName}</strong> has declared a winner for your bet and needs your confirmation.
+						</p>
+						<div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+							<p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">Bet:</p>
+							<p style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">${betTitle}</p>
+						</div>
+						<div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+							<p style="margin: 0 0 5px 0; font-size: 14px; color: #92400e;">Declared Winner:</p>
+							<span style="font-size: 24px; font-weight: bold; color: #b45309;">${winnerName}</span>
+							<p style="margin: 10px 0 0 0; font-size: 14px; color: #92400e;">Amount: $${betAmount.toFixed(2)}</p>
+						</div>
+						<p style="font-size: 14px; color: #6b7280;">
+							Please review and confirm this result. The bet will be marked as completed once both parties agree on the winner.
+						</p>
+						<div style="text-align: center; margin-top: 30px;">
+							<a href="${appUrl}/bets/${betId}"
+							   style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+								Review & Confirm
+							</a>
+						</div>
+						<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+						<p style="font-size: 12px; color: #9ca3af; text-align: center;">
+							You're receiving this email because you're a participant in this bet on iBetU.
+						</p>
+					</div>
+				</body>
+				</html>
+			`,
+		});
+
+		return { success: true };
+	} catch (emailError) {
+		console.error("Failed to send winner confirmation email:", emailError);
+		return { success: false, error: "Failed to send email" };
+	}
+}
+
 // Check if reminder can be sent (not sent in last 24 hours)
 export const canSendReminder = createServerFn({ method: "GET" })
 	.inputValidator((data: { friendId: string }) => data)

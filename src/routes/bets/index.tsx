@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/tanstack-react-start";
+import { useUser } from "../../components/AuthProvider";
 import {
 	Trophy,
 	Plus,
@@ -31,14 +31,12 @@ interface Bet {
 	winner_id: string | null;
 	creator: {
 		id: string;
-		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
 	};
 	opponent: {
 		id: string;
-		clerk_id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
@@ -48,7 +46,7 @@ interface Bet {
 type FilterStatus = "all" | BetStatus;
 
 function BetsPage() {
-	const { user: clerkUser } = useUser();
+	const { user } = useUser();
 	const [bets, setBets] = useState<Bet[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState<FilterStatus>("all");
@@ -300,11 +298,11 @@ function BetsPage() {
 							const displayStatus = getDisplayStatus(bet.status, bet.deadline);
 							const isPendingForMe =
 								bet.status === "pending" &&
-								clerkUser?.id === bet.opponent.clerk_id &&
+								user?.id === bet.opponent.id &&
 								displayStatus !== "deadline_passed";
 							const isActionLoading = actionLoadingId === bet.id;
 							// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
-							const isOpponent = clerkUser?.id === bet.opponent.clerk_id;
+							const isOpponent = user?.id === bet.opponent.id;
 							const otherPartyName = isOpponent
 								? bet.creator.display_name
 								: bet.opponent.display_name;

@@ -241,6 +241,105 @@ export async function sendWinnerConfirmationEmail({
 	}
 }
 
+// Send bet invitation email when a bet is created
+export async function sendBetInvitationEmail({
+	recipientId,
+	creatorName,
+	creatorUsername,
+	betTitle,
+	betDescription,
+	betAmount,
+	betDeadline,
+	betId,
+}: {
+	recipientId: string;
+	creatorName: string;
+	creatorUsername: string;
+	betTitle: string;
+	betDescription: string;
+	betAmount: number;
+	betDeadline: string;
+	betId: string;
+}): Promise<{ success: boolean; error?: string }> {
+	// Get recipient's email
+	const { data: recipient, error: recipientError } = await supabaseAdmin
+		.from("users")
+		.select("email, display_name")
+		.eq("id", recipientId)
+		.single();
+
+	if (recipientError || !recipient) {
+		console.error("Could not fetch recipient details:", recipientError);
+		return { success: false, error: "Could not fetch recipient details" };
+	}
+
+	try {
+		const resend = getResendClient();
+		const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@ibetu.app";
+		const appUrl = process.env.APP_URL || "https://ibetu-app.michael-nemni.workers.dev";
+		const formattedDeadline = new Date(betDeadline).toLocaleDateString("en-US", {
+			weekday: "long",
+			year: "numeric",
+			month: "long",
+			day: "numeric",
+		});
+
+		await resend.emails.send({
+			from: `iBetU <${fromEmail}>`,
+			to: recipient.email,
+			subject: `${creatorName} challenged you to a bet!`,
+			html: `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="utf-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				</head>
+				<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+					<div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+						<h1 style="color: white; margin: 0; font-size: 28px;">iBetU</h1>
+					</div>
+					<div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+						<h2 style="color: #1f2937; margin-top: 0;">Hey ${recipient.display_name}!</h2>
+						<p style="font-size: 16px; color: #4b5563;">
+							<strong>${creatorName}</strong> (@${creatorUsername}) has challenged you to a bet!
+						</p>
+						<div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+							<p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">The Bet:</p>
+							<p style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">${betTitle}</p>
+							${betDescription ? `<p style="margin: 10px 0 0 0; font-size: 14px; color: #4b5563;">${betDescription}</p>` : ""}
+						</div>
+						<div style="background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+							<p style="margin: 0 0 5px 0; font-size: 14px; color: #92400e;">Amount at Stake:</p>
+							<span style="font-size: 36px; font-weight: bold; color: #b45309;">$${betAmount.toFixed(2)}</span>
+							<p style="margin: 10px 0 0 0; font-size: 14px; color: #92400e;">Deadline: ${formattedDeadline}</p>
+						</div>
+						<p style="font-size: 14px; color: #6b7280;">
+							Think you can win? Accept the challenge and prove it!
+						</p>
+						<div style="text-align: center; margin-top: 30px;">
+							<a href="${appUrl}/bets/${betId}"
+							   style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+								View & Accept Bet
+							</a>
+						</div>
+						<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+						<p style="font-size: 12px; color: #9ca3af; text-align: center;">
+							You're receiving this email because ${creatorName} invited you to a bet on iBetU.
+						</p>
+					</div>
+				</body>
+				</html>
+			`,
+		});
+
+		return { success: true };
+	} catch (emailError) {
+		console.error("Failed to send bet invitation email:", emailError);
+		return { success: false, error: "Failed to send email" };
+	}
+}
+
 // Check if reminder can be sent (not sent in last 24 hours)
 export const canSendReminder = createServerFn({ method: "GET" })
 	.inputValidator((data: { friendId: string }) => data)

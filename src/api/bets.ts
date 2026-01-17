@@ -7,7 +7,7 @@ import type {
 	VerificationMethod,
 } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
-import { sendWinnerConfirmationEmail } from "./reminders";
+import { sendWinnerConfirmationEmail, sendBetInvitationEmail } from "./reminders";
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
@@ -144,6 +144,20 @@ export const createBet = createServerFn({ method: "POST" })
 		if (error) {
 			return { error: error.message, data: null };
 		}
+
+		// Send invitation email to opponent in background (don't block response)
+		sendBetInvitationEmail({
+			recipientId: data.opponentId,
+			creatorName: bet.creator.display_name,
+			creatorUsername: bet.creator.username,
+			betTitle: bet.title,
+			betDescription: bet.description || "",
+			betAmount: Number(bet.amount),
+			betDeadline: bet.deadline,
+			betId: bet.id,
+		}).catch((err) => {
+			console.error("Failed to send bet invitation email:", err);
+		});
 
 		return { error: null, data: bet };
 	});

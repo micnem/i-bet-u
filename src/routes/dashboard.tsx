@@ -19,13 +19,16 @@ import {
 	Phone,
 	QrCode,
 	X,
+	Share2,
+	Copy,
+	Check,
 } from "lucide-react";
 import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet } from "../api/bets";
 import { getCurrentUserProfile } from "../api/users";
 import type { BetStatus } from "../lib/database.types";
 import { getDisplayStatus, type DisplayStatus } from "../lib/bet-utils";
 import { QRCodeDisplay } from "../components/QRCode";
-import { generateFriendInviteLink, getFriendInviteShareData } from "../lib/sharing";
+import { generateFriendInviteLink, getFriendInviteShareData, shareLink, copyToClipboard } from "../lib/sharing";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -68,8 +71,9 @@ function Dashboard() {
 	const [loading, setLoading] = useState(true);
 	const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 	const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-	const [addMethod, setAddMethod] = useState<AddMethod>("nickname");
+	const [addMethod, setAddMethod] = useState<AddMethod>("qr");
 	const [addInput, setAddInput] = useState("");
+	const [linkCopied, setLinkCopied] = useState(false);
 
 	useEffect(() => {
 		if (isLoaded && !isSignedIn) {
@@ -546,14 +550,53 @@ function Dashboard() {
 
 						{/* QR Code Display */}
 						{addMethod === "qr" ? (
-							<div className="py-4">
-								<QRCodeDisplay
-									value={generateFriendInviteLink(userId)}
-									title={`Add ${displayName}`}
-									description="Scan this QR code or share the link to add me as a friend on IBetU"
-									shareData={getFriendInviteShareData(userId, displayName)}
-									size={180}
-								/>
+							<div className="py-2">
+								{/* Prominent Share Button */}
+								<button
+									type="button"
+									onClick={() => shareLink(getFriendInviteShareData(userId, displayName))}
+									className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-lg transition-colors mb-4"
+								>
+									<Share2 size={24} />
+									Share Invite Link
+								</button>
+
+								{/* Copy Link Section */}
+								<div className="flex items-center gap-2 mb-4">
+									<div className="flex-1 bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-600 truncate">
+										{generateFriendInviteLink(userId)}
+									</div>
+									<button
+										type="button"
+										onClick={async () => {
+											const success = await copyToClipboard(generateFriendInviteLink(userId));
+											if (success) {
+												setLinkCopied(true);
+												setTimeout(() => setLinkCopied(false), 2000);
+											}
+										}}
+										className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+											linkCopied
+												? "bg-green-100 text-green-700"
+												: "bg-gray-200 hover:bg-gray-300 text-gray-700"
+										}`}
+									>
+										{linkCopied ? <Check size={18} /> : <Copy size={18} />}
+										{linkCopied ? "Copied!" : "Copy"}
+									</button>
+								</div>
+
+								{/* QR Code */}
+								<div className="border-t pt-4">
+									<p className="text-sm text-gray-500 text-center mb-3">Or scan QR code</p>
+									<QRCodeDisplay
+										value={generateFriendInviteLink(userId)}
+										title=""
+										description=""
+										shareData={getFriendInviteShareData(userId, displayName)}
+										size={160}
+									/>
+								</div>
 							</div>
 						) : (
 							<>

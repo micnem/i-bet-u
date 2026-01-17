@@ -178,7 +178,8 @@ function ProfilePage() {
 				setEditDisplayName("");
 			}
 		} catch (error) {
-			setNameError("Failed to update display name");
+			console.error("Failed to update display name:", error);
+			setNameError(error instanceof Error ? error.message : "Failed to update display name");
 		} finally {
 			setSavingName(false);
 		}

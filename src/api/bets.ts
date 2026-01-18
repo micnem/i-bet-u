@@ -433,6 +433,47 @@ export const getPendingBetInvites = createServerFn({ method: "GET" }).handler(
 	}
 );
 
+// Get bets awaiting resolution confirmation (where other party declared a winner)
+export const getBetsAwaitingConfirmation = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const currentUser = await getCurrentUser();
+
+	if (!currentUser) {
+		return { error: "Not authenticated", data: null };
+	}
+
+	const userId = currentUser.user.id;
+
+	const { data, error } = await supabaseAdmin
+		.from("bets")
+		.select(
+			`
+			*,
+			creator:users!bets_creator_id_fkey(id, display_name, avatar_url),
+			opponent:users!bets_opponent_id_fkey(id, display_name, avatar_url),
+			winner:users!bets_winner_id_fkey(id, display_name)
+		`
+		)
+		.eq("status", "active")
+		.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+		.not("winner_id", "is", null)
+		.order("updated_at", { ascending: false });
+
+	if (error) {
+		return { error: error.message, data: null };
+	}
+
+	// Filter to only include bets where current user hasn't approved yet
+	const betsNeedingConfirmation = (data || []).filter((bet) => {
+		const isCreator = bet.creator_id === userId;
+		const hasApproved = isCreator ? bet.creator_approved : bet.opponent_approved;
+		return !hasApproved;
+	});
+
+	return { error: null, data: betsNeedingConfirmation };
+});
+
 // Get active bets count
 export const getActiveBetsCount = createServerFn({ method: "GET" }).handler(
 	async () => {

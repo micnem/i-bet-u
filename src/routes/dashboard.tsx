@@ -23,8 +23,9 @@ import {
 	Copy,
 	Check,
 } from "lucide-react";
-import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet } from "../api/bets";
+import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet, getBetsAwaitingConfirmation, approveBetResult } from "../api/bets";
 import { getCurrentUserProfile } from "../api/users";
+import { getPendingFriendRequests, acceptFriendRequest, declineFriendRequest } from "../api/friends";
 import type { BetStatus } from "../lib/database.types";
 import { getDisplayStatus, type DisplayStatus } from "../lib/bet-utils";
 import { QRCodeDisplay } from "../components/QRCode";
@@ -58,6 +59,40 @@ interface UserProfile {
 	bets_lost: number;
 }
 
+interface BetAwaitingConfirmation {
+	id: string;
+	title: string;
+	amount: number;
+	creator_id: string;
+	opponent_id: string;
+	winner_id: string;
+	creator: {
+		id: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
+	opponent: {
+		id: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
+	winner: {
+		id: string;
+		display_name: string;
+	};
+}
+
+interface FriendRequest {
+	id: string;
+	created_at: string;
+	requester: {
+		id: string;
+		display_name: string;
+		avatar_url: string | null;
+		username: string;
+	};
+}
+
 type AddMethod = "qr" | "phone" | "nickname";
 
 function Dashboard() {
@@ -66,6 +101,10 @@ function Dashboard() {
 
 	const [activeBets, setActiveBets] = useState<Bet[]>([]);
 	const [pendingBets, setPendingBets] = useState<Bet[]>([]);
+	const [betsAwaitingConfirmation, setBetsAwaitingConfirmation] = useState<
+		BetAwaitingConfirmation[]
+	>([]);
+	const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
 	const [profile, setProfile] = useState<UserProfile | null>(null);
 	const [netBalance, setNetBalance] = useState(0);
 	const [loading, setLoading] = useState(true);
@@ -81,12 +120,28 @@ function Dashboard() {
 		}
 	}, [isSignedIn, isLoaded, router]);
 
-	const refreshBets = async () => {
-		const betsResult = await getUserBets({ data: {} });
+	const refreshData = async () => {
+		const [betsResult, confirmationResult, friendRequestsResult] =
+			await Promise.all([
+				getUserBets({ data: {} }),
+				getBetsAwaitingConfirmation(),
+				getPendingFriendRequests(),
+			]);
+
 		if (betsResult.data) {
 			const bets = betsResult.data as Bet[];
 			setActiveBets(bets.filter((b) => b.status === "active").slice(0, 5));
 			setPendingBets(bets.filter((b) => b.status === "pending").slice(0, 5));
+		}
+
+		if (confirmationResult.data) {
+			setBetsAwaitingConfirmation(
+				confirmationResult.data as BetAwaitingConfirmation[]
+			);
+		}
+
+		if (friendRequestsResult.data) {
+			setFriendRequests(friendRequestsResult.data as FriendRequest[]);
 		}
 	};
 
@@ -96,7 +151,7 @@ function Dashboard() {
 		setActionLoadingId(betId);
 		const result = await acceptBet({ data: { betId } });
 		if (!result.error) {
-			await refreshBets();
+			await refreshData();
 		}
 		setActionLoadingId(null);
 	};
@@ -107,7 +162,47 @@ function Dashboard() {
 		setActionLoadingId(betId);
 		const result = await declineBet({ data: { betId } });
 		if (!result.error) {
-			await refreshBets();
+			await refreshData();
+		}
+		setActionLoadingId(null);
+	};
+
+	const handleConfirmWinner = async (
+		e: React.MouseEvent,
+		betId: string,
+		winnerId: string
+	) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(`confirm_${betId}`);
+		const result = await approveBetResult({ data: { betId, winnerId } });
+		if (!result.error) {
+			await refreshData();
+		}
+		setActionLoadingId(null);
+	};
+
+	const handleAcceptFriend = async (e: React.MouseEvent, friendshipId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(`friend_${friendshipId}`);
+		const result = await acceptFriendRequest({ data: { friendshipId } });
+		if (!result.error) {
+			await refreshData();
+		}
+		setActionLoadingId(null);
+	};
+
+	const handleDeclineFriend = async (
+		e: React.MouseEvent,
+		friendshipId: string
+	) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(`friend_${friendshipId}`);
+		const result = await declineFriendRequest({ data: { friendshipId } });
+		if (!result.error) {
+			await refreshData();
 		}
 		setActionLoadingId(null);
 	};
@@ -118,10 +213,18 @@ function Dashboard() {
 
 			setLoading(true);
 			try {
-				const [betsResult, amountsResult, profileResult] = await Promise.all([
+				const [
+					betsResult,
+					amountsResult,
+					profileResult,
+					confirmationResult,
+					friendRequestsResult,
+				] = await Promise.all([
 					getUserBets({ data: {} }),
 					getAmountsOwedSummary(),
 					getCurrentUserProfile(),
+					getBetsAwaitingConfirmation(),
+					getPendingFriendRequests(),
 				]);
 
 				if (betsResult.data) {
@@ -136,6 +239,16 @@ function Dashboard() {
 
 				if (profileResult.data) {
 					setProfile(profileResult.data as UserProfile);
+				}
+
+				if (confirmationResult.data) {
+					setBetsAwaitingConfirmation(
+						confirmationResult.data as BetAwaitingConfirmation[]
+					);
+				}
+
+				if (friendRequestsResult.data) {
+					setFriendRequests(friendRequestsResult.data as FriendRequest[]);
 				}
 			} catch (error) {
 				console.error("Failed to fetch dashboard data:", error);
@@ -265,6 +378,167 @@ function Dashboard() {
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					{/* Main Content */}
 					<div className="lg:col-span-2 space-y-6">
+						{/* Friend Requests */}
+						{friendRequests.length > 0 && (
+							<div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+								<div className="flex items-center justify-between mb-4">
+									<h2 className="text-lg font-bold flex items-center gap-2">
+										<UserPlus className="text-blue-500" size={20} />
+										Friend Requests
+									</h2>
+									<Link
+										to="/friends"
+										className="text-orange-500 hover:text-orange-600 text-sm font-medium"
+									>
+										View All
+									</Link>
+								</div>
+								<div className="space-y-3">
+									{friendRequests.slice(0, 3).map((request) => {
+										const isActionLoading =
+											actionLoadingId === `friend_${request.id}`;
+										return (
+											<div
+												key={request.id}
+												className="flex items-center justify-between p-3 bg-blue-50 rounded-lg"
+											>
+												<div className="flex items-center gap-3">
+													<img
+														src={
+															request.requester.avatar_url ||
+															`https://api.dicebear.com/7.x/avataaars/svg?seed=${request.requester.username}`
+														}
+														alt={request.requester.display_name}
+														className="w-10 h-10 rounded-full"
+													/>
+													<div>
+														<p className="font-medium text-gray-800">
+															{request.requester.display_name}
+														</p>
+														<p className="text-sm text-gray-500">
+															@{request.requester.username}
+														</p>
+													</div>
+												</div>
+												<div className="flex gap-2">
+													<button
+														type="button"
+														onClick={(e) => handleAcceptFriend(e, request.id)}
+														disabled={isActionLoading}
+														className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50"
+													>
+														{isActionLoading ? (
+															<Loader2 className="w-4 h-4 animate-spin" />
+														) : (
+															<CheckCircle className="w-4 h-4" />
+														)}
+														Accept
+													</button>
+													<button
+														type="button"
+														onClick={(e) => handleDeclineFriend(e, request.id)}
+														disabled={isActionLoading}
+														className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded-lg flex items-center gap-1 transition-colors disabled:opacity-50"
+													>
+														<XCircle className="w-4 h-4" />
+													</button>
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						)}
+
+						{/* Bets Awaiting Confirmation */}
+						{betsAwaitingConfirmation.length > 0 && (
+							<div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+								<div className="flex items-center justify-between mb-4">
+									<h2 className="text-lg font-bold flex items-center gap-2">
+										<CheckCircle className="text-green-500" size={20} />
+										Confirm Winners
+									</h2>
+									<Link
+										to="/bets"
+										className="text-orange-500 hover:text-orange-600 text-sm font-medium"
+									>
+										View All
+									</Link>
+								</div>
+								<div className="space-y-3">
+									{betsAwaitingConfirmation.slice(0, 3).map((bet) => {
+										const isCreator = user?.id === bet.creator_id;
+										const otherPartyName = isCreator
+											? bet.opponent.display_name
+											: bet.creator.display_name;
+										const isActionLoading =
+											actionLoadingId === `confirm_${bet.id}`;
+										const declaredWinnerIsMe = bet.winner_id === user?.id;
+
+										return (
+											<div
+												key={bet.id}
+												className="p-3 bg-green-50 rounded-lg"
+											>
+												<div className="flex items-center justify-between mb-2">
+													<div>
+														<p className="font-medium text-gray-800">
+															{bet.title}
+														</p>
+														<p className="text-sm text-gray-500">
+															vs {otherPartyName} - ${bet.amount}
+														</p>
+													</div>
+													<Link
+														to="/bets/$betId"
+														params={{ betId: bet.id }}
+														className="text-gray-400 hover:text-gray-600"
+													>
+														<ChevronRight className="w-5 h-5" />
+													</Link>
+												</div>
+												<div className="bg-white rounded-lg p-2 mb-3">
+													<p className="text-sm text-gray-600">
+														{otherPartyName} declared{" "}
+														<span className="font-semibold text-green-600">
+															{declaredWinnerIsMe
+																? "you"
+																: bet.winner.display_name}
+														</span>{" "}
+														as the winner
+													</p>
+												</div>
+												<div className="flex gap-2">
+													<button
+														type="button"
+														onClick={(e) =>
+															handleConfirmWinner(e, bet.id, bet.winner_id)
+														}
+														disabled={isActionLoading}
+														className="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+													>
+														{isActionLoading ? (
+															<Loader2 className="w-4 h-4 animate-spin" />
+														) : (
+															<CheckCircle className="w-4 h-4" />
+														)}
+														Confirm Winner
+													</button>
+													<Link
+														to="/bets/$betId"
+														params={{ betId: bet.id }}
+														className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
+													>
+														Dispute
+													</Link>
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						)}
+
 						{/* Pending Bets (requiring action) */}
 						{pendingBets.length > 0 && (
 							<div className="bg-white rounded-xl shadow-md p-6">

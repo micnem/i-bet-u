@@ -239,7 +239,7 @@ function FriendsPage() {
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								placeholder="Search friends..."
-								className="ibetu-input pl-10"
+								className="ibetu-input !pl-10"
 							/>
 						</div>
 					)}

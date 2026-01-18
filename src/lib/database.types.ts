@@ -198,6 +198,23 @@ export interface Database {
 					emoji?: string;
 				};
 			};
+			user_achievements: {
+				Row: {
+					id: string;
+					user_id: string;
+					achievement_id: string;
+					unlocked_at: string;
+				};
+				Insert: {
+					id?: string;
+					user_id: string;
+					achievement_id: string;
+					unlocked_at?: string;
+				};
+				Update: {
+					unlocked_at?: string;
+				};
+			};
 		};
 		Views: {
 			[_ in never]: never;
@@ -253,3 +270,6 @@ export type CommentWithAuthor = Comment & {
 export type BetReactionWithUser = BetReaction & {
 	user: User;
 };
+
+export type UserAchievement = Database["public"]["Tables"]["user_achievements"]["Row"];
+export type UserAchievementInsert = Database["public"]["Tables"]["user_achievements"]["Insert"];

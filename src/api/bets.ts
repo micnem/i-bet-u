@@ -10,6 +10,7 @@ import type {
 } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
 import { sendWinnerConfirmationEmail, sendBetInvitationEmail, sendBetAcceptedEmail, sendCommentNotificationEmail } from "./reminders";
+import { checkAndAwardAchievements } from "./achievements";
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
@@ -377,6 +378,25 @@ async function resolveBet({
 	// Update stats
 	await supabaseAdmin.rpc("increment_wins", { user_id: winnerId });
 	await supabaseAdmin.rpc("increment_losses", { user_id: loserId });
+
+	// Check and award achievements for both participants
+	try {
+		// Award achievements to winner (with win context)
+		await checkAndAwardAchievements(winnerId, {
+			justWon: true,
+			betAmount: Number(bet.amount),
+			opponentId: loserId,
+		});
+
+		// Award achievements to loser (without win context)
+		await checkAndAwardAchievements(loserId, {
+			justWon: false,
+			betAmount: Number(bet.amount),
+			opponentId: winnerId,
+		});
+	} catch (err) {
+		console.error("Failed to check achievements:", err);
+	}
 }
 
 // Cancel a pending bet (creator only)

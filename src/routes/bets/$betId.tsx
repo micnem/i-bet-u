@@ -27,6 +27,7 @@ import {
 	acceptBet,
 	declineBet,
 	approveBetResult,
+	undoWinnerDeclaration,
 	getBetComments,
 	createComment,
 	deleteComment,
@@ -213,14 +214,36 @@ function BetDetailsPage() {
 	};
 
 	const handleApproveWinner = async (winnerId: string) => {
+		if (!bet) return;
+
+		// Check if user is clicking on their already-selected winner (toggle/undo)
+		const isCreator = user && user.id === bet.creator_id;
+		const isOpponent = user && user.id === bet.opponent_id;
+		const userHasApproved = (isCreator && bet.creator_approved) || (isOpponent && bet.opponent_approved);
+		const clickedOnSelectedWinner = userHasApproved && bet.winner_id === winnerId;
+
 		setActionLoading(true);
-		const result = await approveBetResult({ data: { betId, winnerId } });
-		if (result.error) {
-			setError(result.error);
+
+		if (clickedOnSelectedWinner) {
+			// Undo the declaration
+			const result = await undoWinnerDeclaration({ data: { betId } });
+			if (result.error) {
+				setError(result.error);
+			} else {
+				// Refresh bet data
+				const refreshed = await getBetById({ data: { betId } });
+				if (refreshed.data) setBet(refreshed.data as Bet);
+			}
 		} else {
-			// Refresh bet data
-			const refreshed = await getBetById({ data: { betId } });
-			if (refreshed.data) setBet(refreshed.data as Bet);
+			// Normal approval
+			const result = await approveBetResult({ data: { betId, winnerId } });
+			if (result.error) {
+				setError(result.error);
+			} else {
+				// Refresh bet data
+				const refreshed = await getBetById({ data: { betId } });
+				if (refreshed.data) setBet(refreshed.data as Bet);
+			}
 		}
 		setActionLoading(false);
 	};

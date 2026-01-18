@@ -1,12 +1,38 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Loader2, Check, UserPlus, Share2, Copy, X, AtSign, Phone, QrCode } from "lucide-react";
+import { ArrowLeft, Users, Loader2, Check, UserPlus, Share2, Copy, X, AtSign, Phone, QrCode, Sparkles, Trophy, Flame, Gamepad2, UtensilsCrossed, Star, Medal, Target, CloudRain, Calendar, Vote, TrendingUp, Dumbbell, CheckCircle, Ban, BookOpen, HelpCircle, Zap, Film, Coffee, Beer } from "lucide-react";
 import { getFriends } from "../../api/friends";
 import { createBet } from "../../api/bets";
 import type { VerificationMethod } from "../../lib/database.types";
 import { useUser } from "../../components/AuthProvider";
 import { QRCodeDisplay } from "../../components/QRCode";
 import { generateFriendInviteLink, getFriendInviteShareData, shareLink, copyToClipboard } from "../../lib/sharing";
+import { betTemplateCategories, getDeadlineFromDays, type BetTemplate, type BetTemplateCategory } from "../../lib/bet-templates";
+
+// Icon mapping for dynamic rendering
+const iconMap: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
+	Trophy,
+	Star,
+	Medal,
+	Target,
+	Sparkles,
+	CloudRain,
+	Calendar,
+	Vote,
+	TrendingUp,
+	Flame,
+	Dumbbell,
+	CheckCircle,
+	Ban,
+	BookOpen,
+	Gamepad2,
+	HelpCircle,
+	Zap,
+	Film,
+	UtensilsCrossed,
+	Coffee,
+	Beer,
+};
 
 export const Route = createFileRoute("/bets/create")({
 	component: CreateBetPage,
@@ -42,6 +68,10 @@ function CreateBetPage() {
 	const [addMethod, setAddMethod] = useState<AddMethod>("qr");
 	const [addInput, setAddInput] = useState("");
 	const [linkCopied, setLinkCopied] = useState(false);
+
+	// Template modal state
+	const [showTemplateModal, setShowTemplateModal] = useState(false);
+	const [selectedCategory, setSelectedCategory] = useState<string>(betTemplateCategories[0].id);
 
 	// Form state
 	const [selectedFriendId, setSelectedFriendId] = useState<string | null>(preselectedFriendId || null);
@@ -108,6 +138,23 @@ function CreateBetPage() {
 		} else {
 			navigate({ to: "/dashboard" });
 		}
+	};
+
+	const handleTemplateSelect = (template: BetTemplate) => {
+		setTitle(template.title);
+		setDescription(template.description);
+		if (template.suggestedAmount) {
+			setAmount(template.suggestedAmount.toString());
+		}
+		if (template.suggestedDeadlineDays) {
+			setDeadline(getDeadlineFromDays(template.suggestedDeadlineDays));
+		}
+		setVerificationMethod(template.verificationMethod);
+		setShowTemplateModal(false);
+	};
+
+	const getIconComponent = (iconName: string) => {
+		return iconMap[iconName] || Sparkles;
 	};
 
 	if (loading) {
@@ -228,7 +275,17 @@ function CreateBetPage() {
 						{/* Bet Details */}
 						{selectedFriendId && (
 							<div className="bg-white rounded-xl shadow-md p-6 space-y-4">
-								<h2 className="text-lg font-semibold">Bet Details</h2>
+								<div className="flex items-center justify-between">
+									<h2 className="text-lg font-semibold">Bet Details</h2>
+									<button
+										type="button"
+										onClick={() => setShowTemplateModal(true)}
+										className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+									>
+										<Sparkles size={16} />
+										Use Template
+									</button>
+								</div>
 
 								<div>
 									<label className="block text-sm font-medium text-gray-700 mb-1">
@@ -477,6 +534,95 @@ function CreateBetPage() {
 								</p>
 							</>
 						)}
+					</div>
+				</div>
+			)}
+
+			{/* Template Selection Modal */}
+			{showTemplateModal && (
+				<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+					<div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+						<div className="flex items-center justify-between p-6 border-b">
+							<div>
+								<h2 className="text-xl font-bold text-gray-800">Bet Templates</h2>
+								<p className="text-sm text-gray-500 mt-1">Choose a template to get started quickly</p>
+							</div>
+							<button
+								type="button"
+								onClick={() => setShowTemplateModal(false)}
+								className="text-gray-400 hover:text-gray-600"
+							>
+								<X size={24} />
+							</button>
+						</div>
+
+						{/* Category Tabs */}
+						<div className="flex gap-1 p-4 border-b overflow-x-auto">
+							{betTemplateCategories.map((category) => {
+								const CategoryIcon = getIconComponent(category.icon);
+								return (
+									<button
+										key={category.id}
+										type="button"
+										onClick={() => setSelectedCategory(category.id)}
+										className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
+											selectedCategory === category.id
+												? "bg-orange-500 text-white"
+												: "bg-gray-100 text-gray-600 hover:bg-gray-200"
+										}`}
+									>
+										<CategoryIcon size={16} />
+										{category.name}
+									</button>
+								);
+							})}
+						</div>
+
+						{/* Template Grid */}
+						<div className="flex-1 overflow-y-auto p-4">
+							<div className="grid gap-3 sm:grid-cols-2">
+								{betTemplateCategories
+									.find((c) => c.id === selectedCategory)
+									?.templates.map((template) => {
+										const TemplateIcon = getIconComponent(template.icon);
+										return (
+											<button
+												key={template.id}
+												type="button"
+												onClick={() => handleTemplateSelect(template)}
+												className="flex items-start gap-3 p-4 rounded-xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-colors text-left"
+											>
+												<div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+													<TemplateIcon className="w-5 h-5 text-orange-500" />
+												</div>
+												<div className="flex-1 min-w-0">
+													<h3 className="font-semibold text-gray-800">{template.name}</h3>
+													<p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{template.description}</p>
+													<div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+														{template.suggestedAmount && (
+															<span>${template.suggestedAmount}</span>
+														)}
+														{template.suggestedDeadlineDays && (
+															<span>
+																{template.suggestedDeadlineDays === 1
+																	? "1 day"
+																	: `${template.suggestedDeadlineDays} days`}
+															</span>
+														)}
+													</div>
+												</div>
+											</button>
+										);
+									})}
+							</div>
+						</div>
+
+						{/* Footer */}
+						<div className="p-4 border-t bg-gray-50">
+							<p className="text-sm text-gray-500 text-center">
+								Select a template to pre-fill the form. You can customize all fields after.
+							</p>
+						</div>
 					</div>
 				</div>
 			)}

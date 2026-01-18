@@ -22,6 +22,7 @@ CREATE TABLE users (
     total_bets INTEGER DEFAULT 0 NOT NULL,
     bets_won INTEGER DEFAULT 0 NOT NULL,
     bets_lost INTEGER DEFAULT 0 NOT NULL,
+    email_notifications_enabled BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );

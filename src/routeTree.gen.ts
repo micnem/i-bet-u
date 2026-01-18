@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as FriendsRouteImport } from './routes/friends'
@@ -22,6 +23,11 @@ import { Route as BetsBetIdRouteImport } from './routes/bets/$betId'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/friends': typeof FriendsRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/friends': typeof FriendsRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/friends': typeof FriendsRouteWithChildren
   '/leaderboard': typeof LeaderboardRoute
   '/profile': typeof ProfileRoute
+  '/settings': typeof SettingsRoute
   '/bets/$betId': typeof BetsBetIdRoute
   '/bets/create': typeof BetsCreateRoute
   '/friends/$friendId': typeof FriendsFriendIdRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboard'
     | '/profile'
+    | '/settings'
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboard'
     | '/profile'
+    | '/settings'
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/friends'
     | '/leaderboard'
     | '/profile'
+    | '/settings'
     | '/bets/$betId'
     | '/bets/create'
     | '/friends/$friendId'
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   FriendsRoute: typeof FriendsRouteWithChildren
   LeaderboardRoute: typeof LeaderboardRoute
   ProfileRoute: typeof ProfileRoute
+  SettingsRoute: typeof SettingsRoute
   BetsBetIdRoute: typeof BetsBetIdRoute
   BetsCreateRoute: typeof BetsCreateRoute
   InviteUserIdRoute: typeof InviteUserIdRoute
@@ -187,6 +200,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -291,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   FriendsRoute: FriendsRouteWithChildren,
   LeaderboardRoute: LeaderboardRoute,
   ProfileRoute: ProfileRoute,
+  SettingsRoute: SettingsRoute,
   BetsBetIdRoute: BetsBetIdRoute,
   BetsCreateRoute: BetsCreateRoute,
   InviteUserIdRoute: InviteUserIdRoute,

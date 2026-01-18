@@ -28,6 +28,7 @@ export interface Database {
 					total_bets: number;
 					bets_won: number;
 					bets_lost: number;
+					email_notifications_enabled: boolean;
 					created_at: string;
 					updated_at: string;
 				};
@@ -41,6 +42,7 @@ export interface Database {
 					total_bets?: number;
 					bets_won?: number;
 					bets_lost?: number;
+					email_notifications_enabled?: boolean;
 					created_at?: string;
 					updated_at?: string;
 				};
@@ -53,6 +55,7 @@ export interface Database {
 					total_bets?: number;
 					bets_won?: number;
 					bets_lost?: number;
+					email_notifications_enabled?: boolean;
 					updated_at?: string;
 				};
 			};

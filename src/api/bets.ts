@@ -5,6 +5,7 @@ import type {
 	BetInsert,
 	BetStatus,
 	VerificationMethod,
+	CommentInsert,
 } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
 import { sendWinnerConfirmationEmail, sendBetInvitationEmail, sendBetAcceptedEmail } from "./reminders";
@@ -532,3 +533,129 @@ export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 		};
 	}
 );
+
+// Get comments for a bet
+export const getBetComments = createServerFn({ method: "GET" })
+	.inputValidator((data: { betId: string }) => data)
+	.handler(async ({ data: { betId } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Verify user is a participant in the bet
+		const { data: bet } = await supabaseAdmin
+			.from("bets")
+			.select("id")
+			.eq("id", betId)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+			.single();
+
+		if (!bet) {
+			return { error: "Bet not found or access denied", data: null };
+		}
+
+		const { data, error } = await supabaseAdmin
+			.from("comments")
+			.select(
+				`
+				*,
+				author:users!comments_author_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.eq("bet_id", betId)
+			.order("created_at", { ascending: true });
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data };
+	});
+
+// Create a comment on a bet
+export const createComment = createServerFn({ method: "POST" })
+	.inputValidator((data: { betId: string; content: string }) => data)
+	.handler(async ({ data: { betId, content } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Validate content
+		const trimmedContent = content.trim();
+		if (!trimmedContent || trimmedContent.length === 0) {
+			return { error: "Comment cannot be empty", data: null };
+		}
+
+		if (trimmedContent.length > 1000) {
+			return { error: "Comment is too long (max 1000 characters)", data: null };
+		}
+
+		// Verify user is a participant in the bet
+		const { data: bet } = await supabaseAdmin
+			.from("bets")
+			.select("id")
+			.eq("id", betId)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+			.single();
+
+		if (!bet) {
+			return { error: "Bet not found or access denied", data: null };
+		}
+
+		const commentInsert: CommentInsert = {
+			bet_id: betId,
+			author_id: userId,
+			content: trimmedContent,
+		};
+
+		const { data, error } = await supabaseAdmin
+			.from("comments")
+			.insert(commentInsert)
+			.select(
+				`
+				*,
+				author:users!comments_author_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.single();
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data };
+	});
+
+// Delete a comment
+export const deleteComment = createServerFn({ method: "POST" })
+	.inputValidator((data: { commentId: string }) => data)
+	.handler(async ({ data: { commentId } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Delete the comment (only if user is the author)
+		const { error } = await supabaseAdmin
+			.from("comments")
+			.delete()
+			.eq("id", commentId)
+			.eq("author_id", userId);
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data: { success: true } };
+	});

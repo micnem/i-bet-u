@@ -197,3 +197,38 @@ export const checkUsernameAvailable = createServerFn({ method: "GET" })
 
 		return { error: null, available: data === null };
 	});
+
+// Update email notification preferences
+export const updateEmailPreferences = createServerFn({ method: "POST" })
+	.inputValidator((data: { emailNotificationsEnabled: boolean }) => data)
+	.handler(async ({ data: { emailNotificationsEnabled } }) => {
+		try {
+			const currentUser = await getCurrentUser();
+
+			if (!currentUser) {
+				return { error: "Not authenticated", data: null };
+			}
+
+			const userId = currentUser.user.id;
+
+			const { data: updatedUser, error } = await supabaseAdmin
+				.from("users")
+				.update({ email_notifications_enabled: emailNotificationsEnabled })
+				.eq("id", userId)
+				.select()
+				.single();
+
+			if (error) {
+				console.error("updateEmailPreferences Supabase error:", error);
+				return { error: error.message, data: null };
+			}
+
+			return { error: null, data: updatedUser };
+		} catch (err) {
+			console.error("updateEmailPreferences error:", err);
+			return {
+				error: err instanceof Error ? err.message : "Unknown error",
+				data: null,
+			};
+		}
+	});

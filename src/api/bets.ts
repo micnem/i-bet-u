@@ -150,6 +150,7 @@ export const createBet = createServerFn({ method: "POST" })
 		try {
 			await sendBetInvitationEmail({
 				recipientId: data.opponentId,
+				recipientName: bet.opponent.display_name,
 				creatorName: bet.creator.display_name,
 				creatorUsername: bet.creator.username,
 				betTitle: bet.title,
@@ -213,6 +214,7 @@ export const acceptBet = createServerFn({ method: "POST" })
 		try {
 			await sendBetAcceptedEmail({
 				recipientId: bet.creator_id,
+				recipientName: bet.creator.display_name,
 				acceptorName: bet.opponent.display_name,
 				acceptorUsername: bet.opponent.username,
 				betTitle: bet.title,
@@ -321,11 +323,13 @@ export const approveBetResult = createServerFn({ method: "POST" })
 				? bet.creator.display_name
 				: bet.opponent.display_name;
 			const recipientId = isCreator ? bet.opponent_id : bet.creator_id;
+			const recipientName = isCreator ? bet.opponent.display_name : bet.creator.display_name;
 
 			// Send email (await to ensure it completes before worker terminates)
 			try {
 				await sendWinnerConfirmationEmail({
 					recipientId,
+					recipientName,
 					declarerName,
 					winnerName,
 					betTitle: bet.title,
@@ -601,7 +605,11 @@ export const createComment = createServerFn({ method: "POST" })
 		// Verify user is a participant in the bet and get bet details
 		const { data: bet } = await supabaseAdmin
 			.from("bets")
-			.select("id, title, creator_id, opponent_id")
+			.select(`
+				id, title, creator_id, opponent_id,
+				creator:users!bets_creator_id_fkey(display_name),
+				opponent:users!bets_opponent_id_fkey(display_name)
+			`)
 			.eq("id", betId)
 			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.single();
@@ -633,9 +641,11 @@ export const createComment = createServerFn({ method: "POST" })
 
 		// Send email notification to the other participant
 		const recipientId = userId === bet.creator_id ? bet.opponent_id : bet.creator_id;
+		const recipientName = userId === bet.creator_id ? bet.opponent.display_name : bet.creator.display_name;
 		try {
 			await sendCommentNotificationEmail({
 				recipientId,
+				recipientName,
 				commenterName: currentUser.user.display_name,
 				betTitle: bet.title,
 				commentContent: trimmedContent,

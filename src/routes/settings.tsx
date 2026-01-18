@@ -95,21 +95,20 @@ function SettingsPage() {
 		setSuccessMessage(null);
 
 		try {
-			console.log("Saving payment link:", paymentLinkInput.trim());
 			const result = await updatePaymentLink({
 				data: { paymentLink: paymentLinkInput.trim() || null },
 			});
-			console.log("Save result:", result);
 
 			if (result.error) {
 				setError(result.error);
-			} else {
-				setPaymentLink(paymentLinkInput.trim());
+			} else if (result.data) {
+				// Use the processed URL from the server (with https:// added if needed)
+				setPaymentLink(result.data.payment_link || "");
+				setPaymentLinkInput(result.data.payment_link || "");
 				setSuccessMessage("Payment link saved");
 				setTimeout(() => setSuccessMessage(null), 3000);
 			}
 		} catch (err) {
-			console.error("Save error:", err);
 			setError("Failed to save payment link");
 		} finally {
 			setSavingPaymentLink(false);

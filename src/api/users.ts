@@ -220,10 +220,8 @@ export const checkUsernameAvailable = createServerFn({ method: "GET" })
 export const updatePaymentLink = createServerFn({ method: "POST" })
 	.inputValidator((data: { paymentLink: string | null }) => data)
 	.handler(async ({ data: { paymentLink } }) => {
-		console.log("updatePaymentLink called with:", paymentLink);
 		try {
 			const currentUser = await getCurrentUser();
-			console.log("currentUser:", currentUser?.user?.id);
 
 			if (!currentUser) {
 				return { error: "Not authenticated", data: null };
@@ -231,21 +229,29 @@ export const updatePaymentLink = createServerFn({ method: "POST" })
 
 			const userId = currentUser.user.id;
 
-			// Validate URL format if provided
+			let finalLink: string | null = null;
+
+			// Process and validate URL if provided
 			if (paymentLink && paymentLink.trim() !== "") {
-				const trimmedLink = paymentLink.trim();
+				let trimmedLink = paymentLink.trim();
+
+				// Auto-add https:// if no protocol is specified
+				if (!trimmedLink.startsWith("http://") && !trimmedLink.startsWith("https://")) {
+					trimmedLink = `https://${trimmedLink}`;
+				}
+
+				// Validate the URL format
 				try {
 					new URL(trimmedLink);
+					finalLink = trimmedLink;
 				} catch {
-					console.log("Invalid URL format:", trimmedLink);
-					return { error: "Please enter a valid URL", data: null };
+					return { error: "Please enter a valid URL (e.g., venmo.com/u/username)", data: null };
 				}
 			}
 
-			console.log("Updating payment_link for user:", userId);
 			const { data: updatedUser, error } = await supabaseAdmin
 				.from("users")
-				.update({ payment_link: paymentLink?.trim() || null })
+				.update({ payment_link: finalLink })
 				.eq("id", userId)
 				.select()
 				.single();
@@ -255,7 +261,6 @@ export const updatePaymentLink = createServerFn({ method: "POST" })
 				return { error: error.message, data: null };
 			}
 
-			console.log("Updated user:", updatedUser);
 			return { error: null, data: updatedUser };
 		} catch (err) {
 			console.error("updatePaymentLink error:", err);

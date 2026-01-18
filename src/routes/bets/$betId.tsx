@@ -477,7 +477,7 @@ function BetDetailsPage() {
 				</div>
 
 				{/* Deadline Passed Warning */}
-				{isDeadlinePassed && (
+				{isDeadlinePassed && isPending && (
 					<div className="bg-red-50 rounded-xl p-6">
 						<div className="flex items-center gap-3">
 							<TimerOff className="w-6 h-6 text-red-500" />
@@ -485,6 +485,19 @@ function BetDetailsPage() {
 								<p className="font-medium text-gray-800">Deadline Has Passed</p>
 								<p className="text-sm text-gray-600">
 									The deadline for this bet has passed. No further actions can be taken.
+								</p>
+							</div>
+						</div>
+					</div>
+				)}
+				{isDeadlinePassed && isActive && (
+					<div className="bg-yellow-50 rounded-xl p-6">
+						<div className="flex items-center gap-3">
+							<TimerOff className="w-6 h-6 text-yellow-500" />
+							<div>
+								<p className="font-medium text-gray-800">Deadline Has Passed</p>
+								<p className="text-sm text-gray-600">
+									The deadline has passed, but you can still declare a winner below.
 								</p>
 							</div>
 						</div>

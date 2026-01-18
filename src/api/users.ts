@@ -216,6 +216,51 @@ export const checkUsernameAvailable = createServerFn({ method: "GET" })
 		return { error: null, available: data === null };
 	});
 
+// Update payment link
+export const updatePaymentLink = createServerFn({ method: "POST" })
+	.inputValidator((data: { paymentLink: string | null }) => data)
+	.handler(async ({ data: { paymentLink } }) => {
+		try {
+			const currentUser = await getCurrentUser();
+
+			if (!currentUser) {
+				return { error: "Not authenticated", data: null };
+			}
+
+			const userId = currentUser.user.id;
+
+			// Validate URL format if provided
+			if (paymentLink && paymentLink.trim() !== "") {
+				const trimmedLink = paymentLink.trim();
+				try {
+					new URL(trimmedLink);
+				} catch {
+					return { error: "Please enter a valid URL", data: null };
+				}
+			}
+
+			const { data: updatedUser, error } = await supabaseAdmin
+				.from("users")
+				.update({ payment_link: paymentLink?.trim() || null })
+				.eq("id", userId)
+				.select()
+				.single();
+
+			if (error) {
+				console.error("updatePaymentLink Supabase error:", error);
+				return { error: error.message, data: null };
+			}
+
+			return { error: null, data: updatedUser };
+		} catch (err) {
+			console.error("updatePaymentLink error:", err);
+			return {
+				error: err instanceof Error ? err.message : "Unknown error",
+				data: null,
+			};
+		}
+	});
+
 // Update email notification preferences
 export const updateEmailPreferences = createServerFn({ method: "POST" })
 	.inputValidator((data: { emailNotificationsEnabled: boolean }) => data)

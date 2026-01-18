@@ -19,6 +19,8 @@ import {
 	Pencil,
 	X,
 	Check,
+	ExternalLink,
+	CreditCard,
 } from "lucide-react";
 import {
 	getBetById,
@@ -58,18 +60,21 @@ interface Bet {
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
+		payment_link: string | null;
 	};
 	opponent: {
 		id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
+		payment_link: string | null;
 	};
 	winner?: {
 		id: string;
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
+		payment_link: string | null;
 	} | null;
 }
 
@@ -591,6 +596,46 @@ function BetDetailsPage() {
 								</p>
 							</div>
 						</div>
+
+						{/* Show loser's payment link to winner */}
+						{(() => {
+							const isWinner = user && user.id === bet.winner_id;
+							const loser = bet.winner_id === bet.creator_id ? bet.opponent : bet.creator;
+
+							if (isWinner && loser.payment_link) {
+								return (
+									<div className="mt-4 pt-4 border-t border-green-200">
+										<div className="flex items-center gap-2 mb-2">
+											<CreditCard className="w-4 h-4 text-green-600" />
+											<p className="text-sm font-medium text-gray-800">
+												Collect your winnings
+											</p>
+										</div>
+										<a
+											href={loser.payment_link}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+										>
+											Pay via {loser.display_name}'s link
+											<ExternalLink className="w-4 h-4" />
+										</a>
+									</div>
+								);
+							}
+
+							if (isWinner && !loser.payment_link) {
+								return (
+									<div className="mt-4 pt-4 border-t border-green-200">
+										<p className="text-sm text-gray-600">
+											{loser.display_name} hasn't set up a payment link yet.
+										</p>
+									</div>
+								);
+							}
+
+							return null;
+						})()}
 					</div>
 				)}
 

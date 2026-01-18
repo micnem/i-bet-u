@@ -8,8 +8,10 @@ import {
 	Loader2,
 	Mail,
 	Shield,
+	CreditCard,
+	ExternalLink,
 } from "lucide-react";
-import { getCurrentUserProfile, updateEmailPreferences } from "../api/users";
+import { getCurrentUserProfile, updateEmailPreferences, updatePaymentLink } from "../api/users";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -18,8 +20,11 @@ function SettingsPage() {
 	const { user, isSignedIn, isLoaded } = useUser();
 
 	const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState<boolean | null>(null);
+	const [paymentLink, setPaymentLink] = useState<string>("");
+	const [paymentLinkInput, setPaymentLinkInput] = useState<string>("");
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
+	const [savingPaymentLink, setSavingPaymentLink] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -35,6 +40,8 @@ function SettingsPage() {
 				const result = await getCurrentUserProfile();
 				if (result.data) {
 					setEmailNotificationsEnabled(result.data.email_notifications_enabled);
+					setPaymentLink(result.data.payment_link || "");
+					setPaymentLinkInput(result.data.payment_link || "");
 				}
 			} catch (err) {
 				console.error("Failed to fetch preferences:", err);
@@ -81,6 +88,57 @@ function SettingsPage() {
 			setSaving(false);
 		}
 	};
+
+	const handleSavePaymentLink = async () => {
+		setSavingPaymentLink(true);
+		setError(null);
+		setSuccessMessage(null);
+
+		try {
+			const result = await updatePaymentLink({
+				data: { paymentLink: paymentLinkInput.trim() || null },
+			});
+
+			if (result.error) {
+				setError(result.error);
+			} else {
+				setPaymentLink(paymentLinkInput.trim());
+				setSuccessMessage("Payment link saved");
+				setTimeout(() => setSuccessMessage(null), 3000);
+			}
+		} catch (err) {
+			setError("Failed to save payment link");
+		} finally {
+			setSavingPaymentLink(false);
+		}
+	};
+
+	const handleRemovePaymentLink = async () => {
+		setSavingPaymentLink(true);
+		setError(null);
+		setSuccessMessage(null);
+
+		try {
+			const result = await updatePaymentLink({
+				data: { paymentLink: null },
+			});
+
+			if (result.error) {
+				setError(result.error);
+			} else {
+				setPaymentLink("");
+				setPaymentLinkInput("");
+				setSuccessMessage("Payment link removed");
+				setTimeout(() => setSuccessMessage(null), 3000);
+			}
+		} catch (err) {
+			setError("Failed to remove payment link");
+		} finally {
+			setSavingPaymentLink(false);
+		}
+	};
+
+	const hasPaymentLinkChanged = paymentLinkInput.trim() !== paymentLink;
 
 	if (!isLoaded) {
 		return (
@@ -190,6 +248,87 @@ function SettingsPage() {
 										/>
 									)}
 								</button>
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* Payment Link Section */}
+				<div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+					<div className="p-6 border-b border-gray-100">
+						<div className="flex items-center gap-3">
+							<div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+								<CreditCard className="w-5 h-5 text-green-500" />
+							</div>
+							<div>
+								<h2 className="text-lg font-semibold">Payment Link</h2>
+								<p className="text-sm text-gray-500">Add a payment link to receive money from bets</p>
+							</div>
+						</div>
+					</div>
+
+					<div className="p-6">
+						{loading ? (
+							<div className="flex justify-center py-4">
+								<Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+							</div>
+						) : (
+							<div className="space-y-4">
+								<div>
+									<label htmlFor="payment-link" className="block text-sm font-medium text-gray-700 mb-2">
+										Your payment URL
+									</label>
+									<input
+										type="url"
+										id="payment-link"
+										value={paymentLinkInput}
+										onChange={(e) => setPaymentLinkInput(e.target.value)}
+										placeholder="https://venmo.com/u/username"
+										className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+									/>
+									<p className="mt-2 text-sm text-gray-500">
+										Add a link to Venmo, PayPal, Cash App, or any payment service. This will be shown to winners when you lose a bet.
+									</p>
+								</div>
+
+								{paymentLink && (
+									<div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+										<span className="text-sm text-gray-600">Current:</span>
+										<a
+											href={paymentLink}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm text-orange-600 hover:text-orange-700 flex items-center gap-1 truncate"
+										>
+											{paymentLink}
+											<ExternalLink className="w-3 h-3 flex-shrink-0" />
+										</a>
+									</div>
+								)}
+
+								<div className="flex gap-3">
+									<button
+										type="button"
+										onClick={handleSavePaymentLink}
+										disabled={savingPaymentLink || !hasPaymentLinkChanged}
+										className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+									>
+										{savingPaymentLink ? (
+											<Loader2 className="w-4 h-4 animate-spin" />
+										) : null}
+										Save
+									</button>
+									{paymentLink && (
+										<button
+											type="button"
+											onClick={handleRemovePaymentLink}
+											disabled={savingPaymentLink}
+											className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+										>
+											Remove
+										</button>
+									)}
+								</div>
 							</div>
 						)}
 					</div>

@@ -19,6 +19,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20),
     avatar_url TEXT,
+    payment_link TEXT,
     total_bets INTEGER DEFAULT 0 NOT NULL,
     bets_won INTEGER DEFAULT 0 NOT NULL,
     bets_lost INTEGER DEFAULT 0 NOT NULL,

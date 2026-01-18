@@ -25,6 +25,7 @@ export interface Database {
 					email: string;
 					phone_number: string | null;
 					avatar_url: string | null;
+					payment_link: string | null;
 					total_bets: number;
 					bets_won: number;
 					bets_lost: number;
@@ -39,6 +40,7 @@ export interface Database {
 					email: string;
 					phone_number?: string | null;
 					avatar_url?: string | null;
+					payment_link?: string | null;
 					total_bets?: number;
 					bets_won?: number;
 					bets_lost?: number;
@@ -52,6 +54,7 @@ export interface Database {
 					email?: string;
 					phone_number?: string | null;
 					avatar_url?: string | null;
+					payment_link?: string | null;
 					total_bets?: number;
 					bets_won?: number;
 					bets_lost?: number;

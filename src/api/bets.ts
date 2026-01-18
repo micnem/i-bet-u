@@ -8,7 +8,7 @@ import type {
 	CommentInsert,
 } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
-import { sendWinnerConfirmationEmail, sendBetInvitationEmail, sendBetAcceptedEmail } from "./reminders";
+import { sendWinnerConfirmationEmail, sendBetInvitationEmail, sendBetAcceptedEmail, sendCommentNotificationEmail } from "./reminders";
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
@@ -598,10 +598,10 @@ export const createComment = createServerFn({ method: "POST" })
 			return { error: "Comment is too long (max 1000 characters)", data: null };
 		}
 
-		// Verify user is a participant in the bet
+		// Verify user is a participant in the bet and get bet details
 		const { data: bet } = await supabaseAdmin
 			.from("bets")
-			.select("id")
+			.select("id, title, creator_id, opponent_id")
 			.eq("id", betId)
 			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.single();
@@ -629,6 +629,20 @@ export const createComment = createServerFn({ method: "POST" })
 
 		if (error) {
 			return { error: error.message, data: null };
+		}
+
+		// Send email notification to the other participant
+		const recipientId = userId === bet.creator_id ? bet.opponent_id : bet.creator_id;
+		try {
+			await sendCommentNotificationEmail({
+				recipientId,
+				commenterName: currentUser.user.display_name,
+				betTitle: bet.title,
+				commentContent: trimmedContent,
+				betId,
+			});
+		} catch (err) {
+			console.error("Failed to send comment notification email:", err);
 		}
 
 		return { error: null, data };

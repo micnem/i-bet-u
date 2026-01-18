@@ -22,8 +22,9 @@ import {
 	Share2,
 	Copy,
 	Check,
+	Trash2,
 } from "lucide-react";
-import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet, getBetsAwaitingConfirmation, approveBetResult } from "../api/bets";
+import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet, cancelBet, getBetsAwaitingConfirmation, approveBetResult } from "../api/bets";
 import { getCurrentUserProfile } from "../api/users";
 import { getPendingFriendRequests, acceptFriendRequest, declineFriendRequest } from "../api/friends";
 import type { BetStatus } from "../lib/database.types";
@@ -161,6 +162,17 @@ function Dashboard() {
 		e.stopPropagation();
 		setActionLoadingId(betId);
 		const result = await declineBet({ data: { betId } });
+		if (!result.error) {
+			await refreshData();
+		}
+		setActionLoadingId(null);
+	};
+
+	const handleCancel = async (e: React.MouseEvent, betId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(betId);
+		const result = await cancelBet({ data: { betId } });
 		if (!result.error) {
 			await refreshData();
 		}
@@ -623,6 +635,23 @@ function Dashboard() {
 														>
 															<XCircle className="w-4 h-4" />
 															Decline
+														</button>
+													</div>
+												)}
+												{!isOpponent && !isDeadlinePassed && (
+													<div className="flex gap-2 mt-3 pt-3 border-t border-yellow-200">
+														<button
+															type="button"
+															onClick={(e) => handleCancel(e, bet.id)}
+															disabled={isActionLoading}
+															className="flex-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+														>
+															{isActionLoading ? (
+																<Loader2 className="w-4 h-4 animate-spin" />
+															) : (
+																<Trash2 className="w-4 h-4" />
+															)}
+															Cancel Bet
 														</button>
 													</div>
 												)}

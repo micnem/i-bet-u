@@ -111,7 +111,12 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 
 			return { error: null, success: true };
 		} catch (emailError) {
-			console.error("Failed to send reminder email:", emailError);
+			console.error("Failed to send reminder email:", {
+				error: emailError,
+				message: emailError instanceof Error ? emailError.message : String(emailError),
+				recipientEmail: friend.email,
+				hasApiKey: !!process.env.RESEND_API_KEY,
+			});
 			return { error: "Failed to send email", success: false };
 		}
 	});
@@ -236,7 +241,12 @@ export async function sendWinnerConfirmationEmail({
 
 		return { success: true };
 	} catch (emailError) {
-		console.error("Failed to send winner confirmation email:", emailError);
+		console.error("Failed to send winner confirmation email:", {
+			error: emailError,
+			message: emailError instanceof Error ? emailError.message : String(emailError),
+			recipientId,
+			hasApiKey: !!process.env.RESEND_API_KEY,
+		});
 		return { success: false, error: "Failed to send email" };
 	}
 }
@@ -335,7 +345,12 @@ export async function sendBetInvitationEmail({
 
 		return { success: true };
 	} catch (emailError) {
-		console.error("Failed to send bet invitation email:", emailError);
+		console.error("Failed to send bet invitation email:", {
+			error: emailError,
+			message: emailError instanceof Error ? emailError.message : String(emailError),
+			recipientId,
+			hasApiKey: !!process.env.RESEND_API_KEY,
+		});
 		return { success: false, error: "Failed to send email" };
 	}
 }

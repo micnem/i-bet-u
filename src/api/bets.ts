@@ -145,19 +145,21 @@ export const createBet = createServerFn({ method: "POST" })
 			return { error: error.message, data: null };
 		}
 
-		// Send invitation email to opponent in background (don't block response)
-		sendBetInvitationEmail({
-			recipientId: data.opponentId,
-			creatorName: bet.creator.display_name,
-			creatorUsername: bet.creator.username,
-			betTitle: bet.title,
-			betDescription: bet.description || "",
-			betAmount: Number(bet.amount),
-			betDeadline: bet.deadline,
-			betId: bet.id,
-		}).catch((err) => {
+		// Send invitation email to opponent (await to ensure it completes before worker terminates)
+		try {
+			await sendBetInvitationEmail({
+				recipientId: data.opponentId,
+				creatorName: bet.creator.display_name,
+				creatorUsername: bet.creator.username,
+				betTitle: bet.title,
+				betDescription: bet.description || "",
+				betAmount: Number(bet.amount),
+				betDeadline: bet.deadline,
+				betId: bet.id,
+			});
+		} catch (err) {
 			console.error("Failed to send bet invitation email:", err);
-		});
+		}
 
 		return { error: null, data: bet };
 	});
@@ -300,17 +302,19 @@ export const approveBetResult = createServerFn({ method: "POST" })
 				: bet.opponent.display_name;
 			const recipientId = isCreator ? bet.opponent_id : bet.creator_id;
 
-			// Send email in background (don't block the response)
-			sendWinnerConfirmationEmail({
-				recipientId,
-				declarerName,
-				winnerName,
-				betTitle: bet.title,
-				betAmount: Number(bet.amount),
-				betId,
-			}).catch((err) => {
+			// Send email (await to ensure it completes before worker terminates)
+			try {
+				await sendWinnerConfirmationEmail({
+					recipientId,
+					declarerName,
+					winnerName,
+					betTitle: bet.title,
+					betAmount: Number(bet.amount),
+					betId,
+				});
+			} catch (err) {
 				console.error("Failed to send winner confirmation email:", err);
-			});
+			}
 		}
 
 		return { error: null, data: updatedBet };

@@ -11,8 +11,9 @@ import {
 	AlertCircle,
 	ChevronRight,
 	TimerOff,
+	Trash2,
 } from "lucide-react";
-import { getUserBets, acceptBet, declineBet } from "../../api/bets";
+import { getUserBets, acceptBet, declineBet, cancelBet } from "../../api/bets";
 import type { BetStatus } from "../../lib/database.types";
 import { getDisplayStatus, type DisplayStatus } from "../../lib/bet-utils";
 
@@ -84,6 +85,21 @@ function BetsPage() {
 		e.stopPropagation();
 		setActionLoadingId(betId);
 		const result = await declineBet({ data: { betId } });
+		if (!result.error) {
+			// Refresh bets list
+			const refreshed = await getUserBets({ data: {} });
+			if (!refreshed.error && refreshed.data) {
+				setBets(refreshed.data as Bet[]);
+			}
+		}
+		setActionLoadingId(null);
+	};
+
+	const handleCancel = async (e: React.MouseEvent, betId: string) => {
+		e.preventDefault();
+		e.stopPropagation();
+		setActionLoadingId(betId);
+		const result = await cancelBet({ data: { betId } });
 		if (!result.error) {
 			// Refresh bets list
 			const refreshed = await getUserBets({ data: {} });
@@ -440,6 +456,23 @@ function BetsPage() {
 														>
 															<XCircle className="w-4 h-4" />
 															Decline
+														</button>
+													</div>
+												)}
+												{bet.status === "pending" && !isOpponent && displayStatus !== "deadline_passed" && (
+													<div className="flex gap-2 mt-3 pt-3 border-t">
+														<button
+															type="button"
+															onClick={(e) => handleCancel(e, bet.id)}
+															disabled={isActionLoading}
+															className="flex-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+														>
+															{isActionLoading ? (
+																<Loader2 className="w-4 h-4 animate-spin" />
+															) : (
+																<Trash2 className="w-4 h-4" />
+															)}
+															Cancel Bet
 														</button>
 													</div>
 												)}

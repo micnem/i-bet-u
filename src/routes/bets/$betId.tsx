@@ -26,6 +26,7 @@ import {
 	getBetById,
 	acceptBet,
 	declineBet,
+	cancelBet,
 	approveBetResult,
 	getBetComments,
 	createComment,
@@ -204,6 +205,17 @@ function BetDetailsPage() {
 	const handleDecline = async () => {
 		setActionLoading(true);
 		const result = await declineBet({ data: { betId } });
+		if (result.error) {
+			setError(result.error);
+		} else {
+			navigate({ to: "/bets" });
+		}
+		setActionLoading(false);
+	};
+
+	const handleCancel = async () => {
+		setActionLoading(true);
+		const result = await cancelBet({ data: { betId } });
 		if (result.error) {
 			setError(result.error);
 		} else {
@@ -505,6 +517,21 @@ function BetDetailsPage() {
 									{bet.opponent.display_name} hasn't responded to your bet yet.
 								</p>
 							</div>
+						</div>
+						<div className="mt-4 pt-4 border-t border-yellow-200">
+							<button
+								type="button"
+								onClick={handleCancel}
+								disabled={actionLoading}
+								className="w-full px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+							>
+								{actionLoading ? (
+									<Loader2 className="w-5 h-5 animate-spin" />
+								) : (
+									<Trash2 className="w-5 h-5" />
+								)}
+								Cancel Bet
+							</button>
 						</div>
 					</div>
 				)}

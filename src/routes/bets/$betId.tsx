@@ -13,12 +13,22 @@ import {
 	DollarSign,
 	User,
 	TimerOff,
+	MessageSquare,
+	Send,
+	Trash2,
+	Pencil,
+	X,
+	Check,
 } from "lucide-react";
 import {
 	getBetById,
 	acceptBet,
 	declineBet,
 	approveBetResult,
+	getBetComments,
+	createComment,
+	deleteComment,
+	updateComment,
 } from "../../api/bets";
 import type { BetStatus } from "../../lib/database.types";
 import { getDisplayStatus, type DisplayStatus } from "../../lib/bet-utils";
@@ -63,6 +73,20 @@ interface Bet {
 	} | null;
 }
 
+interface Comment {
+	id: string;
+	bet_id: string;
+	author_id: string;
+	content: string;
+	created_at: string;
+	author: {
+		id: string;
+		username: string;
+		display_name: string;
+		avatar_url: string | null;
+	};
+}
+
 function BetDetailsPage() {
 	const { betId } = Route.useParams();
 	const { user } = useUser();
@@ -72,6 +96,12 @@ function BetDetailsPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [actionLoading, setActionLoading] = useState(false);
+	const [comments, setComments] = useState<Comment[]>([]);
+	const [newComment, setNewComment] = useState("");
+	const [commentLoading, setCommentLoading] = useState(false);
+	const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+	const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+	const [editContent, setEditContent] = useState("");
 
 	useEffect(() => {
 		async function fetchBet() {
@@ -86,6 +116,71 @@ function BetDetailsPage() {
 		}
 		fetchBet();
 	}, [betId]);
+
+	useEffect(() => {
+		async function fetchComments() {
+			const result = await getBetComments({ data: { betId } });
+			if (result.data) {
+				setComments(result.data as Comment[]);
+			}
+		}
+		if (bet) {
+			fetchComments();
+		}
+	}, [betId, bet]);
+
+	const handleAddComment = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!newComment.trim() || commentLoading) return;
+
+		setCommentLoading(true);
+		const result = await createComment({ data: { betId, content: newComment } });
+		if (result.error) {
+			setError(result.error);
+		} else if (result.data) {
+			setComments((prev) => [...prev, result.data as Comment]);
+			setNewComment("");
+		}
+		setCommentLoading(false);
+	};
+
+	const handleDeleteComment = async (commentId: string) => {
+		setDeletingCommentId(commentId);
+		const result = await deleteComment({ data: { commentId } });
+		if (result.error) {
+			setError(result.error);
+		} else {
+			setComments((prev) => prev.filter((c) => c.id !== commentId));
+		}
+		setDeletingCommentId(null);
+	};
+
+	const handleStartEdit = (comment: Comment) => {
+		setEditingCommentId(comment.id);
+		setEditContent(comment.content);
+	};
+
+	const handleCancelEdit = () => {
+		setEditingCommentId(null);
+		setEditContent("");
+	};
+
+	const handleUpdateComment = async (commentId: string) => {
+		if (!editContent.trim()) return;
+
+		setCommentLoading(true);
+		const result = await updateComment({ data: { commentId, content: editContent } });
+		if (result.error) {
+			setError(result.error);
+		} else if (result.data) {
+			setComments((prev) =>
+				prev.map((c) => (c.id === commentId ? (result.data as Comment) : c))
+			);
+			setEditingCommentId(null);
+			setEditContent("");
+		}
+		setCommentLoading(false);
+	};
 
 	const handleAccept = async () => {
 		setActionLoading(true);
@@ -133,6 +228,21 @@ function BetDetailsPage() {
 			hour: "numeric",
 			minute: "2-digit",
 		});
+	};
+
+	const formatRelativeTime = (dateString: string) => {
+		const date = new Date(dateString);
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffMins = Math.floor(diffMs / (1000 * 60));
+		const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+		if (diffMins < 1) return "just now";
+		if (diffMins < 60) return `${diffMins}m ago`;
+		if (diffHours < 24) return `${diffHours}h ago`;
+		if (diffDays < 7) return `${diffDays}d ago`;
+		return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 	};
 
 	const getStatusBadgeStyle = (status: DisplayStatus) => {
@@ -483,6 +593,138 @@ function BetDetailsPage() {
 						</div>
 					</div>
 				)}
+
+				{/* Comments */}
+				<div className="bg-white rounded-xl shadow-md p-6">
+					<div className="flex items-center gap-2 mb-4">
+						<MessageSquare className="w-5 h-5 text-gray-600" />
+						<h3 className="font-semibold text-gray-800">
+							Comments {comments.length > 0 && `(${comments.length})`}
+						</h3>
+					</div>
+
+					{/* Comments List */}
+					<div className="space-y-4 mb-4">
+						{comments.length === 0 ? (
+							<p className="text-gray-500 text-sm text-center py-4">
+								No comments yet. Be the first to comment!
+							</p>
+						) : (
+							comments.map((comment) => (
+								<div key={comment.id} className="flex gap-3">
+									<div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex-shrink-0 flex items-center justify-center">
+										{comment.author.avatar_url ? (
+											<img
+												src={comment.author.avatar_url}
+												alt={comment.author.display_name}
+												className="w-full h-full object-cover"
+											/>
+										) : (
+											<span className="text-sm font-bold text-white">
+												{comment.author.display_name.charAt(0).toUpperCase()}
+											</span>
+										)}
+									</div>
+									<div className="flex-1 min-w-0">
+										<div className="flex items-center gap-2">
+											<span className="font-medium text-gray-800 text-sm">
+												{comment.author.display_name}
+											</span>
+											<span className="text-gray-400 text-xs">
+												{formatRelativeTime(comment.created_at)}
+											</span>
+											{user && user.id === comment.author_id && editingCommentId !== comment.id && (
+												<div className="ml-auto flex items-center gap-1">
+													<button
+														type="button"
+														onClick={() => handleStartEdit(comment)}
+														className="text-gray-400 hover:text-blue-500 transition-colors"
+														title="Edit comment"
+													>
+														<Pencil className="w-4 h-4" />
+													</button>
+													<button
+														type="button"
+														onClick={() => handleDeleteComment(comment.id)}
+														disabled={deletingCommentId === comment.id}
+														className="text-gray-400 hover:text-red-500 transition-colors"
+														title="Delete comment"
+													>
+														{deletingCommentId === comment.id ? (
+															<Loader2 className="w-4 h-4 animate-spin" />
+														) : (
+															<Trash2 className="w-4 h-4" />
+														)}
+													</button>
+												</div>
+											)}
+										</div>
+										{editingCommentId === comment.id ? (
+											<div className="mt-1 flex gap-2">
+												<input
+													type="text"
+													value={editContent}
+													onChange={(e) => setEditContent(e.target.value)}
+													className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+													maxLength={1000}
+													autoFocus
+												/>
+												<button
+													type="button"
+													onClick={() => handleUpdateComment(comment.id)}
+													disabled={!editContent.trim() || commentLoading}
+													className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
+													title="Save"
+												>
+													{commentLoading ? (
+														<Loader2 className="w-4 h-4 animate-spin" />
+													) : (
+														<Check className="w-4 h-4" />
+													)}
+												</button>
+												<button
+													type="button"
+													onClick={handleCancelEdit}
+													className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors"
+													title="Cancel"
+												>
+													<X className="w-4 h-4" />
+												</button>
+											</div>
+										) : (
+											<p className="text-gray-600 text-sm mt-1 break-words">
+												{comment.content}
+											</p>
+										)}
+									</div>
+								</div>
+							))
+						)}
+					</div>
+
+					{/* Add Comment Form */}
+					<form onSubmit={handleAddComment} className="flex gap-2">
+						<input
+							type="text"
+							value={newComment}
+							onChange={(e) => setNewComment(e.target.value)}
+							placeholder="Add a comment..."
+							className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+							maxLength={1000}
+						/>
+						<button
+							type="submit"
+							disabled={!newComment.trim() || commentLoading}
+							className="px-4 py-2 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+						>
+							{commentLoading ? (
+								<Loader2 className="w-4 h-4 animate-spin" />
+							) : (
+								<Send className="w-4 h-4" />
+							)}
+						</button>
+					</form>
+				</div>
 
 				{/* Timeline */}
 				<div className="bg-white rounded-xl shadow-md p-6">

@@ -71,6 +71,16 @@ CREATE TABLE payment_reminders (
     CHECK (sender_id != recipient_id)
 );
 
+-- Comments table (for bet discussions)
+CREATE TABLE comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bet_id UUID NOT NULL REFERENCES bets(id) ON DELETE CASCADE,
+    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL CHECK (char_length(content) > 0 AND char_length(content) <= 1000),
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
 -- Indexes for performance
 CREATE INDEX idx_friendships_user_id ON friendships(user_id);
 CREATE INDEX idx_friendships_friend_id ON friendships(friend_id);
@@ -80,6 +90,8 @@ CREATE INDEX idx_bets_opponent_id ON bets(opponent_id);
 CREATE INDEX idx_bets_status ON bets(status);
 CREATE INDEX idx_payment_reminders_sender_id ON payment_reminders(sender_id);
 CREATE INDEX idx_payment_reminders_recipient_id ON payment_reminders(recipient_id);
+CREATE INDEX idx_comments_bet_id ON comments(bet_id);
+CREATE INDEX idx_comments_author_id ON comments(author_id);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -101,6 +113,11 @@ CREATE TRIGGER update_friendships_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_comments_updated_at
+    BEFORE UPDATE ON comments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Row Level Security (RLS) Policies
 
 -- Enable RLS on all tables
@@ -108,6 +125,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_reminders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 
 -- Users policies
 CREATE POLICY "Users can view their own profile"
@@ -173,6 +191,32 @@ CREATE POLICY "Users can view reminders sent to them"
 CREATE POLICY "Users can send reminders"
     ON payment_reminders FOR INSERT
     WITH CHECK (auth.uid() = sender_id);
+
+-- Comments policies (only bet participants can view/create comments)
+CREATE POLICY "Bet participants can view comments"
+    ON comments FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM bets
+            WHERE bets.id = comments.bet_id
+            AND (bets.creator_id = auth.uid() OR bets.opponent_id = auth.uid())
+        )
+    );
+
+CREATE POLICY "Bet participants can create comments"
+    ON comments FOR INSERT
+    WITH CHECK (
+        auth.uid() = author_id
+        AND EXISTS (
+            SELECT 1 FROM bets
+            WHERE bets.id = comments.bet_id
+            AND (bets.creator_id = auth.uid() OR bets.opponent_id = auth.uid())
+        )
+    );
+
+CREATE POLICY "Users can delete their own comments"
+    ON comments FOR DELETE
+    USING (auth.uid() = author_id);
 
 -- Function to increment wins count
 CREATE OR REPLACE FUNCTION increment_wins(user_id UUID)

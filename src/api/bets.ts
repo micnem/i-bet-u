@@ -659,3 +659,46 @@ export const deleteComment = createServerFn({ method: "POST" })
 
 		return { error: null, data: { success: true } };
 	});
+
+// Update a comment
+export const updateComment = createServerFn({ method: "POST" })
+	.inputValidator((data: { commentId: string; content: string }) => data)
+	.handler(async ({ data: { commentId, content } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Validate content
+		const trimmedContent = content.trim();
+		if (!trimmedContent || trimmedContent.length === 0) {
+			return { error: "Comment cannot be empty", data: null };
+		}
+
+		if (trimmedContent.length > 1000) {
+			return { error: "Comment is too long (max 1000 characters)", data: null };
+		}
+
+		// Update the comment (only if user is the author)
+		const { data, error } = await supabaseAdmin
+			.from("comments")
+			.update({ content: trimmedContent })
+			.eq("id", commentId)
+			.eq("author_id", userId)
+			.select(
+				`
+				*,
+				author:users!comments_author_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.single();
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data };
+	});

@@ -16,6 +16,9 @@ import {
 	MessageSquare,
 	Send,
 	Trash2,
+	Pencil,
+	X,
+	Check,
 } from "lucide-react";
 import {
 	getBetById,
@@ -25,6 +28,7 @@ import {
 	getBetComments,
 	createComment,
 	deleteComment,
+	updateComment,
 } from "../../api/bets";
 import type { BetStatus } from "../../lib/database.types";
 import { getDisplayStatus, type DisplayStatus } from "../../lib/bet-utils";
@@ -96,6 +100,8 @@ function BetDetailsPage() {
 	const [newComment, setNewComment] = useState("");
 	const [commentLoading, setCommentLoading] = useState(false);
 	const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+	const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+	const [editContent, setEditContent] = useState("");
 
 	useEffect(() => {
 		async function fetchBet() {
@@ -147,6 +153,33 @@ function BetDetailsPage() {
 			setComments((prev) => prev.filter((c) => c.id !== commentId));
 		}
 		setDeletingCommentId(null);
+	};
+
+	const handleStartEdit = (comment: Comment) => {
+		setEditingCommentId(comment.id);
+		setEditContent(comment.content);
+	};
+
+	const handleCancelEdit = () => {
+		setEditingCommentId(null);
+		setEditContent("");
+	};
+
+	const handleUpdateComment = async (commentId: string) => {
+		if (!editContent.trim()) return;
+
+		setCommentLoading(true);
+		const result = await updateComment({ data: { commentId, content: editContent } });
+		if (result.error) {
+			setError(result.error);
+		} else if (result.data) {
+			setComments((prev) =>
+				prev.map((c) => (c.id === commentId ? (result.data as Comment) : c))
+			);
+			setEditingCommentId(null);
+			setEditContent("");
+		}
+		setCommentLoading(false);
 	};
 
 	const handleAccept = async () => {
@@ -600,25 +633,69 @@ function BetDetailsPage() {
 											<span className="text-gray-400 text-xs">
 												{formatRelativeTime(comment.created_at)}
 											</span>
-											{user && user.id === comment.author_id && (
-												<button
-													type="button"
-													onClick={() => handleDeleteComment(comment.id)}
-													disabled={deletingCommentId === comment.id}
-													className="ml-auto text-gray-400 hover:text-red-500 transition-colors"
-													title="Delete comment"
-												>
-													{deletingCommentId === comment.id ? (
-														<Loader2 className="w-4 h-4 animate-spin" />
-													) : (
-														<Trash2 className="w-4 h-4" />
-													)}
-												</button>
+											{user && user.id === comment.author_id && editingCommentId !== comment.id && (
+												<div className="ml-auto flex items-center gap-1">
+													<button
+														type="button"
+														onClick={() => handleStartEdit(comment)}
+														className="text-gray-400 hover:text-blue-500 transition-colors"
+														title="Edit comment"
+													>
+														<Pencil className="w-4 h-4" />
+													</button>
+													<button
+														type="button"
+														onClick={() => handleDeleteComment(comment.id)}
+														disabled={deletingCommentId === comment.id}
+														className="text-gray-400 hover:text-red-500 transition-colors"
+														title="Delete comment"
+													>
+														{deletingCommentId === comment.id ? (
+															<Loader2 className="w-4 h-4 animate-spin" />
+														) : (
+															<Trash2 className="w-4 h-4" />
+														)}
+													</button>
+												</div>
 											)}
 										</div>
-										<p className="text-gray-600 text-sm mt-1 break-words">
-											{comment.content}
-										</p>
+										{editingCommentId === comment.id ? (
+											<div className="mt-1 flex gap-2">
+												<input
+													type="text"
+													value={editContent}
+													onChange={(e) => setEditContent(e.target.value)}
+													className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+													maxLength={1000}
+													autoFocus
+												/>
+												<button
+													type="button"
+													onClick={() => handleUpdateComment(comment.id)}
+													disabled={!editContent.trim() || commentLoading}
+													className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
+													title="Save"
+												>
+													{commentLoading ? (
+														<Loader2 className="w-4 h-4 animate-spin" />
+													) : (
+														<Check className="w-4 h-4" />
+													)}
+												</button>
+												<button
+													type="button"
+													onClick={handleCancelEdit}
+													className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors"
+													title="Cancel"
+												>
+													<X className="w-4 h-4" />
+												</button>
+											</div>
+										) : (
+											<p className="text-gray-600 text-sm mt-1 break-words">
+												{comment.content}
+											</p>
+										)}
 									</div>
 								</div>
 							))

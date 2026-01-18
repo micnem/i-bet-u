@@ -7,7 +7,7 @@ import type {
 	VerificationMethod,
 } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
-import { sendWinnerConfirmationEmail, sendBetInvitationEmail } from "./reminders";
+import { sendWinnerConfirmationEmail, sendBetInvitationEmail, sendBetAcceptedEmail } from "./reminders";
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
@@ -176,10 +176,14 @@ export const acceptBet = createServerFn({ method: "POST" })
 
 		const userId = currentUser.user.id;
 
-		// Get the bet
+		// Get the bet with user details for email
 		const { data: bet } = await supabaseAdmin
 			.from("bets")
-			.select("*")
+			.select(`
+				*,
+				creator:users!bets_creator_id_fkey(id, display_name, username),
+				opponent:users!bets_opponent_id_fkey(id, display_name, username)
+			`)
 			.eq("id", betId)
 			.eq("opponent_id", userId)
 			.eq("status", "pending")
@@ -202,6 +206,21 @@ export const acceptBet = createServerFn({ method: "POST" })
 
 		if (betError) {
 			return { error: betError.message, data: null };
+		}
+
+		// Send acceptance email to bet creator
+		try {
+			await sendBetAcceptedEmail({
+				recipientId: bet.creator_id,
+				acceptorName: bet.opponent.display_name,
+				acceptorUsername: bet.opponent.username,
+				betTitle: bet.title,
+				betAmount: Number(bet.amount),
+				betDeadline: bet.deadline,
+				betId: bet.id,
+			});
+		} catch (err) {
+			console.error("Failed to send bet accepted email:", err);
 		}
 
 		return { error: null, data: updatedBet };

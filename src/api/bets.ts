@@ -399,6 +399,63 @@ async function resolveBet({
 	}
 }
 
+// Undo winner declaration (only if user is first to declare and bet not resolved)
+export const undoWinnerDeclaration = createServerFn({ method: "POST" })
+	.inputValidator((data: { betId: string }) => data)
+	.handler(async ({ data: { betId } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Get the bet
+		const { data: bet } = await supabaseAdmin
+			.from("bets")
+			.select("*")
+			.eq("id", betId)
+			.eq("status", "active")
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+			.single();
+
+		if (!bet) {
+			return { error: "Bet not found or not active", data: null };
+		}
+
+		const isCreator = userId === bet.creator_id;
+		const userHasApproved = isCreator ? bet.creator_approved : bet.opponent_approved;
+		const otherHasApproved = isCreator ? bet.opponent_approved : bet.creator_approved;
+
+		// Can only undo if user has approved but other party hasn't
+		if (!userHasApproved) {
+			return { error: "You haven't declared a winner yet", data: null };
+		}
+
+		if (otherHasApproved) {
+			return { error: "Cannot undo - both parties have already declared", data: null };
+		}
+
+		// Reset user's approval and clear winner_id
+		const updateData = isCreator
+			? { creator_approved: false, winner_id: null }
+			: { opponent_approved: false, winner_id: null };
+
+		const { data: updatedBet, error } = await supabaseAdmin
+			.from("bets")
+			.update(updateData)
+			.eq("id", betId)
+			.select()
+			.single();
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data: updatedBet };
+	});
+
 // Cancel a pending bet (creator only)
 export const cancelBet = createServerFn({ method: "POST" })
 	.inputValidator((data: { betId: string }) => data)

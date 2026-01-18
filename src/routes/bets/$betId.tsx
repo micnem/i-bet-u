@@ -30,6 +30,7 @@ import {
 	deleteComment,
 	updateComment,
 } from "../../api/bets";
+import { BetReactions } from "../../components/BetReactions";
 import type { BetStatus } from "../../lib/database.types";
 import { getDisplayStatus, type DisplayStatus } from "../../lib/bet-utils";
 
@@ -329,8 +330,13 @@ function BetDetailsPage() {
 				{/* Bet Info Card */}
 				<div className="bg-white rounded-xl shadow-md p-6">
 					{bet.description && (
-						<p className="text-gray-600 mb-6">{bet.description}</p>
+						<p className="text-gray-600 mb-4">{bet.description}</p>
 					)}
+
+					{/* Reactions */}
+					<div className="mb-6">
+						<BetReactions betId={betId} />
+					</div>
 
 					<div className="grid grid-cols-2 gap-4">
 						<div className="flex items-center gap-3">

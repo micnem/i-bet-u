@@ -176,6 +176,25 @@ export interface Database {
 					updated_at?: string;
 				};
 			};
+			bet_reactions: {
+				Row: {
+					id: string;
+					bet_id: string;
+					user_id: string;
+					emoji: string;
+					created_at: string;
+				};
+				Insert: {
+					id?: string;
+					bet_id: string;
+					user_id: string;
+					emoji: string;
+					created_at?: string;
+				};
+				Update: {
+					emoji?: string;
+				};
+			};
 		};
 		Views: {
 			[_ in never]: never;
@@ -210,6 +229,9 @@ export type PaymentReminderInsert = Database["public"]["Tables"]["payment_remind
 export type Comment = Database["public"]["Tables"]["comments"]["Row"];
 export type CommentInsert = Database["public"]["Tables"]["comments"]["Insert"];
 
+export type BetReaction = Database["public"]["Tables"]["bet_reactions"]["Row"];
+export type BetReactionInsert = Database["public"]["Tables"]["bet_reactions"]["Insert"];
+
 // Extended types with relationships
 export type BetWithUsers = Bet & {
 	creator: User;
@@ -223,4 +245,8 @@ export type FriendshipWithUser = Friendship & {
 
 export type CommentWithAuthor = Comment & {
 	author: User;
+};
+
+export type BetReactionWithUser = BetReaction & {
+	user: User;
 };

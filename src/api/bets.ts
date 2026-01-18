@@ -6,6 +6,7 @@ import type {
 	BetStatus,
 	VerificationMethod,
 	CommentInsert,
+	BetReactionInsert,
 } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
 import { sendWinnerConfirmationEmail, sendBetInvitationEmail, sendBetAcceptedEmail, sendCommentNotificationEmail } from "./reminders";
@@ -766,4 +767,209 @@ export const updateComment = createServerFn({ method: "POST" })
 		}
 
 		return { error: null, data };
+	});
+
+// Available reaction emojis
+export const REACTION_EMOJIS = ["👍", "👎", "😂", "🔥", "🎯", "💰"] as const;
+export type ReactionEmoji = typeof REACTION_EMOJIS[number];
+
+// Get reactions for a bet
+export const getBetReactions = createServerFn({ method: "GET" })
+	.inputValidator((data: { betId: string }) => data)
+	.handler(async ({ data: { betId } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Verify user is a participant in the bet
+		const { data: bet } = await supabaseAdmin
+			.from("bets")
+			.select("id")
+			.eq("id", betId)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+			.single();
+
+		if (!bet) {
+			return { error: "Bet not found or access denied", data: null };
+		}
+
+		const { data, error } = await supabaseAdmin
+			.from("bet_reactions")
+			.select(
+				`
+				*,
+				user:users!bet_reactions_user_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.eq("bet_id", betId)
+			.order("created_at", { ascending: true });
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data };
+	});
+
+// Add a reaction to a bet
+export const addBetReaction = createServerFn({ method: "POST" })
+	.inputValidator((data: { betId: string; emoji: string }) => data)
+	.handler(async ({ data: { betId, emoji } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Validate emoji is in allowed list
+		if (!REACTION_EMOJIS.includes(emoji as ReactionEmoji)) {
+			return { error: "Invalid emoji", data: null };
+		}
+
+		// Verify user is a participant in the bet
+		const { data: bet } = await supabaseAdmin
+			.from("bets")
+			.select("id")
+			.eq("id", betId)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+			.single();
+
+		if (!bet) {
+			return { error: "Bet not found or access denied", data: null };
+		}
+
+		const reactionInsert: BetReactionInsert = {
+			bet_id: betId,
+			user_id: userId,
+			emoji,
+		};
+
+		const { data, error } = await supabaseAdmin
+			.from("bet_reactions")
+			.insert(reactionInsert)
+			.select(
+				`
+				*,
+				user:users!bet_reactions_user_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.single();
+
+		if (error) {
+			// Handle duplicate reaction (user already reacted with this emoji)
+			if (error.code === "23505") {
+				return { error: "You already reacted with this emoji", data: null };
+			}
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data };
+	});
+
+// Remove a reaction from a bet
+export const removeBetReaction = createServerFn({ method: "POST" })
+	.inputValidator((data: { betId: string; emoji: string }) => data)
+	.handler(async ({ data: { betId, emoji } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Delete the reaction (only if user owns it)
+		const { error } = await supabaseAdmin
+			.from("bet_reactions")
+			.delete()
+			.eq("bet_id", betId)
+			.eq("user_id", userId)
+			.eq("emoji", emoji);
+
+		if (error) {
+			return { error: error.message, data: null };
+		}
+
+		return { error: null, data: { success: true } };
+	});
+
+// Toggle a reaction (add if not exists, remove if exists)
+export const toggleBetReaction = createServerFn({ method: "POST" })
+	.inputValidator((data: { betId: string; emoji: string }) => data)
+	.handler(async ({ data: { betId, emoji } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Validate emoji is in allowed list
+		if (!REACTION_EMOJIS.includes(emoji as ReactionEmoji)) {
+			return { error: "Invalid emoji", data: null };
+		}
+
+		// Verify user is a participant in the bet
+		const { data: bet } = await supabaseAdmin
+			.from("bets")
+			.select("id")
+			.eq("id", betId)
+			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+			.single();
+
+		if (!bet) {
+			return { error: "Bet not found or access denied", data: null };
+		}
+
+		// Check if reaction already exists
+		const { data: existingReaction } = await supabaseAdmin
+			.from("bet_reactions")
+			.select("id")
+			.eq("bet_id", betId)
+			.eq("user_id", userId)
+			.eq("emoji", emoji)
+			.single();
+
+		if (existingReaction) {
+			// Remove the reaction
+			const { error } = await supabaseAdmin
+				.from("bet_reactions")
+				.delete()
+				.eq("id", existingReaction.id);
+
+			if (error) {
+				return { error: error.message, data: null };
+			}
+
+			return { error: null, data: { action: "removed" } };
+		} else {
+			// Add the reaction
+			const { data, error } = await supabaseAdmin
+				.from("bet_reactions")
+				.insert({
+					bet_id: betId,
+					user_id: userId,
+					emoji,
+				})
+				.select(
+					`
+					*,
+					user:users!bet_reactions_user_id_fkey(id, username, display_name, avatar_url)
+				`
+				)
+				.single();
+
+			if (error) {
+				return { error: error.message, data: null };
+			}
+
+			return { error: null, data: { action: "added", reaction: data } };
+		}
 	});

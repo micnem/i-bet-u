@@ -138,10 +138,74 @@ function BetsPage() {
 	};
 
 	const getStatusLabel = (status: DisplayStatus) => {
-		if (status === "deadline_passed") {
-			return "Deadline Passed";
+		switch (status) {
+			case "active":
+				return "🔥 Active";
+			case "pending":
+				return "⏳ Pending";
+			case "deadline_passed":
+				return "⏱️ Deadline Passed";
+			case "completed":
+				return "✅ Completed";
+			case "declined":
+				return "👎 Declined";
+			case "expired":
+				return "🏁 Expired";
+			default:
+				return status.charAt(0).toUpperCase() + status.slice(1);
 		}
-		return status.charAt(0).toUpperCase() + status.slice(1);
+	};
+
+	// Get section header for a display status
+	const getSectionHeader = (status: DisplayStatus) => {
+		switch (status) {
+			case "active":
+				return "🔥 Active Bets";
+			case "pending":
+				return "⏳ Pending Bets";
+			case "deadline_passed":
+				return "⏱️ Deadline Passed";
+			case "completed":
+				return "✅ Completed Bets";
+			case "declined":
+				return "👎 Declined Bets";
+			case "expired":
+				return "🏁 Expired Bets";
+			default:
+				return "Other Bets";
+		}
+	};
+
+	// Priority order for sorting: active first, then pending, deadline_passed, completed, declined, expired
+	const statusPriority: Record<DisplayStatus, number> = {
+		active: 1,
+		pending: 2,
+		deadline_passed: 3,
+		completed: 4,
+		declined: 5,
+		expired: 6,
+	};
+
+	// Group bets by display status
+	const groupBetsByStatus = (bets: Bet[]) => {
+		const groups: Record<DisplayStatus, Bet[]> = {
+			active: [],
+			pending: [],
+			deadline_passed: [],
+			completed: [],
+			declined: [],
+			expired: [],
+		};
+
+		bets.forEach((bet) => {
+			const displayStatus = getDisplayStatus(bet.status, bet.deadline);
+			groups[displayStatus].push(bet);
+		});
+
+		// Return sorted array of [status, bets] pairs, excluding empty groups
+		return Object.entries(groups)
+			.filter(([_, bets]) => bets.length > 0)
+			.sort(([a], [b]) => statusPriority[a as DisplayStatus] - statusPriority[b as DisplayStatus]) as [DisplayStatus, Bet[]][];
 	};
 
 	const formatDate = (dateString: string) => {
@@ -293,88 +357,98 @@ function BetsPage() {
 						)}
 					</div>
 				) : (
-					<div className="space-y-4">
-						{filteredBets.map((bet) => {
-							const displayStatus = getDisplayStatus(bet.status, bet.deadline);
-							const isPendingForMe =
-								bet.status === "pending" &&
-								user?.id === bet.opponent.id &&
-								displayStatus !== "deadline_passed";
-							const isActionLoading = actionLoadingId === bet.id;
-							// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
-							const isOpponent = user?.id === bet.opponent.id;
-							const otherPartyName = isOpponent
-								? bet.creator.display_name
-								: bet.opponent.display_name;
+					<div className="space-y-6">
+						{groupBetsByStatus(filteredBets).map(([status, betsInGroup]) => (
+							<div key={status}>
+								{/* Section Header */}
+								<h2 className="text-lg font-semibold text-gray-700 mb-3 px-1">
+									{getSectionHeader(status)}
+								</h2>
+								<div className="space-y-4">
+									{betsInGroup.map((bet) => {
+										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
+										const isPendingForMe =
+											bet.status === "pending" &&
+											user?.id === bet.opponent.id &&
+											displayStatus !== "deadline_passed";
+										const isActionLoading = actionLoadingId === bet.id;
+										// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
+										const isOpponent = user?.id === bet.opponent.id;
+										const otherPartyName = isOpponent
+											? bet.creator.display_name
+											: bet.opponent.display_name;
 
-							return (
-								<Link
-									key={bet.id}
-									to="/bets/$betId"
-									params={{ betId: bet.id }}
-									className="block bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow"
-								>
-									<div className="flex items-start justify-between">
-										<div className="flex-1">
-											<div className="flex items-center gap-2 mb-1">
-												{getStatusIcon(displayStatus)}
-												<span
-													className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(
-														displayStatus
-													)}`}
-												>
-													{getStatusLabel(displayStatus)}
-												</span>
-											</div>
-											<h3 className="font-semibold text-gray-800">{bet.title}</h3>
-											{bet.description && (
-												<p className="text-sm text-gray-500 mt-1 line-clamp-1">
-													{bet.description}
-												</p>
-											)}
-											<div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-												<span>vs {otherPartyName}</span>
-												<span>Due {formatDate(bet.deadline)}</span>
-											</div>
-										</div>
-										<div className="flex items-center gap-3">
-											<div className="text-right">
-												<p className="text-lg font-bold text-orange-500">
-													${bet.amount}
-												</p>
-											</div>
-											<ChevronRight className="w-5 h-5 text-gray-400" />
-										</div>
-									</div>
-									{isPendingForMe && (
-										<div className="flex gap-2 mt-3 pt-3 border-t">
-											<button
-												type="button"
-												onClick={(e) => handleAccept(e, bet.id)}
-												disabled={isActionLoading}
-												className="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+										return (
+											<Link
+												key={bet.id}
+												to="/bets/$betId"
+												params={{ betId: bet.id }}
+												className="block bg-white rounded-xl shadow-md p-4 hover:shadow-lg transition-shadow"
 											>
-												{isActionLoading ? (
-													<Loader2 className="w-4 h-4 animate-spin" />
-												) : (
-													<CheckCircle className="w-4 h-4" />
+												<div className="flex items-start justify-between">
+													<div className="flex-1">
+														<div className="flex items-center gap-2 mb-1">
+															{getStatusIcon(displayStatus)}
+															<span
+																className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(
+																	displayStatus
+																)}`}
+															>
+																{getStatusLabel(displayStatus)}
+															</span>
+														</div>
+														<h3 className="font-semibold text-gray-800">{bet.title}</h3>
+														{bet.description && (
+															<p className="text-sm text-gray-500 mt-1 line-clamp-1">
+																{bet.description}
+															</p>
+														)}
+														<div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+															<span>vs {otherPartyName}</span>
+															<span>Due {formatDate(bet.deadline)}</span>
+														</div>
+													</div>
+													<div className="flex items-center gap-3">
+														<div className="text-right">
+															<p className="text-lg font-bold text-orange-500">
+																${bet.amount}
+															</p>
+														</div>
+														<ChevronRight className="w-5 h-5 text-gray-400" />
+													</div>
+												</div>
+												{isPendingForMe && (
+													<div className="flex gap-2 mt-3 pt-3 border-t">
+														<button
+															type="button"
+															onClick={(e) => handleAccept(e, bet.id)}
+															disabled={isActionLoading}
+															className="flex-1 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+														>
+															{isActionLoading ? (
+																<Loader2 className="w-4 h-4 animate-spin" />
+															) : (
+																<CheckCircle className="w-4 h-4" />
+															)}
+															Accept
+														</button>
+														<button
+															type="button"
+															onClick={(e) => handleDecline(e, bet.id)}
+															disabled={isActionLoading}
+															className="flex-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+														>
+															<XCircle className="w-4 h-4" />
+															Decline
+														</button>
+													</div>
 												)}
-												Accept
-											</button>
-											<button
-												type="button"
-												onClick={(e) => handleDecline(e, bet.id)}
-												disabled={isActionLoading}
-												className="flex-1 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-											>
-												<XCircle className="w-4 h-4" />
-												Decline
-											</button>
-										</div>
-									)}
-								</Link>
-							);
-						})}
+											</Link>
+										);
+									})}
+								</div>
+							</div>
+						))}
 					</div>
 				)}
 			</div>

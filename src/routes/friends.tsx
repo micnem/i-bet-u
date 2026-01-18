@@ -20,7 +20,10 @@ import {
 	getPendingFriendRequests,
 	acceptFriendRequest,
 	declineFriendRequest,
+	sendFriendRequest,
 } from "../api/friends";
+import { searchUsers, searchUserByPhone } from "../api/users";
+import type { User } from "../lib/database.types";
 
 export const Route = createFileRoute("/friends")({ component: FriendsPage });
 
@@ -58,6 +61,12 @@ function FriendsPage() {
 	const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [processingRequest, setProcessingRequest] = useState<string | null>(null);
+
+	// Search states
+	const [searchResults, setSearchResults] = useState<User[]>([]);
+	const [searchLoading, setSearchLoading] = useState(false);
+	const [searchError, setSearchError] = useState<string | null>(null);
+	const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
 
 	const userId = user?.id || "";
 	const displayName = user?.firstName
@@ -112,6 +121,71 @@ function FriendsPage() {
 			setPendingRequests((prev) => prev.filter((r) => r.id !== friendshipId));
 		}
 		setProcessingRequest(null);
+	};
+
+	const handleSearch = async () => {
+		if (!addInput.trim()) {
+			setSearchError("Please enter a search term");
+			return;
+		}
+
+		setSearchLoading(true);
+		setSearchError(null);
+		setSearchResults([]);
+
+		try {
+			if (addMethod === "phone") {
+				const result = await searchUserByPhone({ data: { phoneNumber: addInput.trim() } });
+				if (result.error) {
+					setSearchError(result.error === "JSON object requested, multiple (or no) rows returned"
+						? "No user found with this phone number"
+						: result.error);
+				} else if (result.data) {
+					setSearchResults([result.data]);
+				}
+			} else {
+				const result = await searchUsers({ data: { query: addInput.trim() } });
+				if (result.error) {
+					setSearchError(result.error);
+				} else if (result.data) {
+					// Filter out users that are already friends
+					const friendIds = new Set(friends.map((f) => f.friend.id));
+					const filteredResults = result.data.filter(
+						(u: User) => !friendIds.has(u.id)
+					);
+					setSearchResults(filteredResults);
+					if (filteredResults.length === 0) {
+						setSearchError("No users found matching your search");
+					}
+				}
+			}
+		} catch (err) {
+			setSearchError("Failed to search users");
+			console.error("Search error:", err);
+		}
+
+		setSearchLoading(false);
+	};
+
+	const handleSendFriendRequest = async (friendId: string) => {
+		setSentRequests((prev) => new Set(prev).add(friendId));
+
+		const result = await sendFriendRequest({
+			data: {
+				friendId,
+				addedVia: addMethod === "phone" ? "phone" : "nickname",
+			},
+		});
+
+		if (result.error) {
+			// Remove from sent requests if failed
+			setSentRequests((prev) => {
+				const updated = new Set(prev);
+				updated.delete(friendId);
+				return updated;
+			});
+			setSearchError(result.error);
+		}
 	};
 
 	// Filter friends by search query
@@ -325,6 +399,9 @@ function FriendsPage() {
 								onClick={() => {
 									setShowAddModal(false);
 									setAddInput("");
+									setSearchResults([]);
+									setSearchError(null);
+									setSentRequests(new Set());
 								}}
 								className="text-gray-400 hover:text-gray-600"
 							>
@@ -339,6 +416,8 @@ function FriendsPage() {
 								onClick={() => {
 									setAddMethod("nickname");
 									setAddInput("");
+									setSearchResults([]);
+									setSearchError(null);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
 									addMethod === "nickname"
@@ -354,6 +433,8 @@ function FriendsPage() {
 								onClick={() => {
 									setAddMethod("phone");
 									setAddInput("");
+									setSearchResults([]);
+									setSearchError(null);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
 									addMethod === "phone"
@@ -369,6 +450,8 @@ function FriendsPage() {
 								onClick={() => {
 									setAddMethod("qr");
 									setAddInput("");
+									setSearchResults([]);
+									setSearchError(null);
 								}}
 								className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
 									addMethod === "qr"
@@ -400,6 +483,11 @@ function FriendsPage() {
 										type={addMethod === "phone" ? "tel" : "text"}
 										value={addInput}
 										onChange={(e) => setAddInput(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter" && !searchLoading) {
+												handleSearch();
+											}
+										}}
 										placeholder={
 											addMethod === "phone"
 												? "Enter phone number"
@@ -409,17 +497,88 @@ function FriendsPage() {
 									/>
 									<button
 										type="button"
-										className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600"
+										onClick={handleSearch}
+										disabled={searchLoading}
+										className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50"
 									>
-										Search
+										{searchLoading ? (
+											<Loader2 size={16} className="animate-spin" />
+										) : (
+											"Search"
+										)}
 									</button>
 								</div>
 
-								<p className="text-center text-gray-400 py-4">
-									{addMethod === "phone"
-										? "Enter a phone number to find friends"
-										: "Search by username or display name"}
-								</p>
+								{/* Search Error */}
+								{searchError && (
+									<p className="text-center text-red-500 text-sm mb-4">
+										{searchError}
+									</p>
+								)}
+
+								{/* Search Results */}
+								{searchResults.length > 0 ? (
+									<div className="space-y-3 max-h-64 overflow-y-auto">
+										{searchResults.map((user) => (
+											<div
+												key={user.id}
+												className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+											>
+												<div className="flex items-center gap-3">
+													<div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+														{user.avatar_url ? (
+															<img
+																src={user.avatar_url}
+																alt={user.display_name}
+																className="w-full h-full object-cover"
+															/>
+														) : (
+															<span className="text-sm font-bold text-white">
+																{user.display_name?.charAt(0).toUpperCase() || "?"}
+															</span>
+														)}
+													</div>
+													<div>
+														<p className="font-medium text-gray-800 text-sm">
+															{user.display_name}
+														</p>
+														<p className="text-xs text-gray-500">
+															@{user.username}
+														</p>
+													</div>
+												</div>
+												<button
+													type="button"
+													onClick={() => handleSendFriendRequest(user.id)}
+													disabled={sentRequests.has(user.id)}
+													className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+														sentRequests.has(user.id)
+															? "bg-green-100 text-green-700"
+															: "bg-orange-500 text-white hover:bg-orange-600"
+													}`}
+												>
+													{sentRequests.has(user.id) ? (
+														<span className="flex items-center gap-1">
+															<Check size={14} />
+															Sent
+														</span>
+													) : (
+														<span className="flex items-center gap-1">
+															<UserPlus size={14} />
+															Add
+														</span>
+													)}
+												</button>
+											</div>
+										))}
+									</div>
+								) : (
+									<p className="text-center text-gray-400 py-4">
+										{addMethod === "phone"
+											? "Enter a phone number to find friends"
+											: "Search by username or display name"}
+									</p>
+								)}
 							</>
 						)}
 					</div>

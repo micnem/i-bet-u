@@ -112,7 +112,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 	.inputValidator((data: { displayName: string }) => data)
 	.handler(async ({ data: { displayName } }) => {
 		try {
-			if (!displayName || typeof displayName !== "string") {
+			if (!displayName || typeof displayName !== "string" || displayName.trim() === "") {
 				return { error: "Display name is required", data: null };
 			}
 
@@ -123,9 +123,27 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			}
 
 			const userId = currentUser.user.id;
+			const trimmedDisplayName = displayName.trim();
+
+			// Check if the display name is already taken by a different user
+			const { data: existingUser, error: checkError } = await supabaseAdmin
+				.from("users")
+				.select("id")
+				.eq("display_name", trimmedDisplayName)
+				.neq("id", userId)
+				.maybeSingle();
+
+			if (checkError) {
+				console.error("updateUserProfile display name check error:", checkError);
+				return { error: "Failed to validate display name", data: null };
+			}
+
+			if (existingUser) {
+				return { error: "Display name is already taken", data: null };
+			}
 
 			const updateData: UserUpdate = {
-				display_name: displayName,
+				display_name: trimmedDisplayName,
 			};
 
 			const { data: updatedUser, error } = await supabaseAdmin

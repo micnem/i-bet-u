@@ -229,19 +229,29 @@ export const updatePaymentLink = createServerFn({ method: "POST" })
 
 			const userId = currentUser.user.id;
 
-			// Validate URL format if provided
+			let finalLink: string | null = null;
+
+			// Process and validate URL if provided
 			if (paymentLink && paymentLink.trim() !== "") {
-				const trimmedLink = paymentLink.trim();
+				let trimmedLink = paymentLink.trim();
+
+				// Auto-add https:// if no protocol is specified
+				if (!trimmedLink.startsWith("http://") && !trimmedLink.startsWith("https://")) {
+					trimmedLink = `https://${trimmedLink}`;
+				}
+
+				// Validate the URL format
 				try {
 					new URL(trimmedLink);
+					finalLink = trimmedLink;
 				} catch {
-					return { error: "Please enter a valid URL", data: null };
+					return { error: "Please enter a valid URL (e.g., venmo.com/u/username)", data: null };
 				}
 			}
 
 			const { data: updatedUser, error } = await supabaseAdmin
 				.from("users")
-				.update({ payment_link: paymentLink?.trim() || null })
+				.update({ payment_link: finalLink })
 				.eq("id", userId)
 				.select()
 				.single();

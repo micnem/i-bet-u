@@ -101,8 +101,10 @@ function SettingsPage() {
 
 			if (result.error) {
 				setError(result.error);
-			} else {
-				setPaymentLink(paymentLinkInput.trim());
+			} else if (result.data) {
+				// Use the processed URL from the server (with https:// added if needed)
+				setPaymentLink(result.data.payment_link || "");
+				setPaymentLinkInput(result.data.payment_link || "");
 				setSuccessMessage("Payment link saved");
 				setTimeout(() => setSuccessMessage(null), 3000);
 			}

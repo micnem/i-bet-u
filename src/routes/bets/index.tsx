@@ -142,15 +142,15 @@ function BetsPage() {
 			case "active":
 				return "🔥 Active";
 			case "pending":
-				return "Pending";
+				return "⏳ Pending";
 			case "deadline_passed":
 				return "⏱️ Deadline Passed";
 			case "completed":
 				return "✅ Completed";
 			case "declined":
-				return "Declined";
+				return "👎 Declined";
 			case "expired":
-				return "Expired";
+				return "🏁 Expired";
 			default:
 				return status.charAt(0).toUpperCase() + status.slice(1);
 		}
@@ -162,15 +162,15 @@ function BetsPage() {
 			case "active":
 				return "🔥 Active Bets";
 			case "pending":
-				return "Pending Bets";
+				return "⏳ Pending Bets";
 			case "deadline_passed":
 				return "⏱️ Deadline Passed";
 			case "completed":
 				return "✅ Completed Bets";
 			case "declined":
-				return "Declined Bets";
+				return "👎 Declined Bets";
 			case "expired":
-				return "Expired Bets";
+				return "🏁 Expired Bets";
 			default:
 				return "Other Bets";
 		}

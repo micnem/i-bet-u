@@ -154,6 +154,28 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 				}
 			}
 
+			// If display name is being updated, check if it's already taken by another user
+			if (displayName) {
+				const trimmedDisplayName = displayName.trim();
+
+				// Check if the display name is already taken by a different user
+				const { data: existingUser, error: checkError } = await supabaseAdmin
+					.from("users")
+					.select("id")
+					.eq("display_name", trimmedDisplayName)
+					.neq("id", userId)
+					.maybeSingle();
+
+				if (checkError) {
+					console.error("updateUserProfile display name check error:", checkError);
+					return { error: "Failed to validate display name", data: null };
+				}
+
+				if (existingUser) {
+					return { error: "Display name is already taken", data: null };
+				}
+			}
+
 			const updateData: UserUpdate = {};
 
 			if (displayName) {

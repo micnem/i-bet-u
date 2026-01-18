@@ -109,19 +109,11 @@ export const searchUserByPhone = createServerFn({ method: "GET" })
 
 // Update current user's profile
 export const updateUserProfile = createServerFn({ method: "POST" })
-	.inputValidator((data: { displayName?: string; username?: string }) => data)
-	.handler(async ({ data: { displayName, username } }) => {
+	.inputValidator((data: { displayName: string }) => data)
+	.handler(async ({ data: { displayName } }) => {
 		try {
-			if (!displayName && !username) {
-				return { error: "At least one of display name or username is required", data: null };
-			}
-
-			if (displayName !== undefined && (typeof displayName !== "string" || displayName.trim() === "")) {
-				return { error: "Display name cannot be empty", data: null };
-			}
-
-			if (username !== undefined && (typeof username !== "string" || username.trim() === "")) {
-				return { error: "Username cannot be empty", data: null };
+			if (!displayName || typeof displayName !== "string" || displayName.trim() === "") {
+				return { error: "Display name is required", data: null };
 			}
 
 			const currentUser = await getCurrentUser();
@@ -131,60 +123,28 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 			}
 
 			const userId = currentUser.user.id;
+			const trimmedDisplayName = displayName.trim();
 
-			// If username is being updated, check if it's already taken by another user
-			if (username) {
-				const trimmedUsername = username.trim().toLowerCase();
+			// Check if the display name is already taken by a different user
+			const { data: existingUser, error: checkError } = await supabaseAdmin
+				.from("users")
+				.select("id")
+				.eq("display_name", trimmedDisplayName)
+				.neq("id", userId)
+				.maybeSingle();
 
-				// Check if the username is already taken by a different user
-				const { data: existingUser, error: checkError } = await supabaseAdmin
-					.from("users")
-					.select("id")
-					.eq("username", trimmedUsername)
-					.neq("id", userId)
-					.maybeSingle();
-
-				if (checkError) {
-					console.error("updateUserProfile username check error:", checkError);
-					return { error: "Failed to validate username", data: null };
-				}
-
-				if (existingUser) {
-					return { error: "Username is already taken", data: null };
-				}
+			if (checkError) {
+				console.error("updateUserProfile display name check error:", checkError);
+				return { error: "Failed to validate display name", data: null };
 			}
 
-			// If display name is being updated, check if it's already taken by another user
-			if (displayName) {
-				const trimmedDisplayName = displayName.trim();
-
-				// Check if the display name is already taken by a different user
-				const { data: existingUser, error: checkError } = await supabaseAdmin
-					.from("users")
-					.select("id")
-					.eq("display_name", trimmedDisplayName)
-					.neq("id", userId)
-					.maybeSingle();
-
-				if (checkError) {
-					console.error("updateUserProfile display name check error:", checkError);
-					return { error: "Failed to validate display name", data: null };
-				}
-
-				if (existingUser) {
-					return { error: "Display name is already taken", data: null };
-				}
+			if (existingUser) {
+				return { error: "Display name is already taken", data: null };
 			}
 
-			const updateData: UserUpdate = {};
-
-			if (displayName) {
-				updateData.display_name = displayName.trim();
-			}
-
-			if (username) {
-				updateData.username = username.trim().toLowerCase();
-			}
+			const updateData: UserUpdate = {
+				display_name: trimmedDisplayName,
+			};
 
 			const { data: updatedUser, error } = await supabaseAdmin
 				.from("users")

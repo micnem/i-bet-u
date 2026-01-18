@@ -97,6 +97,7 @@ export interface Database {
 					creator_approved: boolean;
 					opponent_approved: boolean;
 					created_at: string;
+					updated_at: string;
 					accepted_at: string | null;
 					resolved_at: string | null;
 				};
@@ -116,6 +117,7 @@ export interface Database {
 					creator_approved?: boolean;
 					opponent_approved?: boolean;
 					created_at?: string;
+					updated_at?: string;
 					accepted_at?: string | null;
 					resolved_at?: string | null;
 				};
@@ -128,6 +130,7 @@ export interface Database {
 					winner_id?: string | null;
 					creator_approved?: boolean;
 					opponent_approved?: boolean;
+					updated_at?: string;
 					accepted_at?: string | null;
 					resolved_at?: string | null;
 				};

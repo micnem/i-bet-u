@@ -56,6 +56,7 @@ CREATE TABLE bets (
     creator_approved BOOLEAN DEFAULT FALSE NOT NULL,
     opponent_approved BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     accepted_at TIMESTAMPTZ,
     resolved_at TIMESTAMPTZ,
     CHECK (creator_id != opponent_id)
@@ -110,6 +111,11 @@ CREATE TRIGGER update_users_updated_at
 
 CREATE TRIGGER update_friendships_updated_at
     BEFORE UPDATE ON friendships
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_bets_updated_at
+    BEFORE UPDATE ON bets
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 

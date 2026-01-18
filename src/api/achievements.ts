@@ -3,18 +3,65 @@ import { getCurrentUser } from "../lib/auth";
 import type { UserAchievementInsert } from "../lib/database.types";
 import { supabaseAdmin } from "../lib/supabase";
 
-// Achievement definitions - stored in code for flexibility
+// ============================================================================
+// Types
+// ============================================================================
+
+export type AchievementCategory = "milestone" | "streak" | "social" | "special";
+export type AchievementRarity =
+	| "common"
+	| "uncommon"
+	| "rare"
+	| "epic"
+	| "legendary";
+
 export interface Achievement {
 	id: string;
 	name: string;
 	description: string;
-	icon: string; // Emoji icon for the badge
-	category: "milestone" | "streak" | "social" | "special";
-	rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
+	icon: string;
+	category: AchievementCategory;
+	rarity: AchievementRarity;
 }
 
+export interface AchievementContext {
+	justWon?: boolean;
+	betAmount?: number;
+	opponentId?: string;
+}
+
+interface UserStats {
+	total_bets: number;
+	bets_won: number;
+}
+
+// ============================================================================
+// Achievement Definitions
+// ============================================================================
+
+const MILESTONE_THRESHOLDS = {
+	totalBets: [
+		{ count: 1, id: "first_bet" },
+		{ count: 10, id: "bets_10" },
+		{ count: 50, id: "bets_50" },
+		{ count: 100, id: "bets_100" },
+	],
+	wins: [
+		{ count: 5, id: "wins_5" },
+		{ count: 10, id: "wins_10" },
+		{ count: 25, id: "wins_25" },
+		{ count: 50, id: "wins_50" },
+		{ count: 100, id: "wins_100" },
+	],
+	streaks: [
+		{ count: 3, id: "streak_3" },
+		{ count: 5, id: "streak_5" },
+		{ count: 10, id: "streak_10" },
+	],
+} as const;
+
 export const ACHIEVEMENTS: Achievement[] = [
-	// Milestone achievements
+	// Milestone - Total Bets
 	{
 		id: "first_bet",
 		name: "First Steps",
@@ -23,6 +70,32 @@ export const ACHIEVEMENTS: Achievement[] = [
 		category: "milestone",
 		rarity: "common",
 	},
+	{
+		id: "bets_10",
+		name: "Active Bettor",
+		description: "Complete 10 total bets",
+		icon: "📊",
+		category: "milestone",
+		rarity: "common",
+	},
+	{
+		id: "bets_50",
+		name: "Dedicated Bettor",
+		description: "Complete 50 total bets",
+		icon: "📈",
+		category: "milestone",
+		rarity: "uncommon",
+	},
+	{
+		id: "bets_100",
+		name: "Bet Enthusiast",
+		description: "Complete 100 total bets",
+		icon: "🔥",
+		category: "milestone",
+		rarity: "rare",
+	},
+
+	// Milestone - Wins
 	{
 		id: "wins_5",
 		name: "Getting Started",
@@ -63,31 +136,8 @@ export const ACHIEVEMENTS: Achievement[] = [
 		category: "milestone",
 		rarity: "legendary",
 	},
-	{
-		id: "bets_10",
-		name: "Active Bettor",
-		description: "Complete 10 total bets",
-		icon: "📊",
-		category: "milestone",
-		rarity: "common",
-	},
-	{
-		id: "bets_50",
-		name: "Dedicated Bettor",
-		description: "Complete 50 total bets",
-		icon: "📈",
-		category: "milestone",
-		rarity: "uncommon",
-	},
-	{
-		id: "bets_100",
-		name: "Bet Enthusiast",
-		description: "Complete 100 total bets",
-		icon: "🔥",
-		category: "milestone",
-		rarity: "rare",
-	},
-	// Streak achievements
+
+	// Streak
 	{
 		id: "streak_3",
 		name: "Hot Streak",
@@ -112,7 +162,8 @@ export const ACHIEVEMENTS: Achievement[] = [
 		category: "streak",
 		rarity: "legendary",
 	},
-	// Social achievements
+
+	// Social
 	{
 		id: "first_friend_bet",
 		name: "Friendly Wager",
@@ -129,7 +180,8 @@ export const ACHIEVEMENTS: Achievement[] = [
 		category: "social",
 		rarity: "uncommon",
 	},
-	// Special achievements
+
+	// Special
 	{
 		id: "high_roller",
 		name: "High Roller",
@@ -156,84 +208,58 @@ export const ACHIEVEMENTS: Achievement[] = [
 	},
 ];
 
-// Get achievement by ID
+const achievementMap = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
 export function getAchievementById(id: string): Achievement | undefined {
-	return ACHIEVEMENTS.find((a) => a.id === id);
+	return achievementMap.get(id);
 }
 
-// Get all achievements
-export const getAllAchievements = createServerFn({ method: "GET" }).handler(
-	async () => {
-		return { error: null, data: ACHIEVEMENTS };
-	},
-);
+export function getRarityColor(rarity: AchievementRarity): string {
+	const colors: Record<AchievementRarity, string> = {
+		common: "bg-gray-100 text-gray-700 border-gray-300",
+		uncommon: "bg-green-100 text-green-700 border-green-300",
+		rare: "bg-blue-100 text-blue-700 border-blue-300",
+		epic: "bg-purple-100 text-purple-700 border-purple-300",
+		legendary: "bg-amber-100 text-amber-700 border-amber-300",
+	};
+	return colors[rarity] ?? colors.common;
+}
 
-// Get user's unlocked achievements
-export const getUserAchievements = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const currentUser = await getCurrentUser();
+export function getRarityLabel(rarity: AchievementRarity): string {
+	return rarity.charAt(0).toUpperCase() + rarity.slice(1);
+}
 
-		if (!currentUser) {
-			return { error: "Not authenticated", data: null };
-		}
+// ============================================================================
+// Database Operations
+// ============================================================================
 
-		const userId = currentUser.user.id;
+async function fetchUserAchievements(userId: string) {
+	const { data, error } = await supabaseAdmin
+		.from("user_achievements")
+		.select("*")
+		.eq("user_id", userId)
+		.order("unlocked_at", { ascending: false });
 
-		const { data, error } = await supabaseAdmin
-			.from("user_achievements")
-			.select("*")
-			.eq("user_id", userId)
-			.order("unlocked_at", { ascending: false });
+	if (error) {
+		return { data: null, error: error.message };
+	}
 
-		if (error) {
-			return { error: error.message, data: null };
-		}
+	const unlockedAchievements = (data || []).map((ua) => ({
+		...ua,
+		achievement: getAchievementById(ua.achievement_id),
+	}));
 
-		// Map to full achievement data
-		const unlockedAchievements = (data || []).map((ua) => ({
-			...ua,
-			achievement: getAchievementById(ua.achievement_id),
-		}));
+	return { data: unlockedAchievements, error: null };
+}
 
-		return { error: null, data: unlockedAchievements };
-	},
-);
-
-// Get achievements for a specific user (for viewing friend profiles)
-export const getUserAchievementsById = createServerFn({ method: "GET" })
-	.inputValidator((data: { userId: string }) => data)
-	.handler(async ({ data: { userId } }) => {
-		const currentUser = await getCurrentUser();
-
-		if (!currentUser) {
-			return { error: "Not authenticated", data: null };
-		}
-
-		const { data, error } = await supabaseAdmin
-			.from("user_achievements")
-			.select("*")
-			.eq("user_id", userId)
-			.order("unlocked_at", { ascending: false });
-
-		if (error) {
-			return { error: error.message, data: null };
-		}
-
-		// Map to full achievement data
-		const unlockedAchievements = (data || []).map((ua) => ({
-			...ua,
-			achievement: getAchievementById(ua.achievement_id),
-		}));
-
-		return { error: null, data: unlockedAchievements };
-	});
-
-// Internal function to award an achievement (used by the system)
 export async function awardAchievement(
 	userId: string,
 	achievementId: string,
 ): Promise<boolean> {
-	// Check if user already has this achievement
 	const { data: existing } = await supabaseAdmin
 		.from("user_achievements")
 		.select("id")
@@ -242,11 +268,9 @@ export async function awardAchievement(
 		.single();
 
 	if (existing) {
-		// User already has this achievement
 		return false;
 	}
 
-	// Award the achievement
 	const insert: UserAchievementInsert = {
 		user_id: userId,
 		achievement_id: achievementId,
@@ -267,225 +291,231 @@ export async function awardAchievement(
 	return true;
 }
 
-// Check and award achievements based on user stats and bet history
-export async function checkAndAwardAchievements(
+// ============================================================================
+// Achievement Checkers
+// ============================================================================
+
+async function tryAward(
 	userId: string,
-	context?: {
-		justWon?: boolean;
-		betAmount?: number;
-		opponentId?: string;
-	},
-): Promise<string[]> {
-	const newAchievements: string[] = [];
-
-	// Get user stats
-	const { data: user } = await supabaseAdmin
-		.from("users")
-		.select("total_bets, bets_won, bets_lost")
-		.eq("id", userId)
-		.single();
-
-	if (!user) return newAchievements;
-
-	const { total_bets, bets_won } = user;
-
-	// Check milestone achievements for total bets
-	if (total_bets >= 1) {
-		if (await awardAchievement(userId, "first_bet")) {
-			newAchievements.push("first_bet");
-		}
+	achievementId: string,
+	newAchievements: string[],
+): Promise<void> {
+	if (await awardAchievement(userId, achievementId)) {
+		newAchievements.push(achievementId);
 	}
-	if (total_bets >= 10) {
-		if (await awardAchievement(userId, "bets_10")) {
-			newAchievements.push("bets_10");
-		}
-	}
-	if (total_bets >= 50) {
-		if (await awardAchievement(userId, "bets_50")) {
-			newAchievements.push("bets_50");
-		}
-	}
-	if (total_bets >= 100) {
-		if (await awardAchievement(userId, "bets_100")) {
-			newAchievements.push("bets_100");
+}
+
+async function checkMilestoneAchievements(
+	userId: string,
+	stats: UserStats,
+	newAchievements: string[],
+): Promise<void> {
+	// Total bets milestones
+	for (const { count, id } of MILESTONE_THRESHOLDS.totalBets) {
+		if (stats.total_bets >= count) {
+			await tryAward(userId, id, newAchievements);
 		}
 	}
 
-	// Check wins milestones
-	if (bets_won >= 5) {
-		if (await awardAchievement(userId, "wins_5")) {
-			newAchievements.push("wins_5");
-		}
-	}
-	if (bets_won >= 10) {
-		if (await awardAchievement(userId, "wins_10")) {
-			newAchievements.push("wins_10");
-		}
-	}
-	if (bets_won >= 25) {
-		if (await awardAchievement(userId, "wins_25")) {
-			newAchievements.push("wins_25");
-		}
-	}
-	if (bets_won >= 50) {
-		if (await awardAchievement(userId, "wins_50")) {
-			newAchievements.push("wins_50");
-		}
-	}
-	if (bets_won >= 100) {
-		if (await awardAchievement(userId, "wins_100")) {
-			newAchievements.push("wins_100");
+	// Wins milestones
+	for (const { count, id } of MILESTONE_THRESHOLDS.wins) {
+		if (stats.bets_won >= count) {
+			await tryAward(userId, id, newAchievements);
 		}
 	}
 
-	// Check first friend bet (they always bet with friends)
-	if (total_bets >= 1) {
-		if (await awardAchievement(userId, "first_friend_bet")) {
-			newAchievements.push("first_friend_bet");
+	// First friend bet (all bets are with friends in this app)
+	if (stats.total_bets >= 1) {
+		await tryAward(userId, "first_friend_bet", newAchievements);
+	}
+}
+
+async function checkStreakAchievements(
+	userId: string,
+	newAchievements: string[],
+): Promise<void> {
+	const { data: recentBets } = await supabaseAdmin
+		.from("bets")
+		.select("winner_id")
+		.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+		.eq("status", "completed")
+		.order("resolved_at", { ascending: false })
+		.limit(10);
+
+	if (!recentBets?.length) return;
+
+	let currentStreak = 0;
+	for (const bet of recentBets) {
+		if (bet.winner_id === userId) {
+			currentStreak++;
+		} else {
+			break;
 		}
 	}
 
-	// Check high roller achievement
-	if (context?.justWon && context?.betAmount && context.betAmount >= 100) {
-		if (await awardAchievement(userId, "high_roller")) {
-			newAchievements.push("high_roller");
+	for (const { count, id } of MILESTONE_THRESHOLDS.streaks) {
+		if (currentStreak >= count) {
+			await tryAward(userId, id, newAchievements);
 		}
 	}
+}
 
-	// Check streak achievements - get recent completed bets
-	if (context?.justWon) {
-		const { data: recentBets } = await supabaseAdmin
-			.from("bets")
-			.select("winner_id, resolved_at")
-			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
-			.eq("status", "completed")
-			.order("resolved_at", { ascending: false })
-			.limit(10);
+async function checkComebackAchievement(
+	userId: string,
+	newAchievements: string[],
+): Promise<void> {
+	const { data: lastFourBets } = await supabaseAdmin
+		.from("bets")
+		.select("winner_id")
+		.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+		.eq("status", "completed")
+		.order("resolved_at", { ascending: false })
+		.limit(4);
 
-		if (recentBets && recentBets.length > 0) {
-			let currentStreak = 0;
-			for (const bet of recentBets) {
-				if (bet.winner_id === userId) {
-					currentStreak++;
-				} else {
-					break;
-				}
-			}
+	if (!lastFourBets || lastFourBets.length < 4) return;
 
-			if (currentStreak >= 3) {
-				if (await awardAchievement(userId, "streak_3")) {
-					newAchievements.push("streak_3");
-				}
-			}
-			if (currentStreak >= 5) {
-				if (await awardAchievement(userId, "streak_5")) {
-					newAchievements.push("streak_5");
-				}
-			}
-			if (currentStreak >= 10) {
-				if (await awardAchievement(userId, "streak_10")) {
-					newAchievements.push("streak_10");
-				}
-			}
-		}
+	const [latest, ...previous] = lastFourBets;
+	const isWin = latest.winner_id === userId;
+	const previousAllLosses = previous.every((b) => b.winner_id !== userId);
 
-		// Check comeback kid - win after 3 losses in a row
-		const { data: lastFourBets } = await supabaseAdmin
-			.from("bets")
-			.select("winner_id")
-			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
-			.eq("status", "completed")
-			.order("resolved_at", { ascending: false })
-			.limit(4);
-
-		if (lastFourBets && lastFourBets.length >= 4) {
-			// Check if latest is a win and previous 3 were losses
-			const [latest, ...previous] = lastFourBets;
-			if (
-				latest.winner_id === userId &&
-				previous.every((b) => b.winner_id !== userId)
-			) {
-				if (await awardAchievement(userId, "comeback_kid")) {
-					newAchievements.push("comeback_kid");
-				}
-			}
-		}
+	if (isWin && previousAllLosses) {
+		await tryAward(userId, "comeback_kid", newAchievements);
 	}
+}
 
-	// Check social bettor - bet with 5 different friends
+async function checkSocialAchievements(
+	userId: string,
+	newAchievements: string[],
+): Promise<void> {
 	const { data: completedBets } = await supabaseAdmin
 		.from("bets")
 		.select("creator_id, opponent_id")
 		.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 		.eq("status", "completed");
 
-	if (completedBets) {
-		const uniqueFriends = new Set<string>();
-		for (const bet of completedBets) {
-			const friendId =
-				bet.creator_id === userId ? bet.opponent_id : bet.creator_id;
-			uniqueFriends.add(friendId);
-		}
-		if (uniqueFriends.size >= 5) {
-			if (await awardAchievement(userId, "bet_5_friends")) {
-				newAchievements.push("bet_5_friends");
-			}
-		}
+	if (!completedBets) return;
+
+	const uniqueFriends = new Set(
+		completedBets.map((bet) =>
+			bet.creator_id === userId ? bet.opponent_id : bet.creator_id,
+		),
+	);
+
+	if (uniqueFriends.size >= 5) {
+		await tryAward(userId, "bet_5_friends", newAchievements);
 	}
+}
 
-	// Check perfect month achievement
+async function checkHighRollerAchievement(
+	userId: string,
+	betAmount: number,
+	newAchievements: string[],
+): Promise<void> {
+	if (betAmount >= 100) {
+		await tryAward(userId, "high_roller", newAchievements);
+	}
+}
+
+async function checkPerfectMonthAchievement(
+	userId: string,
+	newAchievements: string[],
+): Promise<void> {
+	const now = new Date();
+	const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+	const endOfMonth = new Date(
+		now.getFullYear(),
+		now.getMonth() + 1,
+		0,
+		23,
+		59,
+		59,
+	);
+
+	const { data: monthBets } = await supabaseAdmin
+		.from("bets")
+		.select("winner_id")
+		.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
+		.eq("status", "completed")
+		.gte("resolved_at", startOfMonth.toISOString())
+		.lte("resolved_at", endOfMonth.toISOString());
+
+	if (!monthBets || monthBets.length < 5) return;
+
+	const allWins = monthBets.every((b) => b.winner_id === userId);
+	if (allWins) {
+		await tryAward(userId, "perfect_month", newAchievements);
+	}
+}
+
+// ============================================================================
+// Main Achievement Check Function
+// ============================================================================
+
+export async function checkAndAwardAchievements(
+	userId: string,
+	context?: AchievementContext,
+): Promise<string[]> {
+	const newAchievements: string[] = [];
+
+	// Fetch user stats
+	const { data: user } = await supabaseAdmin
+		.from("users")
+		.select("total_bets, bets_won")
+		.eq("id", userId)
+		.single();
+
+	if (!user) return newAchievements;
+
+	// Always check milestone achievements
+	await checkMilestoneAchievements(userId, user, newAchievements);
+
+	// Always check social achievements
+	await checkSocialAchievements(userId, newAchievements);
+
+	// Win-specific achievements
 	if (context?.justWon) {
-		const now = new Date();
-		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-		const endOfMonth = new Date(
-			now.getFullYear(),
-			now.getMonth() + 1,
-			0,
-			23,
-			59,
-			59,
-		);
+		await checkStreakAchievements(userId, newAchievements);
+		await checkComebackAchievement(userId, newAchievements);
+		await checkPerfectMonthAchievement(userId, newAchievements);
 
-		const { data: monthBets } = await supabaseAdmin
-			.from("bets")
-			.select("winner_id")
-			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
-			.eq("status", "completed")
-			.gte("resolved_at", startOfMonth.toISOString())
-			.lte("resolved_at", endOfMonth.toISOString());
-
-		if (monthBets && monthBets.length >= 5) {
-			const allWins = monthBets.every((b) => b.winner_id === userId);
-			if (allWins) {
-				if (await awardAchievement(userId, "perfect_month")) {
-					newAchievements.push("perfect_month");
-				}
-			}
+		if (context.betAmount) {
+			await checkHighRollerAchievement(
+				userId,
+				context.betAmount,
+				newAchievements,
+			);
 		}
 	}
 
 	return newAchievements;
 }
 
-// Get rarity color for display
-export function getRarityColor(rarity: Achievement["rarity"]): string {
-	switch (rarity) {
-		case "common":
-			return "bg-gray-100 text-gray-700 border-gray-300";
-		case "uncommon":
-			return "bg-green-100 text-green-700 border-green-300";
-		case "rare":
-			return "bg-blue-100 text-blue-700 border-blue-300";
-		case "epic":
-			return "bg-purple-100 text-purple-700 border-purple-300";
-		case "legendary":
-			return "bg-amber-100 text-amber-700 border-amber-300";
-		default:
-			return "bg-gray-100 text-gray-700 border-gray-300";
-	}
-}
+// ============================================================================
+// Server Functions (API Endpoints)
+// ============================================================================
 
-// Get rarity label
-export function getRarityLabel(rarity: Achievement["rarity"]): string {
-	return rarity.charAt(0).toUpperCase() + rarity.slice(1);
-}
+export const getAllAchievements = createServerFn({ method: "GET" }).handler(
+	async () => {
+		return { error: null, data: ACHIEVEMENTS };
+	},
+);
+
+export const getUserAchievements = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const currentUser = await getCurrentUser();
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+		return fetchUserAchievements(currentUser.user.id);
+	},
+);
+
+export const getUserAchievementsById = createServerFn({ method: "GET" })
+	.inputValidator((data: { userId: string }) => data)
+	.handler(async ({ data: { userId } }) => {
+		const currentUser = await getCurrentUser();
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+		return fetchUserAchievements(userId);
+	});

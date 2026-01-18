@@ -57,7 +57,7 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 		// Send the email
 		try {
 			const resend = getResendClient();
-			const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@ibetu.app";
+			const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@i-bet-u.com";
 
 			await resend.emails.send({
 				from: `iBetU <${fromEmail}>`,
@@ -86,7 +86,7 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 								This amount is based on completed bets between you two. Time to settle up!
 							</p>
 							<div style="text-align: center; margin-top: 30px;">
-								<a href="${process.env.APP_URL || "https://ibetu-app.michael-nemni.workers.dev"}/friends"
+								<a href="${process.env.APP_URL || "https://i-bet-u.com"}/friends"
 								   style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
 									View on iBetU
 								</a>
@@ -188,8 +188,8 @@ export async function sendWinnerConfirmationEmail({
 
 	try {
 		const resend = getResendClient();
-		const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@ibetu.app";
-		const appUrl = process.env.APP_URL || "https://ibetu-app.michael-nemni.workers.dev";
+		const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@i-bet-u.com";
+		const appUrl = process.env.APP_URL || "https://i-bet-u.com";
 
 		await resend.emails.send({
 			from: `iBetU <${fromEmail}>`,
@@ -285,8 +285,8 @@ export async function sendBetInvitationEmail({
 
 	try {
 		const resend = getResendClient();
-		const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@ibetu.app";
-		const appUrl = process.env.APP_URL || "https://ibetu-app.michael-nemni.workers.dev";
+		const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@i-bet-u.com";
+		const appUrl = process.env.APP_URL || "https://i-bet-u.com";
 		const formattedDeadline = new Date(betDeadline).toLocaleDateString("en-US", {
 			weekday: "long",
 			year: "numeric",

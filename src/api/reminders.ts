@@ -355,6 +355,107 @@ export async function sendBetInvitationEmail({
 	}
 }
 
+// Send bet accepted email to the creator when opponent accepts
+export async function sendBetAcceptedEmail({
+	recipientId,
+	acceptorName,
+	acceptorUsername,
+	betTitle,
+	betAmount,
+	betDeadline,
+	betId,
+}: {
+	recipientId: string;
+	acceptorName: string;
+	acceptorUsername: string;
+	betTitle: string;
+	betAmount: number;
+	betDeadline: string;
+	betId: string;
+}): Promise<{ success: boolean; error?: string }> {
+	// Get recipient's email
+	const { data: recipient, error: recipientError } = await supabaseAdmin
+		.from("users")
+		.select("email, display_name")
+		.eq("id", recipientId)
+		.single();
+
+	if (recipientError || !recipient) {
+		console.error("Could not fetch recipient details:", recipientError);
+		return { success: false, error: "Could not fetch recipient details" };
+	}
+
+	try {
+		const resend = getResendClient();
+		const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@i-bet-u.com";
+		const appUrl = process.env.APP_URL || "https://i-bet-u.com";
+		const formattedDeadline = new Date(betDeadline).toLocaleDateString("en-US", {
+			weekday: "long",
+			year: "numeric",
+			month: "long",
+			day: "numeric",
+		});
+
+		await resend.emails.send({
+			from: `iBetU <${fromEmail}>`,
+			to: recipient.email,
+			subject: `${acceptorName} accepted your bet!`,
+			html: `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="utf-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				</head>
+				<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+					<div style="background: linear-gradient(135deg, #f97316, #ea580c); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+						<h1 style="color: white; margin: 0; font-size: 28px;">iBetU</h1>
+					</div>
+					<div style="background: #fff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+						<h2 style="color: #1f2937; margin-top: 0;">Game On, ${recipient.display_name}!</h2>
+						<p style="font-size: 16px; color: #4b5563;">
+							<strong>${acceptorName}</strong> (@${acceptorUsername}) has accepted your bet challenge!
+						</p>
+						<div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+							<p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">The Bet:</p>
+							<p style="margin: 0; font-size: 18px; font-weight: 600; color: #1f2937;">${betTitle}</p>
+						</div>
+						<div style="background: #dcfce7; border: 2px solid #22c55e; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+							<p style="margin: 0 0 5px 0; font-size: 14px; color: #166534;">Bet is now ACTIVE!</p>
+							<span style="font-size: 36px; font-weight: bold; color: #15803d;">$${betAmount.toFixed(2)}</span>
+							<p style="margin: 10px 0 0 0; font-size: 14px; color: #166534;">Deadline: ${formattedDeadline}</p>
+						</div>
+						<p style="font-size: 14px; color: #6b7280;">
+							The bet is now active. May the best person win!
+						</p>
+						<div style="text-align: center; margin-top: 30px;">
+							<a href="${appUrl}/bets/${betId}"
+							   style="background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+								View Bet Details
+							</a>
+						</div>
+						<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+						<p style="font-size: 12px; color: #9ca3af; text-align: center;">
+							You're receiving this email because ${acceptorName} accepted your bet on iBetU.
+						</p>
+					</div>
+				</body>
+				</html>
+			`,
+		});
+
+		return { success: true };
+	} catch (emailError) {
+		console.error("Failed to send bet accepted email:", {
+			error: emailError,
+			message: emailError instanceof Error ? emailError.message : String(emailError),
+			recipientId,
+			hasApiKey: !!process.env.RESEND_API_KEY,
+		});
+		return { success: false, error: "Failed to send email" };
+	}
+}
+
 // Check if reminder can be sent (not sent in last 24 hours)
 export const canSendReminder = createServerFn({ method: "GET" })
 	.inputValidator((data: { friendId: string }) => data)

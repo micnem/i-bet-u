@@ -762,38 +762,52 @@ function BetDetailsPage() {
 							</div>
 						</div>
 
-						{/* Show loser's payment link to winner */}
+						{/* Show payment link info based on who's viewing */}
 						{(() => {
 							const isWinner = user && user.id === bet.winner_id;
+							const isLoser = user && (user.id === bet.creator_id || user.id === bet.opponent_id) && !isWinner;
+							const winner = bet.winner;
 							const loser = bet.winner_id === bet.creator_id ? bet.opponent : bet.creator;
 
-							if (isWinner && loser.payment_link) {
+							// If viewer is the loser, show winner's payment link so they can pay
+							if (isLoser && winner.payment_link) {
 								return (
 									<div className="mt-4 pt-4 border-t border-green-200">
 										<div className="flex items-center gap-2 mb-2">
 											<CreditCard className="w-4 h-4 text-green-600" />
 											<p className="text-sm font-medium text-gray-800">
-												Collect your winnings
+												Pay your bet
 											</p>
 										</div>
 										<a
-											href={loser.payment_link}
+											href={winner.payment_link}
 											target="_blank"
 											rel="noopener noreferrer"
 											className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
 										>
-											Pay via {loser.display_name}'s link
+											Pay {winner.display_name}
 											<ExternalLink className="w-4 h-4" />
 										</a>
 									</div>
 								);
 							}
 
-							if (isWinner && !loser.payment_link) {
+							if (isLoser && !winner.payment_link) {
 								return (
 									<div className="mt-4 pt-4 border-t border-green-200">
 										<p className="text-sm text-gray-600">
-											{loser.display_name} hasn't set up a payment link yet.
+											{winner.display_name} hasn't set up a payment link yet.
+										</p>
+									</div>
+								);
+							}
+
+							// If viewer is the winner but hasn't set up payment link, prompt them
+							if (isWinner && !winner.payment_link) {
+								return (
+									<div className="mt-4 pt-4 border-t border-green-200">
+										<p className="text-sm text-gray-600">
+											You haven't set up a payment link yet. Add one in Settings so {loser.display_name} can pay you.
 										</p>
 									</div>
 								);

@@ -58,7 +58,7 @@ interface Bet {
 	status: BetStatus;
 	deadline: string;
 	creator_id: string;
-	opponent_id: string;
+	opponent_id: string | null;
 	creator: {
 		id: string;
 		display_name: string;
@@ -68,7 +68,7 @@ interface Bet {
 		id: string;
 		display_name: string;
 		avatar_url: string | null;
-	};
+	} | null;
 }
 
 interface UserProfile {
@@ -595,13 +595,16 @@ function Dashboard() {
 										const isDeadlinePassed =
 											displayStatus === "deadline_passed";
 										const isPendingForMe =
-											user?.id === bet.opponent.id && !isDeadlinePassed;
+											bet.opponent &&
+											user?.id === bet.opponent.id &&
+											!isDeadlinePassed;
 										const isActionLoading = actionLoadingId === bet.id;
 										// Show opponent name if I'm the creator, show creator name if I'm the opponent
-										const isOpponent = user?.id === bet.opponent.id;
+										const isOpponent =
+											bet.opponent && user?.id === bet.opponent.id;
 										const otherPartyName = isOpponent
 											? bet.creator.display_name
-											: bet.opponent.display_name;
+											: (bet.opponent?.display_name ?? "Waiting for opponent");
 
 										return (
 											<Link
@@ -723,10 +726,11 @@ function Dashboard() {
 										const isDeadlinePassed =
 											displayStatus === "deadline_passed";
 										// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
-										const isOpponent = user?.id === bet.opponent.id;
+										const isOpponent =
+											bet.opponent && user?.id === bet.opponent.id;
 										const otherPartyName = isOpponent
 											? bet.creator.display_name
-											: bet.opponent.display_name;
+											: (bet.opponent?.display_name ?? "Waiting for opponent");
 
 										return (
 											<Link

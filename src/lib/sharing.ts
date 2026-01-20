@@ -7,9 +7,14 @@ export function generateFriendInviteLink(userId: string): string {
 	return `${APP_URL}/invite/${userId}`;
 }
 
-// Generate bet share link
+// Generate bet share link (for existing bets with opponent)
 export function generateBetShareLink(betId: string): string {
 	return `${APP_URL}/bets/${betId}`;
+}
+
+// Generate shareable bet invite link (for bets without opponent)
+export function generateBetInviteLink(shareToken: string): string {
+	return `${APP_URL}/bets/join/${shareToken}`;
 }
 
 // Generate friend profile link
@@ -39,6 +44,17 @@ export function parseBetLink(url: string): string | null {
 	try {
 		const urlObj = new URL(url);
 		const match = urlObj.pathname.match(/\/bets\/([^/]+)/);
+		return match ? match[1] : null;
+	} catch {
+		return null;
+	}
+}
+
+// Parse bet invite link to get share token
+export function parseBetInviteLink(url: string): string | null {
+	try {
+		const urlObj = new URL(url);
+		const match = urlObj.pathname.match(/\/bets\/join\/([^/]+)/);
 		return match ? match[1] : null;
 	} catch {
 		return null;
@@ -106,6 +122,20 @@ export function getBetShareData(bet: {
 		title: `IBetU: ${bet.title}`,
 		text: `Check out this $${bet.amount} bet on IBetU!`,
 		url: generateBetShareLink(bet.id),
+	};
+}
+
+// Generate share data for shareable bet invite
+export function getBetInviteShareData(bet: {
+	share_token: string;
+	title: string;
+	amount: number;
+	creator_name: string;
+}) {
+	return {
+		title: `${bet.creator_name} challenges you!`,
+		text: `${bet.creator_name} wants to bet you $${bet.amount} on "${bet.title}" - accept the challenge on IBetU!`,
+		url: generateBetInviteLink(bet.share_token),
 	};
 }
 

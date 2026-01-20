@@ -21,7 +21,11 @@ import {
 	Check,
 	ExternalLink,
 	CreditCard,
+	Share2,
+	Copy,
+	Link2,
 } from "lucide-react";
+import { generateBetInviteLink, getBetInviteShareData, shareLink, copyToClipboard } from "../../lib/sharing";
 import {
 	getBetById,
 	acceptBet,
@@ -53,11 +57,12 @@ interface Bet {
 	accepted_at: string | null;
 	resolved_at: string | null;
 	creator_id: string;
-	opponent_id: string;
+	opponent_id: string | null;
 	winner_id: string | null;
 	creator_approved: boolean;
 	opponent_approved: boolean;
 	verification_method: string;
+	share_token: string | null;
 	creator: {
 		id: string;
 		username: string;
@@ -71,7 +76,7 @@ interface Bet {
 		display_name: string;
 		avatar_url: string | null;
 		payment_link: string | null;
-	};
+	} | null;
 	winner?: {
 		id: string;
 		username: string;
@@ -110,6 +115,7 @@ function BetDetailsPage() {
 	const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 	const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
 	const [editContent, setEditContent] = useState("");
+	const [shareLinkCopied, setShareLinkCopied] = useState(false);
 
 	useEffect(() => {
 		async function fetchBet() {
@@ -336,12 +342,13 @@ function BetDetailsPage() {
 	}
 
 	const isCreator = user && user.id === bet.creator.id;
-	const isOpponent = user && user.id === bet.opponent.id;
+	const isOpponent = user && bet.opponent && user.id === bet.opponent.id;
 	const isPending = bet.status === "pending";
 	const isActive = bet.status === "active";
 	const isCompleted = bet.status === "completed";
 	const displayStatus = getDisplayStatus(bet.status, bet.deadline);
 	const isDeadlinePassed = displayStatus === "deadline_passed";
+	const isShareableBet = !bet.opponent_id && bet.share_token;
 
 	return (
 		<div className="min-h-screen bg-gray-100">
@@ -443,36 +450,53 @@ function BetDetailsPage() {
 							)}
 						</div>
 
-						{/* Opponent */}
-						<div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-							<div className="flex items-center gap-3">
-								<div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-									{bet.opponent.avatar_url ? (
-										<img
-											src={bet.opponent.avatar_url}
-											alt={bet.opponent.display_name}
-											className="w-full h-full object-cover"
-										/>
-									) : (
-										<span className="text-lg font-bold text-white">
-											{bet.opponent.display_name.charAt(0).toUpperCase()}
-										</span>
-									)}
+						{/* Opponent or Waiting for Opponent */}
+						{bet.opponent ? (
+							<div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+								<div className="flex items-center gap-3">
+									<div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+										{bet.opponent.avatar_url ? (
+											<img
+												src={bet.opponent.avatar_url}
+												alt={bet.opponent.display_name}
+												className="w-full h-full object-cover"
+											/>
+										) : (
+											<span className="text-lg font-bold text-white">
+												{bet.opponent.display_name.charAt(0).toUpperCase()}
+											</span>
+										)}
+									</div>
+									<div>
+										<p className="font-medium text-gray-800">
+											{bet.opponent.display_name}
+										</p>
+										<p className="text-sm text-gray-500">Opponent</p>
+									</div>
 								</div>
-								<div>
-									<p className="font-medium text-gray-800">
-										{bet.opponent.display_name}
-									</p>
-									<p className="text-sm text-gray-500">Opponent</p>
-								</div>
+								{isCompleted && bet.winner_id === bet.opponent_id && (
+									<Trophy className="w-6 h-6 text-yellow-500" />
+								)}
+								{isActive && bet.opponent_approved && (
+									<CheckCircle className="w-5 h-5 text-green-500" />
+								)}
 							</div>
-							{isCompleted && bet.winner_id === bet.opponent_id && (
-								<Trophy className="w-6 h-6 text-yellow-500" />
-							)}
-							{isActive && bet.opponent_approved && (
-								<CheckCircle className="w-5 h-5 text-green-500" />
-							)}
-						</div>
+						) : (
+							<div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+								<div className="flex items-center gap-3">
+									<div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+										<User className="w-6 h-6 text-gray-400" />
+									</div>
+									<div>
+										<p className="font-medium text-gray-500">
+											Waiting for opponent
+										</p>
+										<p className="text-sm text-gray-400">Share link to challenge someone</p>
+									</div>
+								</div>
+								<Link2 className="w-5 h-5 text-gray-400" />
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -541,7 +565,79 @@ function BetDetailsPage() {
 					</div>
 				)}
 
-				{isPending && isCreator && !isDeadlinePassed && (
+				{isPending && isCreator && !isDeadlinePassed && isShareableBet && (
+					<div className="bg-orange-50 rounded-xl p-6">
+						<div className="flex items-center gap-3 mb-4">
+							<Link2 className="w-6 h-6 text-orange-500" />
+							<div>
+								<p className="font-medium text-gray-800">
+									Share this bet
+								</p>
+								<p className="text-sm text-gray-600">
+									Send this link to challenge someone to accept your bet
+								</p>
+							</div>
+						</div>
+
+						{/* Share Button */}
+						<button
+							type="button"
+							onClick={() => shareLink(getBetInviteShareData({
+								share_token: bet.share_token!,
+								title: bet.title,
+								amount: Number(bet.amount),
+								creator_name: bet.creator.display_name,
+							}))}
+							className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold transition-colors mb-3"
+						>
+							<Share2 size={20} />
+							Share Challenge Link
+						</button>
+
+						{/* Copy Link */}
+						<div className="flex items-center gap-2 mb-4">
+							<div className="flex-1 bg-white rounded-lg px-4 py-2.5 text-sm text-gray-600 truncate border border-orange-200">
+								{generateBetInviteLink(bet.share_token!)}
+							</div>
+							<button
+								type="button"
+								onClick={async () => {
+									const success = await copyToClipboard(generateBetInviteLink(bet.share_token!));
+									if (success) {
+										setShareLinkCopied(true);
+										setTimeout(() => setShareLinkCopied(false), 2000);
+									}
+								}}
+								className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors ${
+									shareLinkCopied
+										? "bg-green-100 text-green-700"
+										: "bg-white border border-orange-200 hover:bg-orange-100 text-gray-700"
+								}`}
+							>
+								{shareLinkCopied ? <Check size={18} /> : <Copy size={18} />}
+								{shareLinkCopied ? "Copied!" : "Copy"}
+							</button>
+						</div>
+
+						<div className="pt-4 border-t border-orange-200">
+							<button
+								type="button"
+								onClick={handleCancel}
+								disabled={actionLoading}
+								className="w-full px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+							>
+								{actionLoading ? (
+									<Loader2 className="w-5 h-5 animate-spin" />
+								) : (
+									<Trash2 className="w-5 h-5" />
+								)}
+								Cancel Bet
+							</button>
+						</div>
+					</div>
+				)}
+
+				{isPending && isCreator && !isDeadlinePassed && !isShareableBet && bet.opponent && (
 					<div className="bg-yellow-50 rounded-xl p-6">
 						<div className="flex items-center gap-3">
 							<Clock className="w-6 h-6 text-yellow-500" />
@@ -572,7 +668,7 @@ function BetDetailsPage() {
 					</div>
 				)}
 
-				{isActive && (
+				{isActive && bet.opponent && (
 					<div className="bg-white rounded-xl shadow-md p-6">
 						<h3 className="font-semibold text-gray-800 mb-4">
 							Declare Winner
@@ -608,7 +704,7 @@ function BetDetailsPage() {
 										</button>
 										<button
 											type="button"
-											onClick={() => handleApproveWinner(bet.opponent_id)}
+											onClick={() => handleApproveWinner(bet.opponent_id!)}
 											disabled={actionLoading}
 											className={`flex-1 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
 												opponentSelected

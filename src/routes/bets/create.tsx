@@ -1,12 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Loader2, Check, UserPlus, Share2, Copy, X, AtSign, Phone, QrCode, Sparkles, Trophy, Flame, Gamepad2, UtensilsCrossed, Star, Medal, Target, CloudRain, Calendar, Vote, TrendingUp, Dumbbell, CheckCircle, Ban, BookOpen, HelpCircle, Zap, Film, Coffee, Beer } from "lucide-react";
+import { ArrowLeft, Users, Loader2, Check, UserPlus, Share2, Copy, X, AtSign, Phone, QrCode, Sparkles, Trophy, Flame, Gamepad2, UtensilsCrossed, Star, Medal, Target, CloudRain, Calendar, Vote, TrendingUp, Dumbbell, CheckCircle, Ban, BookOpen, HelpCircle, Zap, Film, Coffee, Beer, Link2 } from "lucide-react";
 import { getFriends } from "../../api/friends";
 import { createBet } from "../../api/bets";
 import type { VerificationMethod } from "../../lib/database.types";
 import { useUser } from "../../components/AuthProvider";
 import { QRCodeDisplay } from "../../components/QRCode";
-import { generateFriendInviteLink, getFriendInviteShareData, shareLink, copyToClipboard } from "../../lib/sharing";
+import { generateFriendInviteLink, getFriendInviteShareData, generateBetInviteLink, getBetInviteShareData, shareLink, copyToClipboard } from "../../lib/sharing";
 import { betTemplateCategories, getDeadlineFromDays, type BetTemplate, type BetTemplateCategory } from "../../lib/bet-templates";
 
 // Icon mapping for dynamic rendering
@@ -73,6 +73,13 @@ function CreateBetPage() {
 	const [showTemplateModal, setShowTemplateModal] = useState(false);
 	const [selectedCategory, setSelectedCategory] = useState<string>(betTemplateCategories[0].id);
 
+	// Bet mode: "friend" for direct friend bet, "shareable" for link-based bet
+	const [betMode, setBetMode] = useState<"friend" | "shareable">(preselectedFriendId ? "friend" : "friend");
+
+	// Created bet state (for showing share link after creation)
+	const [createdBet, setCreatedBet] = useState<{ id: string; share_token: string | null } | null>(null);
+	const [shareLinkCopied, setShareLinkCopied] = useState(false);
+
 	// Form state
 	const [selectedFriendId, setSelectedFriendId] = useState<string | null>(preselectedFriendId || null);
 	const [title, setTitle] = useState("");
@@ -113,7 +120,14 @@ function CreateBetPage() {
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!selectedFriendId || !title || !amount || !deadline) {
+
+		// For friend mode, require opponent selection
+		if (betMode === "friend" && !selectedFriendId) {
+			setError("Please select an opponent");
+			return;
+		}
+
+		if (!title || !amount || !deadline) {
 			setError("Please fill in all required fields");
 			return;
 		}
@@ -126,7 +140,7 @@ function CreateBetPage() {
 				title,
 				description,
 				amount: parseFloat(amount),
-				opponentId: selectedFriendId,
+				opponentId: betMode === "friend" ? selectedFriendId : null,
 				deadline: new Date(deadline).toISOString(),
 				verificationMethod,
 			},
@@ -134,6 +148,10 @@ function CreateBetPage() {
 
 		if (result.error) {
 			setError(result.error);
+			setSubmitting(false);
+		} else if (betMode === "shareable" && result.data?.share_token) {
+			// For shareable bets, show the share link
+			setCreatedBet({ id: result.data.id, share_token: result.data.share_token });
 			setSubmitting(false);
 		} else {
 			navigate({ to: "/dashboard" });
@@ -182,98 +200,228 @@ function CreateBetPage() {
 			</div>
 
 			<div className="max-w-2xl mx-auto px-6 py-8">
-				{friends.length === 0 ? (
+				{/* Show share link after creating shareable bet */}
+				{createdBet?.share_token ? (
 					<div className="bg-white rounded-xl shadow-md p-6">
-						<div className="text-center py-8 text-gray-500">
-							<Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-							<p>No friends yet</p>
-							<p className="text-sm mt-2">Add friends first to create bets</p>
-							<Link
-								to="/friends"
-								className="ibetu-btn-primary inline-flex items-center gap-2 mt-4"
+						<div className="text-center mb-6">
+							<div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<Check className="w-8 h-8 text-green-600" />
+							</div>
+							<h2 className="text-xl font-bold text-gray-800 mb-2">Bet Created!</h2>
+							<p className="text-gray-500">
+								Share this link with anyone to challenge them
+							</p>
+						</div>
+
+						{/* Share Link Section */}
+						<div className="mb-6">
+							<button
+								type="button"
+								onClick={() => shareLink(getBetInviteShareData({
+									share_token: createdBet.share_token!,
+									title,
+									amount: parseFloat(amount),
+									creator_name: displayName,
+								}))}
+								className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-lg transition-colors mb-4"
 							>
-								Add Friends
+								<Share2 size={24} />
+								Share Challenge Link
+							</button>
+
+							<div className="flex items-center gap-2">
+								<div className="flex-1 bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-600 truncate">
+									{generateBetInviteLink(createdBet.share_token!)}
+								</div>
+								<button
+									type="button"
+									onClick={async () => {
+										const success = await copyToClipboard(generateBetInviteLink(createdBet.share_token!));
+										if (success) {
+											setShareLinkCopied(true);
+											setTimeout(() => setShareLinkCopied(false), 2000);
+										}
+									}}
+									className={`flex items-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
+										shareLinkCopied
+											? "bg-green-100 text-green-700"
+											: "bg-gray-200 hover:bg-gray-300 text-gray-700"
+									}`}
+								>
+									{shareLinkCopied ? <Check size={18} /> : <Copy size={18} />}
+									{shareLinkCopied ? "Copied!" : "Copy"}
+								</button>
+							</div>
+						</div>
+
+						<div className="flex gap-3">
+							<Link
+								to="/bets/$betId"
+								params={{ betId: createdBet.id }}
+								className="flex-1 ibetu-btn-secondary text-center"
+							>
+								View Bet
+							</Link>
+							<Link
+								to="/dashboard"
+								className="flex-1 ibetu-btn-outline text-center"
+							>
+								Dashboard
 							</Link>
 						</div>
 					</div>
 				) : (
 					<form onSubmit={handleSubmit} className="space-y-6">
-						{/* Select Opponent */}
+						{/* Bet Mode Toggle */}
 						<div className="bg-white rounded-xl shadow-md p-6">
 							<div className="flex items-center gap-3 mb-4">
 								<div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-									<Users className="w-5 h-5 text-orange-500" />
+									<Trophy className="w-5 h-5 text-orange-500" />
 								</div>
 								<div>
-									<h2 className="text-lg font-semibold">Select Opponent</h2>
+									<h2 className="text-lg font-semibold">How do you want to bet?</h2>
 									<p className="text-sm text-gray-500">
-										Choose a friend to bet against
+										Choose how to challenge your opponent
 									</p>
 								</div>
 							</div>
 
-							<div className="grid gap-2 max-h-60 overflow-y-auto">
-								{friends.map((f) => {
-									const friend = f.friend;
-									if (!friend) return null;
-									const isSelected = selectedFriendId === friend.id;
-									return (
-										<button
-											key={f.id}
-											type="button"
-											onClick={() => setSelectedFriendId(friend.id)}
-											className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
-												isSelected
-													? "border-orange-500 bg-orange-50"
-													: "border-gray-200 hover:border-gray-300"
-											}`}
-										>
-											<div className="flex items-center gap-3">
-												<div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-													{friend.avatar_url ? (
-														<img
-															src={friend.avatar_url}
-															alt={friend.display_name}
-															className="w-full h-full object-cover"
-														/>
-													) : (
-														<span className="text-sm font-bold text-white">
-															{friend.display_name?.charAt(0).toUpperCase() || "?"}
-														</span>
-													)}
-												</div>
-												<div className="text-left">
-													<p className="font-medium text-gray-800">
-														{friend.display_name}
-													</p>
-													{friend.username && (
-														<p className="text-sm text-gray-500">
-															@{friend.username}
-														</p>
-													)}
-												</div>
-											</div>
-											{isSelected && (
-												<Check className="w-5 h-5 text-orange-500" />
-											)}
-										</button>
-									);
-								})}
-
-								{/* Add Friend Button */}
+							<div className="grid grid-cols-2 gap-3">
 								<button
 									type="button"
-									onClick={() => setShowAddFriendModal(true)}
-									className="flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-orange-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+									onClick={() => setBetMode("friend")}
+									className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+										betMode === "friend"
+											? "border-orange-500 bg-orange-50"
+											: "border-gray-200 hover:border-gray-300"
+									}`}
 								>
-									<UserPlus className="w-5 h-5" />
-									<span className="font-medium">Add New Friend</span>
+									<Users className={`w-8 h-8 ${betMode === "friend" ? "text-orange-500" : "text-gray-400"}`} />
+									<span className={`font-medium ${betMode === "friend" ? "text-orange-700" : "text-gray-700"}`}>
+										Bet a Friend
+									</span>
+									<span className="text-xs text-gray-500 text-center">
+										Select from your friends list
+									</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => {
+										setBetMode("shareable");
+										setSelectedFriendId(null);
+									}}
+									className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+										betMode === "shareable"
+											? "border-orange-500 bg-orange-50"
+											: "border-gray-200 hover:border-gray-300"
+									}`}
+								>
+									<Link2 className={`w-8 h-8 ${betMode === "shareable" ? "text-orange-500" : "text-gray-400"}`} />
+									<span className={`font-medium ${betMode === "shareable" ? "text-orange-700" : "text-gray-700"}`}>
+										Create Shareable Link
+									</span>
+									<span className="text-xs text-gray-500 text-center">
+										Send link to anyone
+									</span>
 								</button>
 							</div>
 						</div>
 
+						{/* Select Opponent (only for friend mode) */}
+						{betMode === "friend" && (
+							<div className="bg-white rounded-xl shadow-md p-6">
+								<div className="flex items-center gap-3 mb-4">
+									<div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+										<Users className="w-5 h-5 text-orange-500" />
+									</div>
+									<div>
+										<h2 className="text-lg font-semibold">Select Opponent</h2>
+										<p className="text-sm text-gray-500">
+											Choose a friend to bet against
+										</p>
+									</div>
+								</div>
+
+								{friends.length === 0 ? (
+									<div className="text-center py-6 text-gray-500">
+										<Users className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+										<p className="text-sm">No friends yet</p>
+										<button
+											type="button"
+											onClick={() => setShowAddFriendModal(true)}
+											className="text-orange-500 hover:text-orange-600 text-sm font-medium mt-2"
+										>
+											Add friends to bet directly
+										</button>
+										<p className="text-xs text-gray-400 mt-2">
+											Or use "Create Shareable Link" to bet anyone!
+										</p>
+									</div>
+								) : (
+									<div className="grid gap-2 max-h-60 overflow-y-auto">
+										{friends.map((f) => {
+											const friend = f.friend;
+											if (!friend) return null;
+											const isSelected = selectedFriendId === friend.id;
+											return (
+												<button
+													key={f.id}
+													type="button"
+													onClick={() => setSelectedFriendId(friend.id)}
+													className={`flex items-center justify-between p-3 rounded-lg border-2 transition-colors ${
+														isSelected
+															? "border-orange-500 bg-orange-50"
+															: "border-gray-200 hover:border-gray-300"
+													}`}
+												>
+													<div className="flex items-center gap-3">
+														<div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+															{friend.avatar_url ? (
+																<img
+																	src={friend.avatar_url}
+																	alt={friend.display_name}
+																	className="w-full h-full object-cover"
+																/>
+															) : (
+																<span className="text-sm font-bold text-white">
+																	{friend.display_name?.charAt(0).toUpperCase() || "?"}
+																</span>
+															)}
+														</div>
+														<div className="text-left">
+															<p className="font-medium text-gray-800">
+																{friend.display_name}
+															</p>
+															{friend.username && (
+																<p className="text-sm text-gray-500">
+																	@{friend.username}
+																</p>
+															)}
+														</div>
+													</div>
+													{isSelected && (
+														<Check className="w-5 h-5 text-orange-500" />
+													)}
+												</button>
+											);
+										})}
+
+										{/* Add Friend Button */}
+										<button
+											type="button"
+											onClick={() => setShowAddFriendModal(true)}
+											className="flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-orange-400 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+										>
+											<UserPlus className="w-5 h-5" />
+											<span className="font-medium">Add New Friend</span>
+										</button>
+									</div>
+								)}
+							</div>
+						)}
+
 						{/* Bet Details */}
-						{selectedFriendId && (
+						{(betMode === "shareable" || selectedFriendId) && (
 							<div className="bg-white rounded-xl shadow-md p-6 space-y-4">
 								<div className="flex items-center justify-between">
 									<h2 className="text-lg font-semibold">Bet Details</h2>
@@ -374,6 +522,11 @@ function CreateBetPage() {
 										<>
 											<Loader2 className="w-5 h-5 animate-spin" />
 											Creating Bet...
+										</>
+									) : betMode === "shareable" ? (
+										<>
+											<Link2 className="w-5 h-5" />
+											Create Shareable Bet
 										</>
 									) : (
 										<>

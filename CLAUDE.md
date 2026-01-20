@@ -230,7 +230,7 @@ RESEND_API_KEY=re_your-api-key
 When making changes:
 
 1. **Read existing code first** - understand patterns before modifying
-2. **Use Biome** - run `pnpm check` before committing
+2. **Run `pnpm check` after every change** - this runs Biome lint and format checks. Fix any errors before committing. Use `pnpm check --write` to auto-fix formatting issues.
 3. **Follow the API pattern** - return `{ error, data }` from server functions
 4. **Test locally** - run `pnpm dev` and test changes
 5. **Check types** - TypeScript strict mode is enabled

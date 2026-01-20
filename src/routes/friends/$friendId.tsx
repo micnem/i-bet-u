@@ -5,8 +5,6 @@ export const Route = createFileRoute("/friends/$friendId")({
 });
 
 function FriendHistoryPage() {
-	const { friendId: _friendId } = Route.useParams();
-
 	return (
 		<div className="min-h-screen bg-gray-100 flex items-center justify-center">
 			<div className="text-center">

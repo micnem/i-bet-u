@@ -4,10 +4,8 @@ import { supabaseAdmin } from "../lib/supabase";
 
 // Get leaderboard
 export const getLeaderboard = createServerFn({ method: "GET" })
-	.inputValidator(
-		(data: { timeframe?: "all" | "month" | "week"; limit?: number }) => data,
-	)
-	.handler(async ({ data: { timeframe: _timeframe = "all", limit = 50 } }) => {
+	.inputValidator((data: { limit?: number }) => data)
+	.handler(async ({ data: { limit = 50 } }) => {
 		const query = supabaseAdmin
 			.from("users")
 			.select(

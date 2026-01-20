@@ -80,10 +80,8 @@ export async function sendEmail({
 
 // Send a payment reminder to a friend who owes money
 export const sendPaymentReminder = createServerFn({ method: "POST" })
-	.inputValidator(
-		(data: { friendId: string; amount: number; friendName: string }) => data,
-	)
-	.handler(async ({ data: { friendId, amount, friendName: _friendName } }) => {
+	.inputValidator((data: { friendId: string; amount: number }) => data)
+	.handler(async ({ data: { friendId, amount } }) => {
 		const currentUser = await getCurrentUser();
 
 		if (!currentUser) {

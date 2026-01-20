@@ -1,6 +1,9 @@
 // Deep linking and sharing utilities for IBetU
 
-const APP_URL = typeof window !== "undefined" ? window.location.origin : "https://ibetu-app.michael-nemni.workers.dev";
+const APP_URL =
+	typeof window !== "undefined"
+		? window.location.origin
+		: "https://ibetu-app.michael-nemni.workers.dev";
 
 // Generate friend invite link using user ID (safe to share)
 export function generateFriendInviteLink(userId: string): string {
@@ -90,11 +93,11 @@ export async function shareLink(data: {
 	text: string;
 	url: string;
 }): Promise<boolean> {
-	if (typeof navigator !== "undefined" && navigator.share) {
+	if (navigator?.share) {
 		try {
 			await navigator.share(data);
 			return true;
-		} catch (err) {
+		} catch (_err) {
 			// User cancelled or share failed
 			return false;
 		}

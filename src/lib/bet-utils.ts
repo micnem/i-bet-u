@@ -13,9 +13,15 @@ export function isDeadlinePassed(deadline: string): boolean {
  */
 export type DisplayStatus = BetStatus | "deadline_passed";
 
-export function getDisplayStatus(status: BetStatus, deadline: string): DisplayStatus {
+export function getDisplayStatus(
+	status: BetStatus,
+	deadline: string,
+): DisplayStatus {
 	// Only show deadline_passed for pending or active bets
-	if ((status === "pending" || status === "active") && isDeadlinePassed(deadline)) {
+	if (
+		(status === "pending" || status === "active") &&
+		isDeadlinePassed(deadline)
+	) {
 		return "deadline_passed";
 	}
 	return status;

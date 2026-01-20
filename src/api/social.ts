@@ -1,19 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "../lib/supabase";
 import { getCurrentUser } from "../lib/auth";
+import { supabaseAdmin } from "../lib/supabase";
 
 // Get leaderboard
 export const getLeaderboard = createServerFn({ method: "GET" })
-	.inputValidator(
-		(data: {
-			timeframe?: "all" | "month" | "week";
-			limit?: number;
-		}) => data
-	)
-	.handler(async ({ data: { timeframe = "all", limit = 50 } }) => {
-		let query = supabaseAdmin
+	.inputValidator((data: { limit?: number }) => data)
+	.handler(async ({ data: { limit = 50 } }) => {
+		const query = supabaseAdmin
 			.from("users")
-			.select("id, username, display_name, avatar_url, bets_won, bets_lost, total_bets")
+			.select(
+				"id, username, display_name, avatar_url, bets_won, bets_lost, total_bets",
+			)
 			.gt("total_bets", 0)
 			.order("bets_won", { ascending: false })
 			.limit(limit);
@@ -72,12 +69,14 @@ export const getUserRank = createServerFn({ method: "GET" }).handler(
 			rank: rank > 0 ? rank : null,
 			totalPlayers: allUsers.length,
 		};
-	}
+	},
 );
 
 // Get bet history between two users
 export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
-	.inputValidator((data: { friendId: string; limit?: number; offset?: number }) => data)
+	.inputValidator(
+		(data: { friendId: string; limit?: number; offset?: number }) => data,
+	)
 	.handler(async ({ data: { friendId, limit = 50, offset = 0 } }) => {
 		const currentUser = await getCurrentUser();
 
@@ -94,10 +93,10 @@ export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
 				*,
 				creator:users!bets_creator_id_fkey(*),
 				opponent:users!bets_opponent_id_fkey(*)
-			`
+			`,
 			)
 			.or(
-				`and(creator_id.eq.${userId},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${userId})`
+				`and(creator_id.eq.${userId},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${userId})`,
 			)
 			.order("created_at", { ascending: false })
 			.range(offset, offset + limit - 1);
@@ -108,11 +107,9 @@ export const getBetHistoryWithFriend = createServerFn({ method: "GET" })
 
 		// Calculate stats
 		const completedBets = bets.filter((b) => b.status === "completed");
-		const userWins = completedBets.filter(
-			(b) => b.winner_id === userId
-		).length;
+		const userWins = completedBets.filter((b) => b.winner_id === userId).length;
 		const friendWins = completedBets.filter(
-			(b) => b.winner_id === friendId
+			(b) => b.winner_id === friendId,
 		).length;
 
 		return {
@@ -145,7 +142,9 @@ export const getFriendComparison = createServerFn({ method: "GET" })
 		// Get both users' stats
 		const { data: users, error } = await supabaseAdmin
 			.from("users")
-			.select("id, username, display_name, avatar_url, total_bets, bets_won, bets_lost")
+			.select(
+				"id, username, display_name, avatar_url, total_bets, bets_won, bets_lost",
+			)
 			.in("id", [userId, friendId]);
 
 		if (error || !users || users.length !== 2) {
@@ -160,12 +159,14 @@ export const getFriendComparison = createServerFn({ method: "GET" })
 			.from("bets")
 			.select("winner_id, status")
 			.or(
-				`and(creator_id.eq.${userId},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${userId})`
+				`and(creator_id.eq.${userId},opponent_id.eq.${friendId}),and(creator_id.eq.${friendId},opponent_id.eq.${userId})`,
 			)
 			.eq("status", "completed");
 
-		const h2hUserWins = h2hBets?.filter((b) => b.winner_id === userId).length || 0;
-		const h2hFriendWins = h2hBets?.filter((b) => b.winner_id === friendId).length || 0;
+		const h2hUserWins =
+			h2hBets?.filter((b) => b.winner_id === userId).length || 0;
+		const h2hFriendWins =
+			h2hBets?.filter((b) => b.winner_id === friendId).length || 0;
 
 		return {
 			error: null,
@@ -173,7 +174,9 @@ export const getFriendComparison = createServerFn({ method: "GET" })
 				currentUser: {
 					...currentUserData,
 					winRate: currentUserData?.total_bets
-						? Math.round((currentUserData.bets_won / currentUserData.total_bets) * 100)
+						? Math.round(
+								(currentUserData.bets_won / currentUserData.total_bets) * 100,
+							)
 						: 0,
 				},
 				friend: {

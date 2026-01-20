@@ -1,21 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "../lib/supabase";
-import type {
-	Bet,
-	BetInsert,
-	BetStatus,
-	VerificationMethod,
-	CommentInsert,
-	BetReactionInsert,
-} from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
-import { sendWinnerConfirmationEmail, sendBetInvitationEmail, sendBetAcceptedEmail, sendCommentNotificationEmail } from "./reminders";
+import type {
+	BetInsert,
+	BetReactionInsert,
+	BetStatus,
+	CommentInsert,
+	VerificationMethod,
+} from "../lib/database.types";
+import { supabaseAdmin } from "../lib/supabase";
 import { checkAndAwardAchievements } from "./achievements";
+import {
+	sendBetAcceptedEmail,
+	sendBetInvitationEmail,
+	sendCommentNotificationEmail,
+	sendWinnerConfirmationEmail,
+} from "./reminders";
 
 // Get all bets for current user
 export const getUserBets = createServerFn({ method: "GET" })
 	.inputValidator(
-		(data: { status?: BetStatus; limit?: number; offset?: number }) => data
+		(data: { status?: BetStatus; limit?: number; offset?: number }) => data,
 	)
 	.handler(async ({ data: { status, limit = 50, offset = 0 } }) => {
 		const currentUser = await getCurrentUser();
@@ -33,7 +37,7 @@ export const getUserBets = createServerFn({ method: "GET" })
 				*,
 				creator:users!bets_creator_id_fkey(*),
 				opponent:users!bets_opponent_id_fkey(*)
-			`
+			`,
 			)
 			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.order("created_at", { ascending: false })
@@ -72,7 +76,7 @@ export const getBetById = createServerFn({ method: "GET" })
 				creator:users!bets_creator_id_fkey(*),
 				opponent:users!bets_opponent_id_fkey(*),
 				winner:users!bets_winner_id_fkey(*)
-			`
+			`,
 			)
 			.eq("id", betId)
 			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
@@ -87,7 +91,8 @@ export const getBetById = createServerFn({ method: "GET" })
 
 // Helper function to generate a unique share token
 function generateShareToken(): string {
-	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	const chars =
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	let result = "";
 	for (let i = 0; i < 16; i++) {
 		result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -105,7 +110,7 @@ export const createBet = createServerFn({ method: "POST" })
 			opponentId?: string | null;
 			deadline: string;
 			verificationMethod: VerificationMethod;
-		}) => data
+		}) => data,
 	)
 	.handler(async ({ data }) => {
 		const currentUser = await getCurrentUser();
@@ -122,7 +127,7 @@ export const createBet = createServerFn({ method: "POST" })
 				.from("friendships")
 				.select("id")
 				.or(
-					`and(user_id.eq.${userId},friend_id.eq.${data.opponentId}),and(user_id.eq.${data.opponentId},friend_id.eq.${userId})`
+					`and(user_id.eq.${userId},friend_id.eq.${data.opponentId}),and(user_id.eq.${data.opponentId},friend_id.eq.${userId})`,
 				)
 				.eq("status", "accepted")
 				.single();
@@ -154,7 +159,7 @@ export const createBet = createServerFn({ method: "POST" })
 				*,
 				creator:users!bets_creator_id_fkey(*),
 				opponent:users!bets_opponent_id_fkey(*)
-			`
+			`,
 			)
 			.single();
 
@@ -337,11 +342,14 @@ export const approveBetResult = createServerFn({ method: "POST" })
 		} else {
 			// Only one party has approved - send confirmation email to the other
 			const declarerName = currentUser.user.display_name;
-			const winnerName = winnerId === bet.creator_id
-				? bet.creator.display_name
-				: bet.opponent.display_name;
+			const winnerName =
+				winnerId === bet.creator_id
+					? bet.creator.display_name
+					: bet.opponent.display_name;
 			const recipientId = isCreator ? bet.opponent_id : bet.creator_id;
-			const recipientName = isCreator ? bet.opponent.display_name : bet.creator.display_name;
+			const recipientName = isCreator
+				? bet.opponent.display_name
+				: bet.creator.display_name;
 
 			// Send email (await to ensure it completes before worker terminates)
 			try {
@@ -441,8 +449,12 @@ export const undoWinnerDeclaration = createServerFn({ method: "POST" })
 		}
 
 		const isCreator = userId === bet.creator_id;
-		const userHasApproved = isCreator ? bet.creator_approved : bet.opponent_approved;
-		const otherHasApproved = isCreator ? bet.opponent_approved : bet.creator_approved;
+		const userHasApproved = isCreator
+			? bet.creator_approved
+			: bet.opponent_approved;
+		const otherHasApproved = isCreator
+			? bet.opponent_approved
+			: bet.creator_approved;
 
 		// Can only undo if user has approved but other party hasn't
 		if (!userHasApproved) {
@@ -450,7 +462,10 @@ export const undoWinnerDeclaration = createServerFn({ method: "POST" })
 		}
 
 		if (otherHasApproved) {
-			return { error: "Cannot undo - both parties have already declared", data: null };
+			return {
+				error: "Cannot undo - both parties have already declared",
+				data: null,
+			};
 		}
 
 		// Reset user's approval and clear winner_id
@@ -517,7 +532,7 @@ export const getPendingBetInvites = createServerFn({ method: "GET" }).handler(
 				`
 				*,
 				creator:users!bets_creator_id_fkey(*)
-			`
+			`,
 			)
 			.eq("opponent_id", userId)
 			.eq("status", "pending")
@@ -528,7 +543,7 @@ export const getPendingBetInvites = createServerFn({ method: "GET" }).handler(
 		}
 
 		return { error: null, data };
-	}
+	},
 );
 
 // Get bets awaiting resolution confirmation (where other party declared a winner)
@@ -551,7 +566,7 @@ export const getBetsAwaitingConfirmation = createServerFn({
 			creator:users!bets_creator_id_fkey(id, display_name, avatar_url),
 			opponent:users!bets_opponent_id_fkey(id, display_name, avatar_url),
 			winner:users!bets_winner_id_fkey(id, display_name)
-		`
+		`,
 		)
 		.eq("status", "active")
 		.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
@@ -565,7 +580,9 @@ export const getBetsAwaitingConfirmation = createServerFn({
 	// Filter to only include bets where current user hasn't approved yet
 	const betsNeedingConfirmation = (data || []).filter((bet) => {
 		const isCreator = bet.creator_id === userId;
-		const hasApproved = isCreator ? bet.creator_approved : bet.opponent_approved;
+		const hasApproved = isCreator
+			? bet.creator_approved
+			: bet.opponent_approved;
 		return !hasApproved;
 	});
 
@@ -594,7 +611,7 @@ export const getActiveBetsCount = createServerFn({ method: "GET" }).handler(
 		}
 
 		return { error: null, count: count || 0 };
-	}
+	},
 );
 
 // Get amounts owed summary (calculated from completed bets)
@@ -616,7 +633,7 @@ export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 				*,
 				creator:users!bets_creator_id_fkey(id, username, display_name, avatar_url),
 				opponent:users!bets_opponent_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
 			.eq("status", "completed");
@@ -630,7 +647,15 @@ export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 		let totalLost = 0;
 		const balanceByFriend: Record<
 			string,
-			{ friend: { id: string; username: string; display_name: string; avatar_url: string | null }; amount: number }
+			{
+				friend: {
+					id: string;
+					username: string;
+					display_name: string;
+					avatar_url: string | null;
+				};
+				amount: number;
+			}
 		> = {};
 
 		for (const bet of completedBets || []) {
@@ -658,7 +683,7 @@ export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 
 		// Convert to array and sort by absolute amount
 		const friendBalances = Object.values(balanceByFriend).sort(
-			(a, b) => Math.abs(b.amount) - Math.abs(a.amount)
+			(a, b) => Math.abs(b.amount) - Math.abs(a.amount),
 		);
 
 		return {
@@ -670,7 +695,7 @@ export const getAmountsOwedSummary = createServerFn({ method: "GET" }).handler(
 				friendBalances,
 			},
 		};
-	}
+	},
 );
 
 // Get comments for a bet
@@ -703,7 +728,7 @@ export const getBetComments = createServerFn({ method: "GET" })
 				`
 				*,
 				author:users!comments_author_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.eq("bet_id", betId)
 			.order("created_at", { ascending: true });
@@ -766,7 +791,7 @@ export const createComment = createServerFn({ method: "POST" })
 				`
 				*,
 				author:users!comments_author_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.single();
 
@@ -775,8 +800,12 @@ export const createComment = createServerFn({ method: "POST" })
 		}
 
 		// Send email notification to the other participant
-		const recipientId = userId === bet.creator_id ? bet.opponent_id : bet.creator_id;
-		const recipientName = userId === bet.creator_id ? bet.opponent.display_name : bet.creator.display_name;
+		const recipientId =
+			userId === bet.creator_id ? bet.opponent_id : bet.creator_id;
+		const recipientName =
+			userId === bet.creator_id
+				? bet.opponent.display_name
+				: bet.creator.display_name;
 		try {
 			await sendCommentNotificationEmail({
 				recipientId,
@@ -851,7 +880,7 @@ export const updateComment = createServerFn({ method: "POST" })
 				`
 				*,
 				author:users!comments_author_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.single();
 
@@ -864,7 +893,7 @@ export const updateComment = createServerFn({ method: "POST" })
 
 // Available reaction emojis
 export const REACTION_EMOJIS = ["👍", "👎", "😂", "🔥", "🎯", "💰"] as const;
-export type ReactionEmoji = typeof REACTION_EMOJIS[number];
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
 // Get reactions for a bet
 export const getBetReactions = createServerFn({ method: "GET" })
@@ -896,7 +925,7 @@ export const getBetReactions = createServerFn({ method: "GET" })
 				`
 				*,
 				user:users!bet_reactions_user_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.eq("bet_id", betId)
 			.order("created_at", { ascending: true });
@@ -950,7 +979,7 @@ export const addBetReaction = createServerFn({ method: "POST" })
 				`
 				*,
 				user:users!bet_reactions_user_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.single();
 
@@ -1055,7 +1084,7 @@ export const toggleBetReaction = createServerFn({ method: "POST" })
 					`
 					*,
 					user:users!bet_reactions_user_id_fkey(id, username, display_name, avatar_url)
-				`
+				`,
 				)
 				.single();
 
@@ -1078,7 +1107,7 @@ export const getBetByShareToken = createServerFn({ method: "GET" })
 				`
 				*,
 				creator:users!bets_creator_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.eq("share_token", shareToken)
 			.single();
@@ -1118,7 +1147,7 @@ export const acceptBetViaShareLink = createServerFn({ method: "POST" })
 				`
 				*,
 				creator:users!bets_creator_id_fkey(id, username, display_name, avatar_url)
-			`
+			`,
 			)
 			.eq("share_token", shareToken)
 			.single();
@@ -1145,7 +1174,7 @@ export const acceptBetViaShareLink = createServerFn({ method: "POST" })
 			.from("friendships")
 			.select("id, status")
 			.or(
-				`and(user_id.eq.${userId},friend_id.eq.${bet.creator_id}),and(user_id.eq.${bet.creator_id},friend_id.eq.${userId})`
+				`and(user_id.eq.${userId},friend_id.eq.${bet.creator_id}),and(user_id.eq.${bet.creator_id},friend_id.eq.${userId})`,
 			)
 			.single();
 
@@ -1187,7 +1216,7 @@ export const acceptBetViaShareLink = createServerFn({ method: "POST" })
 				*,
 				creator:users!bets_creator_id_fkey(*),
 				opponent:users!bets_opponent_id_fkey(*)
-			`
+			`,
 			)
 			.single();
 

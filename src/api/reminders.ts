@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { Resend } from "resend";
-import { supabaseAdmin } from "../lib/supabase";
 import { getCurrentUser } from "../lib/auth";
+import { supabaseAdmin } from "../lib/supabase";
 
 // Initialize Resend client
 const getResendClient = () => {
@@ -36,7 +36,9 @@ export async function sendEmail({
 
 	// Check if user has opted out of emails
 	if (!recipient.email_notifications_enabled) {
-		console.log(`Skipping email to ${recipientId} - user has opted out of notifications`);
+		console.log(
+			`Skipping email to ${recipientId} - user has opted out of notifications`,
+		);
 		return { success: true, skipped: true };
 	}
 
@@ -47,13 +49,13 @@ export async function sendEmail({
 
 		// Add unsubscribe footer to all emails
 		const htmlWithFooter = html.replace(
-			'</body>',
+			"</body>",
 			`<div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
 				<p style="font-size: 12px; color: #9ca3af;">
 					Don't want to receive these emails? <a href="${appUrl}/settings" style="color: #f97316; text-decoration: underline;">Update your preferences</a>
 				</p>
 			</div>
-			</body>`
+			</body>`,
 		);
 
 		await resend.emails.send({
@@ -67,7 +69,8 @@ export async function sendEmail({
 	} catch (emailError) {
 		console.error("Failed to send email:", {
 			error: emailError,
-			message: emailError instanceof Error ? emailError.message : String(emailError),
+			message:
+				emailError instanceof Error ? emailError.message : String(emailError),
 			recipientId,
 			hasApiKey: !!process.env.RESEND_API_KEY,
 		});
@@ -77,10 +80,8 @@ export async function sendEmail({
 
 // Send a payment reminder to a friend who owes money
 export const sendPaymentReminder = createServerFn({ method: "POST" })
-	.inputValidator(
-		(data: { friendId: string; amount: number; friendName: string }) => data
-	)
-	.handler(async ({ data: { friendId, amount, friendName } }) => {
+	.inputValidator((data: { friendId: string; amount: number }) => data)
+	.handler(async ({ data: { friendId, amount } }) => {
 		const currentUser = await getCurrentUser();
 
 		if (!currentUser) {
@@ -107,12 +108,16 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 			.select("id, created_at")
 			.eq("sender_id", userId)
 			.eq("recipient_id", friendId)
-			.gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+			.gte(
+				"created_at",
+				new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+			)
 			.maybeSingle();
 
 		if (recentReminder) {
 			return {
-				error: "You already sent a reminder to this friend in the last 24 hours",
+				error:
+					"You already sent a reminder to this friend in the last 24 hours",
 				success: false,
 			};
 		}
@@ -158,7 +163,10 @@ export const sendPaymentReminder = createServerFn({ method: "POST" })
 		});
 
 		if (!emailResult.success) {
-			return { error: emailResult.error || "Failed to send email", success: false };
+			return {
+				error: emailResult.error || "Failed to send email",
+				success: false,
+			};
 		}
 
 		// Record the reminder (even if email was skipped due to opt-out, we still track the reminder attempt)
@@ -189,7 +197,7 @@ export const getReminderHistory = createServerFn({ method: "GET" })
 				`
 				*,
 				recipient:users!payment_reminders_recipient_id_fkey(id, display_name, username, avatar_url)
-			`
+			`,
 			)
 			.eq("sender_id", userId)
 			.order("created_at", { ascending: false })
@@ -438,9 +446,10 @@ export async function sendCommentNotificationEmail({
 	const appUrl = process.env.APP_URL || "https://i-bet-u.com";
 
 	// Truncate comment if too long for email preview
-	const truncatedComment = commentContent.length > 200
-		? commentContent.substring(0, 200) + "..."
-		: commentContent;
+	const truncatedComment =
+		commentContent.length > 200
+			? `${commentContent.substring(0, 200)}...`
+			: commentContent;
 
 	return sendEmail({
 		recipientId,

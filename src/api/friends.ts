@@ -1,23 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "../lib/supabase";
-import type { FriendshipInsert } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
+import type { FriendshipInsert } from "../lib/database.types";
+import { supabaseAdmin } from "../lib/supabase";
 
 // Get all friends for current user
-export const getFriends = createServerFn({ method: "GET" }).handler(async () => {
-	const currentUser = await getCurrentUser();
+export const getFriends = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const currentUser = await getCurrentUser();
 
-	if (!currentUser) {
-		return { error: "Not authenticated", data: null };
-	}
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
 
-	const userId = currentUser.user.id;
+		const userId = currentUser.user.id;
 
-	// Get friendships where user is either the requester or the friend
-	const { data, error } = await supabaseAdmin
-		.from("friendships")
-		.select(
-			`
+		// Get friendships where user is either the requester or the friend
+		const { data, error } = await supabaseAdmin
+			.from("friendships")
+			.select(
+				`
 			id,
 			status,
 			added_via,
@@ -25,20 +26,21 @@ export const getFriends = createServerFn({ method: "GET" }).handler(async () => 
 			user_id,
 			friend_id,
 			friend:users!friendships_friend_id_fkey(*)
-		`
-		)
-		.eq("user_id", userId)
-		.eq("status", "accepted");
+		`,
+			)
+			.eq("user_id", userId)
+			.eq("status", "accepted");
 
-	if (error) {
-		return { error: error.message, data: null };
-	}
+		if (error) {
+			return { error: error.message, data: null };
+		}
 
-	// Also get friendships where current user is the friend_id
-	const { data: reverseFriendships, error: reverseError } = await supabaseAdmin
-		.from("friendships")
-		.select(
-			`
+		// Also get friendships where current user is the friend_id
+		const { data: reverseFriendships, error: reverseError } =
+			await supabaseAdmin
+				.from("friendships")
+				.select(
+					`
 			id,
 			status,
 			added_via,
@@ -46,20 +48,21 @@ export const getFriends = createServerFn({ method: "GET" }).handler(async () => 
 			user_id,
 			friend_id,
 			friend:users!friendships_user_id_fkey(*)
-		`
-		)
-		.eq("friend_id", userId)
-		.eq("status", "accepted");
+		`,
+				)
+				.eq("friend_id", userId)
+				.eq("status", "accepted");
 
-	if (reverseError) {
-		return { error: reverseError.message, data: null };
-	}
+		if (reverseError) {
+			return { error: reverseError.message, data: null };
+		}
 
-	// Combine and dedupe
-	const allFriends = [...(data || []), ...(reverseFriendships || [])];
+		// Combine and dedupe
+		const allFriends = [...(data || []), ...(reverseFriendships || [])];
 
-	return { error: null, data: allFriends };
-});
+		return { error: null, data: allFriends };
+	},
+);
 
 // Get pending friend requests (received)
 export const getPendingFriendRequests = createServerFn({
@@ -82,7 +85,7 @@ export const getPendingFriendRequests = createServerFn({
 			added_via,
 			created_at,
 			requester:users!friendships_user_id_fkey(*)
-		`
+		`,
 		)
 		.eq("friend_id", userId)
 		.eq("status", "pending");
@@ -114,7 +117,7 @@ export const getSentFriendRequests = createServerFn({ method: "GET" }).handler(
 				added_via,
 				created_at,
 				friend:users!friendships_friend_id_fkey(*)
-			`
+			`,
 			)
 			.eq("user_id", userId)
 			.eq("status", "pending");
@@ -124,7 +127,7 @@ export const getSentFriendRequests = createServerFn({ method: "GET" }).handler(
 		}
 
 		return { error: null, data };
-	}
+	},
 );
 
 // Add friend directly via invite link (auto-accepted)
@@ -148,7 +151,7 @@ export const addFriendViaInvite = createServerFn({ method: "POST" })
 			.from("friendships")
 			.select("id, status")
 			.or(
-				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
+				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`,
 			)
 			.single();
 
@@ -187,7 +190,7 @@ export const addFriendViaInvite = createServerFn({ method: "POST" })
 				`
 				*,
 				friend:users!friendships_friend_id_fkey(*)
-			`
+			`,
 			)
 			.single();
 
@@ -201,7 +204,7 @@ export const addFriendViaInvite = createServerFn({ method: "POST" })
 // Send friend request
 export const sendFriendRequest = createServerFn({ method: "POST" })
 	.inputValidator(
-		(data: { friendId: string; addedVia: "qr" | "phone" | "nickname" }) => data
+		(data: { friendId: string; addedVia: "qr" | "phone" | "nickname" }) => data,
 	)
 	.handler(async ({ data: { friendId, addedVia } }) => {
 		const currentUser = await getCurrentUser();
@@ -221,7 +224,7 @@ export const sendFriendRequest = createServerFn({ method: "POST" })
 			.from("friendships")
 			.select("id, status")
 			.or(
-				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
+				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`,
 			)
 			.single();
 
@@ -249,7 +252,7 @@ export const sendFriendRequest = createServerFn({ method: "POST" })
 				`
 				*,
 				friend:users!friendships_friend_id_fkey(*)
-			`
+			`,
 			)
 			.single();
 
@@ -333,7 +336,7 @@ export const removeFriend = createServerFn({ method: "POST" })
 			.from("friendships")
 			.delete()
 			.or(
-				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`
+				`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`,
 			);
 
 		if (error) {
@@ -359,7 +362,7 @@ export const checkFriendship = createServerFn({ method: "GET" })
 			.from("friendships")
 			.select("status")
 			.or(
-				`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`
+				`and(user_id.eq.${userId},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${userId})`,
 			)
 			.single();
 
@@ -394,5 +397,5 @@ export const getFriendsCount = createServerFn({ method: "GET" }).handler(
 			.eq("status", "accepted");
 
 		return { error: null, count: (count1 || 0) + (count2 || 0) };
-	}
+	},
 );

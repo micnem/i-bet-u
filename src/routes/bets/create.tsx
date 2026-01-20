@@ -1,16 +1,64 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { ArrowLeft, Users, Loader2, Check, UserPlus, Share2, Copy, X, AtSign, Phone, QrCode, Sparkles, Trophy, Flame, Gamepad2, UtensilsCrossed, Star, Medal, Target, CloudRain, Calendar, Vote, TrendingUp, Dumbbell, CheckCircle, Ban, BookOpen, HelpCircle, Zap, Film, Coffee, Beer, Link2 } from "lucide-react";
-import { getFriends } from "../../api/friends";
+import {
+	ArrowLeft,
+	AtSign,
+	Ban,
+	Beer,
+	BookOpen,
+	Calendar,
+	Check,
+	CheckCircle,
+	CloudRain,
+	Coffee,
+	Copy,
+	Dumbbell,
+	Film,
+	Flame,
+	Gamepad2,
+	HelpCircle,
+	Link2,
+	Loader2,
+	Medal,
+	Phone,
+	QrCode,
+	Share2,
+	Sparkles,
+	Star,
+	Target,
+	TrendingUp,
+	Trophy,
+	UserPlus,
+	Users,
+	UtensilsCrossed,
+	Vote,
+	X,
+	Zap,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { createBet } from "../../api/bets";
-import type { VerificationMethod } from "../../lib/database.types";
+import { getFriends } from "../../api/friends";
 import { useUser } from "../../components/AuthProvider";
 import { QRCodeDisplay } from "../../components/QRCode";
-import { generateFriendInviteLink, getFriendInviteShareData, generateBetInviteLink, getBetInviteShareData, shareLink, copyToClipboard } from "../../lib/sharing";
-import { betTemplateCategories, getDeadlineFromDays, type BetTemplate, type BetTemplateCategory } from "../../lib/bet-templates";
+import {
+	type BetTemplate,
+	betTemplateCategories,
+	getDeadlineFromDays,
+} from "../../lib/bet-templates";
+import type { VerificationMethod } from "../../lib/database.types";
+import {
+	copyToClipboard,
+	generateBetInviteLink,
+	generateFriendInviteLink,
+	getBetInviteShareData,
+	getFriendInviteShareData,
+	shareLink,
+} from "../../lib/sharing";
 
 // Icon mapping for dynamic rendering
-const iconMap: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
+const iconMap: Record<
+	string,
+	React.ComponentType<{ className?: string; size?: number }>
+> = {
 	Trophy,
 	Star,
 	Medal,
@@ -71,17 +119,26 @@ function CreateBetPage() {
 
 	// Template modal state
 	const [showTemplateModal, setShowTemplateModal] = useState(false);
-	const [selectedCategory, setSelectedCategory] = useState<string>(betTemplateCategories[0].id);
+	const [selectedCategory, setSelectedCategory] = useState<string>(
+		betTemplateCategories[0].id,
+	);
 
 	// Bet mode: "friend" for direct friend bet, "shareable" for link-based bet
-	const [betMode, setBetMode] = useState<"friend" | "shareable">(preselectedFriendId ? "friend" : "friend");
+	const [betMode, setBetMode] = useState<"friend" | "shareable">(
+		preselectedFriendId ? "friend" : "friend",
+	);
 
 	// Created bet state (for showing share link after creation)
-	const [createdBet, setCreatedBet] = useState<{ id: string; share_token: string | null } | null>(null);
+	const [createdBet, setCreatedBet] = useState<{
+		id: string;
+		share_token: string | null;
+	} | null>(null);
 	const [shareLinkCopied, setShareLinkCopied] = useState(false);
 
 	// Form state
-	const [selectedFriendId, setSelectedFriendId] = useState<string | null>(preselectedFriendId || null);
+	const [selectedFriendId, setSelectedFriendId] = useState<string | null>(
+		preselectedFriendId || null,
+	);
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
@@ -97,7 +154,8 @@ function CreateBetPage() {
 		const minutes = String(tomorrow.getMinutes()).padStart(2, "0");
 		return `${year}-${month}-${day}T${hours}:${minutes}`;
 	});
-	const [verificationMethod, setVerificationMethod] = useState<VerificationMethod>("mutual_agreement");
+	const [verificationMethod, setVerificationMethod] =
+		useState<VerificationMethod>("mutual_agreement");
 
 	// Fetch friends
 	useEffect(() => {
@@ -112,7 +170,9 @@ function CreateBetPage() {
 		fetchFriends();
 	}, []);
 
-	const selectedFriend = friends.find((f) => f.friend?.id === selectedFriendId)?.friend;
+	const selectedFriend = friends.find(
+		(f) => f.friend?.id === selectedFriendId,
+	)?.friend;
 	const userId = user?.id || "";
 	const displayName = user?.firstName
 		? `${user.firstName} ${user.lastName || ""}`.trim()
@@ -151,7 +211,10 @@ function CreateBetPage() {
 			setSubmitting(false);
 		} else if (betMode === "shareable" && result.data?.share_token) {
 			// For shareable bets, show the share link
-			setCreatedBet({ id: result.data.id, share_token: result.data.share_token });
+			setCreatedBet({
+				id: result.data.id,
+				share_token: result.data.share_token,
+			});
 			setSubmitting(false);
 		} else {
 			navigate({ to: "/dashboard" });
@@ -207,7 +270,9 @@ function CreateBetPage() {
 							<div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
 								<Check className="w-8 h-8 text-green-600" />
 							</div>
-							<h2 className="text-xl font-bold text-gray-800 mb-2">Bet Created!</h2>
+							<h2 className="text-xl font-bold text-gray-800 mb-2">
+								Bet Created!
+							</h2>
 							<p className="text-gray-500">
 								Share this link with anyone to challenge them
 							</p>
@@ -217,12 +282,16 @@ function CreateBetPage() {
 						<div className="mb-6">
 							<button
 								type="button"
-								onClick={() => shareLink(getBetInviteShareData({
-									share_token: createdBet.share_token!,
-									title,
-									amount: parseFloat(amount),
-									creator_name: displayName,
-								}))}
+								onClick={() =>
+									shareLink(
+										getBetInviteShareData({
+											share_token: createdBet.share_token!,
+											title,
+											amount: parseFloat(amount),
+											creator_name: displayName,
+										}),
+									)
+								}
 								className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-lg transition-colors mb-4"
 							>
 								<Share2 size={24} />
@@ -236,7 +305,9 @@ function CreateBetPage() {
 								<button
 									type="button"
 									onClick={async () => {
-										const success = await copyToClipboard(generateBetInviteLink(createdBet.share_token!));
+										const success = await copyToClipboard(
+											generateBetInviteLink(createdBet.share_token!),
+										);
 										if (success) {
 											setShareLinkCopied(true);
 											setTimeout(() => setShareLinkCopied(false), 2000);
@@ -279,7 +350,9 @@ function CreateBetPage() {
 									<Trophy className="w-5 h-5 text-orange-500" />
 								</div>
 								<div>
-									<h2 className="text-lg font-semibold">How do you want to bet?</h2>
+									<h2 className="text-lg font-semibold">
+										How do you want to bet?
+									</h2>
 									<p className="text-sm text-gray-500">
 										Choose how to challenge your opponent
 									</p>
@@ -296,8 +369,12 @@ function CreateBetPage() {
 											: "border-gray-200 hover:border-gray-300"
 									}`}
 								>
-									<Users className={`w-8 h-8 ${betMode === "friend" ? "text-orange-500" : "text-gray-400"}`} />
-									<span className={`font-medium ${betMode === "friend" ? "text-orange-700" : "text-gray-700"}`}>
+									<Users
+										className={`w-8 h-8 ${betMode === "friend" ? "text-orange-500" : "text-gray-400"}`}
+									/>
+									<span
+										className={`font-medium ${betMode === "friend" ? "text-orange-700" : "text-gray-700"}`}
+									>
 										Bet a Friend
 									</span>
 									<span className="text-xs text-gray-500 text-center">
@@ -316,8 +393,12 @@ function CreateBetPage() {
 											: "border-gray-200 hover:border-gray-300"
 									}`}
 								>
-									<Link2 className={`w-8 h-8 ${betMode === "shareable" ? "text-orange-500" : "text-gray-400"}`} />
-									<span className={`font-medium ${betMode === "shareable" ? "text-orange-700" : "text-gray-700"}`}>
+									<Link2
+										className={`w-8 h-8 ${betMode === "shareable" ? "text-orange-500" : "text-gray-400"}`}
+									/>
+									<span
+										className={`font-medium ${betMode === "shareable" ? "text-orange-700" : "text-gray-700"}`}
+									>
 										Create Shareable Link
 									</span>
 									<span className="text-xs text-gray-500 text-center">
@@ -384,7 +465,9 @@ function CreateBetPage() {
 																/>
 															) : (
 																<span className="text-sm font-bold text-white">
-																	{friend.display_name?.charAt(0).toUpperCase() || "?"}
+																	{friend.display_name
+																		?.charAt(0)
+																		.toUpperCase() || "?"}
 																</span>
 															)}
 														</div>
@@ -498,7 +581,11 @@ function CreateBetPage() {
 									</label>
 									<select
 										value={verificationMethod}
-										onChange={(e) => setVerificationMethod(e.target.value as VerificationMethod)}
+										onChange={(e) =>
+											setVerificationMethod(
+												e.target.value as VerificationMethod,
+											)
+										}
 										className="ibetu-input"
 									>
 										<option value="mutual_agreement">Mutual Agreement</option>
@@ -529,9 +616,7 @@ function CreateBetPage() {
 											Create Shareable Bet
 										</>
 									) : (
-										<>
-											Send Bet to {selectedFriend?.display_name}
-										</>
+										<>Send Bet to {selectedFriend?.display_name}</>
 									)}
 								</button>
 							</div>
@@ -613,7 +698,9 @@ function CreateBetPage() {
 								{/* Prominent Share Button */}
 								<button
 									type="button"
-									onClick={() => shareLink(getFriendInviteShareData(userId, displayName))}
+									onClick={() =>
+										shareLink(getFriendInviteShareData(userId, displayName))
+									}
 									className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-lg transition-colors mb-4"
 								>
 									<Share2 size={24} />
@@ -628,7 +715,9 @@ function CreateBetPage() {
 									<button
 										type="button"
 										onClick={async () => {
-											const success = await copyToClipboard(generateFriendInviteLink(userId));
+											const success = await copyToClipboard(
+												generateFriendInviteLink(userId),
+											);
 											if (success) {
 												setLinkCopied(true);
 												setTimeout(() => setLinkCopied(false), 2000);
@@ -647,7 +736,9 @@ function CreateBetPage() {
 
 								{/* QR Code */}
 								<div className="border-t pt-4">
-									<p className="text-sm text-gray-500 text-center mb-3">Or scan QR code</p>
+									<p className="text-sm text-gray-500 text-center mb-3">
+										Or scan QR code
+									</p>
 									<QRCodeDisplay
 										value={generateFriendInviteLink(userId)}
 										title=""
@@ -697,8 +788,12 @@ function CreateBetPage() {
 					<div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
 						<div className="flex items-center justify-between p-6 border-b">
 							<div>
-								<h2 className="text-xl font-bold text-gray-800">Bet Templates</h2>
-								<p className="text-sm text-gray-500 mt-1">Choose a template to get started quickly</p>
+								<h2 className="text-xl font-bold text-gray-800">
+									Bet Templates
+								</h2>
+								<p className="text-sm text-gray-500 mt-1">
+									Choose a template to get started quickly
+								</p>
 							</div>
 							<button
 								type="button"
@@ -749,8 +844,12 @@ function CreateBetPage() {
 													<TemplateIcon className="w-5 h-5 text-orange-500" />
 												</div>
 												<div className="flex-1 min-w-0">
-													<h3 className="font-semibold text-gray-800">{template.name}</h3>
-													<p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{template.description}</p>
+													<h3 className="font-semibold text-gray-800">
+														{template.name}
+													</h3>
+													<p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
+														{template.description}
+													</p>
 													<div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
 														{template.suggestedAmount && (
 															<span>${template.suggestedAmount}</span>
@@ -773,7 +872,8 @@ function CreateBetPage() {
 						{/* Footer */}
 						<div className="p-4 border-t bg-gray-50">
 							<p className="text-sm text-gray-500 text-center">
-								Select a template to pre-fill the form. You can customize all fields after.
+								Select a template to pre-fill the form. You can customize all
+								fields after.
 							</p>
 						</div>
 					</div>

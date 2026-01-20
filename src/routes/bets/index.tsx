@@ -1,21 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { useUser } from "../../components/AuthProvider";
 import {
-	Trophy,
-	Plus,
-	Loader2,
-	Clock,
-	CheckCircle,
-	XCircle,
 	AlertCircle,
+	CheckCircle,
 	ChevronRight,
+	Clock,
+	Loader2,
+	Plus,
 	TimerOff,
 	Trash2,
+	Trophy,
+	XCircle,
 } from "lucide-react";
-import { getUserBets, acceptBet, declineBet, cancelBet } from "../../api/bets";
+import { useEffect, useState } from "react";
+import { acceptBet, cancelBet, declineBet, getUserBets } from "../../api/bets";
+import { useUser } from "../../components/AuthProvider";
+import { type DisplayStatus, getDisplayStatus } from "../../lib/bet-utils";
 import type { BetStatus } from "../../lib/database.types";
-import { getDisplayStatus, type DisplayStatus } from "../../lib/bet-utils";
 
 export const Route = createFileRoute("/bets/")({ component: BetsPage });
 
@@ -115,8 +115,12 @@ function BetsPage() {
 		active: bets.filter((b) => b.status === "active").length,
 		pending: bets.filter((b) => b.status === "pending").length,
 		completed: bets.filter((b) => b.status === "completed").length,
-		won: bets.filter((b) => b.status === "completed" && b.winner_id === b.creator_id).length,
-		lost: bets.filter((b) => b.status === "completed" && b.winner_id === b.opponent_id).length,
+		won: bets.filter(
+			(b) => b.status === "completed" && b.winner_id === b.creator_id,
+		).length,
+		lost: bets.filter(
+			(b) => b.status === "completed" && b.winner_id === b.opponent_id,
+		).length,
 	};
 
 	// Filter bets
@@ -221,7 +225,11 @@ function BetsPage() {
 		// Return sorted array of [status, bets] pairs, excluding empty groups
 		return Object.entries(groups)
 			.filter(([_, bets]) => bets.length > 0)
-			.sort(([a], [b]) => statusPriority[a as DisplayStatus] - statusPriority[b as DisplayStatus]) as [DisplayStatus, Bet[]][];
+			.sort(
+				([a], [b]) =>
+					statusPriority[a as DisplayStatus] -
+					statusPriority[b as DisplayStatus],
+			) as [DisplayStatus, Bet[]][];
 	};
 
 	const formatDate = (dateString: string) => {
@@ -289,7 +297,9 @@ function BetsPage() {
 						</button>
 						<button
 							type="button"
-							onClick={() => setFilter(filter === "pending" ? "all" : "pending")}
+							onClick={() =>
+								setFilter(filter === "pending" ? "all" : "pending")
+							}
 							className={`rounded-lg p-3 text-center transition-colors ${
 								filter === "pending"
 									? "bg-yellow-500 text-white"
@@ -382,7 +392,10 @@ function BetsPage() {
 								</h2>
 								<div className="space-y-4">
 									{betsInGroup.map((bet) => {
-										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
+										const displayStatus = getDisplayStatus(
+											bet.status,
+											bet.deadline,
+										);
 										const isPendingForMe =
 											bet.status === "pending" &&
 											user?.id === bet.opponent.id &&
@@ -407,13 +420,15 @@ function BetsPage() {
 															{getStatusIcon(displayStatus)}
 															<span
 																className={`text-xs px-2 py-0.5 rounded-full font-medium ${getStatusBadge(
-																	displayStatus
+																	displayStatus,
 																)}`}
 															>
 																{getStatusLabel(displayStatus)}
 															</span>
 														</div>
-														<h3 className="font-semibold text-gray-800">{bet.title}</h3>
+														<h3 className="font-semibold text-gray-800">
+															{bet.title}
+														</h3>
 														{bet.description && (
 															<p className="text-sm text-gray-500 mt-1 line-clamp-1">
 																{bet.description}
@@ -459,23 +474,25 @@ function BetsPage() {
 														</button>
 													</div>
 												)}
-												{bet.status === "pending" && !isOpponent && displayStatus !== "deadline_passed" && (
-													<div className="flex gap-2 mt-3 pt-3 border-t">
-														<button
-															type="button"
-															onClick={(e) => handleCancel(e, bet.id)}
-															disabled={isActionLoading}
-															className="flex-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-														>
-															{isActionLoading ? (
-																<Loader2 className="w-4 h-4 animate-spin" />
-															) : (
-																<Trash2 className="w-4 h-4" />
-															)}
-															Cancel Bet
-														</button>
-													</div>
-												)}
+												{bet.status === "pending" &&
+													!isOpponent &&
+													displayStatus !== "deadline_passed" && (
+														<div className="flex gap-2 mt-3 pt-3 border-t">
+															<button
+																type="button"
+																onClick={(e) => handleCancel(e, bet.id)}
+																disabled={isActionLoading}
+																className="flex-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+															>
+																{isActionLoading ? (
+																	<Loader2 className="w-4 h-4 animate-spin" />
+																) : (
+																	<Trash2 className="w-4 h-4" />
+																)}
+																Cancel Bet
+															</button>
+														</div>
+													)}
 											</Link>
 										);
 									})}

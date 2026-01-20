@@ -9,9 +9,18 @@ export type Json =
 	| { [key: string]: Json | undefined }
 	| Json[];
 
-export type BetStatus = "pending" | "active" | "completed" | "declined" | "expired";
+export type BetStatus =
+	| "pending"
+	| "active"
+	| "completed"
+	| "declined"
+	| "expired";
 export type BetOutcome = "win" | "loss" | "pending" | "disputed";
-export type VerificationMethod = "mutual_agreement" | "third_party" | "photo_proof" | "honor_system";
+export type VerificationMethod =
+	| "mutual_agreement"
+	| "third_party"
+	| "photo_proof"
+	| "honor_system";
 export type FriendRequestStatus = "pending" | "accepted" | "declined";
 
 export interface Database {
@@ -241,20 +250,24 @@ export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
 export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 
 export type Friendship = Database["public"]["Tables"]["friendships"]["Row"];
-export type FriendshipInsert = Database["public"]["Tables"]["friendships"]["Insert"];
+export type FriendshipInsert =
+	Database["public"]["Tables"]["friendships"]["Insert"];
 
 export type Bet = Database["public"]["Tables"]["bets"]["Row"];
 export type BetInsert = Database["public"]["Tables"]["bets"]["Insert"];
 export type BetUpdate = Database["public"]["Tables"]["bets"]["Update"];
 
-export type PaymentReminder = Database["public"]["Tables"]["payment_reminders"]["Row"];
-export type PaymentReminderInsert = Database["public"]["Tables"]["payment_reminders"]["Insert"];
+export type PaymentReminder =
+	Database["public"]["Tables"]["payment_reminders"]["Row"];
+export type PaymentReminderInsert =
+	Database["public"]["Tables"]["payment_reminders"]["Insert"];
 
 export type Comment = Database["public"]["Tables"]["comments"]["Row"];
 export type CommentInsert = Database["public"]["Tables"]["comments"]["Insert"];
 
 export type BetReaction = Database["public"]["Tables"]["bet_reactions"]["Row"];
-export type BetReactionInsert = Database["public"]["Tables"]["bet_reactions"]["Insert"];
+export type BetReactionInsert =
+	Database["public"]["Tables"]["bet_reactions"]["Insert"];
 
 // Extended types with relationships
 export type BetWithUsers = Bet & {
@@ -275,5 +288,7 @@ export type BetReactionWithUser = BetReaction & {
 	user: User;
 };
 
-export type UserAchievement = Database["public"]["Tables"]["user_achievements"]["Row"];
-export type UserAchievementInsert = Database["public"]["Tables"]["user_achievements"]["Insert"];
+export type UserAchievement =
+	Database["public"]["Tables"]["user_achievements"]["Row"];
+export type UserAchievementInsert =
+	Database["public"]["Tables"]["user_achievements"]["Insert"];

@@ -1,9 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
+	extractDisplayName,
+	generateUsername,
 	isValidEmail,
 	isValidOtp,
-	generateUsername,
-	extractDisplayName,
 	parseDisplayName,
 } from "./validation";
 
@@ -60,7 +60,7 @@ describe("generateUsername", () => {
 	it("generates username from email and user ID", () => {
 		expect(generateUsername("john@example.com", "abc123def")).toBe("john_abc1");
 		expect(generateUsername("test.user@domain.org", "xyz789")).toBe(
-			"test.user_xyz7"
+			"test.user_xyz7",
 		);
 	});
 
@@ -71,10 +71,10 @@ describe("generateUsername", () => {
 
 	it("handles emails with complex local parts", () => {
 		expect(generateUsername("user+tag@example.com", "1234")).toBe(
-			"user+tag_1234"
+			"user+tag_1234",
 		);
 		expect(generateUsername("first.last@example.com", "5678")).toBe(
-			"first.last_5678"
+			"first.last_5678",
 		);
 	});
 });

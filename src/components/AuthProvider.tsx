@@ -1,17 +1,17 @@
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import {
 	createContext,
+	type ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
 	useState,
-	useCallback,
-	type ReactNode,
 } from "react";
-import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient } from "../lib/supabase-browser";
 import type { User } from "../lib/database.types";
+import { getSupabaseBrowserClient } from "../lib/supabase-browser";
 import {
-	generateUsername,
 	extractDisplayName,
+	generateUsername,
 	parseDisplayName,
 } from "../lib/validation";
 
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				return null;
 			}
 		},
-		[]
+		[],
 	);
 
 	const createProfile = useCallback(
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 				return null;
 			}
 		},
-		[]
+		[],
 	);
 
 	const refreshProfile = useCallback(async () => {
@@ -143,7 +143,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 			if (session?.user && session.access_token) {
 				// Try to fetch existing profile using access token for RLS
-				let userProfile = await fetchProfile(session.user.id, session.access_token);
+				let userProfile = await fetchProfile(
+					session.user.id,
+					session.access_token,
+				);
 
 				// If no profile exists, create one
 				if (!userProfile) {
@@ -159,13 +162,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		// Listen for auth changes
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange(async (event, session) => {
+		} = supabase.auth.onAuthStateChange(async (_, session) => {
 			setSession(session);
 			setUser(session?.user ?? null);
 
 			if (session?.user && session.access_token) {
 				// Try to fetch existing profile using access token for RLS
-				let userProfile = await fetchProfile(session.user.id, session.access_token);
+				let userProfile = await fetchProfile(
+					session.user.id,
+					session.access_token,
+				);
 
 				// If no profile exists, create one (for new sign ups or after DB reset)
 				if (!userProfile) {

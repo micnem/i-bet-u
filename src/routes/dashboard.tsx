@@ -1,36 +1,53 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { useUser } from "../components/AuthProvider";
 import {
-	DollarSign,
-	Trophy,
-	Users,
-	Plus,
-	Clock,
-	TrendingUp,
-	Loader2,
-	ChevronRight,
 	AlertCircle,
-	CheckCircle,
-	XCircle,
-	TimerOff,
-	UserPlus,
 	AtSign,
-	Phone,
-	QrCode,
-	X,
-	Share2,
-	Copy,
 	Check,
+	CheckCircle,
+	ChevronRight,
+	Clock,
+	Copy,
+	DollarSign,
+	Loader2,
+	Phone,
+	Plus,
+	QrCode,
+	Share2,
+	TimerOff,
 	Trash2,
+	TrendingUp,
+	Trophy,
+	UserPlus,
+	Users,
+	X,
+	XCircle,
 } from "lucide-react";
-import { getUserBets, getAmountsOwedSummary, acceptBet, declineBet, cancelBet, getBetsAwaitingConfirmation, approveBetResult } from "../api/bets";
+import { useEffect, useState } from "react";
+import {
+	acceptBet,
+	approveBetResult,
+	cancelBet,
+	declineBet,
+	getAmountsOwedSummary,
+	getBetsAwaitingConfirmation,
+	getUserBets,
+} from "../api/bets";
+import {
+	acceptFriendRequest,
+	declineFriendRequest,
+	getPendingFriendRequests,
+} from "../api/friends";
 import { getCurrentUserProfile } from "../api/users";
-import { getPendingFriendRequests, acceptFriendRequest, declineFriendRequest } from "../api/friends";
-import type { BetStatus } from "../lib/database.types";
-import { getDisplayStatus, type DisplayStatus } from "../lib/bet-utils";
+import { useUser } from "../components/AuthProvider";
 import { QRCodeDisplay } from "../components/QRCode";
-import { generateFriendInviteLink, getFriendInviteShareData, shareLink, copyToClipboard } from "../lib/sharing";
+import { getDisplayStatus } from "../lib/bet-utils";
+import type { BetStatus } from "../lib/database.types";
+import {
+	copyToClipboard,
+	generateFriendInviteLink,
+	getFriendInviteShareData,
+	shareLink,
+} from "../lib/sharing";
 
 export const Route = createFileRoute("/dashboard")({ component: Dashboard });
 
@@ -137,7 +154,7 @@ function Dashboard() {
 
 		if (confirmationResult.data) {
 			setBetsAwaitingConfirmation(
-				confirmationResult.data as BetAwaitingConfirmation[]
+				confirmationResult.data as BetAwaitingConfirmation[],
 			);
 		}
 
@@ -182,7 +199,7 @@ function Dashboard() {
 	const handleConfirmWinner = async (
 		e: React.MouseEvent,
 		betId: string,
-		winnerId: string
+		winnerId: string,
 	) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -194,7 +211,10 @@ function Dashboard() {
 		setActionLoadingId(null);
 	};
 
-	const handleAcceptFriend = async (e: React.MouseEvent, friendshipId: string) => {
+	const handleAcceptFriend = async (
+		e: React.MouseEvent,
+		friendshipId: string,
+	) => {
 		e.preventDefault();
 		e.stopPropagation();
 		setActionLoadingId(`friend_${friendshipId}`);
@@ -207,7 +227,7 @@ function Dashboard() {
 
 	const handleDeclineFriend = async (
 		e: React.MouseEvent,
-		friendshipId: string
+		friendshipId: string,
 	) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -242,7 +262,9 @@ function Dashboard() {
 				if (betsResult.data) {
 					const bets = betsResult.data as Bet[];
 					setActiveBets(bets.filter((b) => b.status === "active").slice(0, 5));
-					setPendingBets(bets.filter((b) => b.status === "pending").slice(0, 5));
+					setPendingBets(
+						bets.filter((b) => b.status === "pending").slice(0, 5),
+					);
 				}
 
 				if (amountsResult.data) {
@@ -255,7 +277,7 @@ function Dashboard() {
 
 				if (confirmationResult.data) {
 					setBetsAwaitingConfirmation(
-						confirmationResult.data as BetAwaitingConfirmation[]
+						confirmationResult.data as BetAwaitingConfirmation[],
 					);
 				}
 
@@ -348,7 +370,8 @@ function Dashboard() {
 								<div>
 									<p className="text-sm text-orange-100">Net Balance</p>
 									<p className="text-2xl font-bold">
-										{netBalance >= 0 ? "+" : "-"}${Math.abs(netBalance).toFixed(2)}
+										{netBalance >= 0 ? "+" : "-"}$
+										{Math.abs(netBalance).toFixed(2)}
 									</p>
 								</div>
 							</div>
@@ -488,10 +511,7 @@ function Dashboard() {
 										const declaredWinnerIsMe = bet.winner_id === user?.id;
 
 										return (
-											<div
-												key={bet.id}
-												className="p-3 bg-green-50 rounded-lg"
-											>
+											<div key={bet.id} className="p-3 bg-green-50 rounded-lg">
 												<div className="flex items-center justify-between mb-2">
 													<div>
 														<p className="font-medium text-gray-800">
@@ -568,8 +588,12 @@ function Dashboard() {
 								</div>
 								<div className="space-y-3">
 									{pendingBets.map((bet) => {
-										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
-										const isDeadlinePassed = displayStatus === "deadline_passed";
+										const displayStatus = getDisplayStatus(
+											bet.status,
+											bet.deadline,
+										);
+										const isDeadlinePassed =
+											displayStatus === "deadline_passed";
 										const isPendingForMe =
 											user?.id === bet.opponent.id && !isDeadlinePassed;
 										const isActionLoading = actionLoadingId === bet.id;
@@ -600,7 +624,9 @@ function Dashboard() {
 																</span>
 															)}
 														</div>
-														<p className="font-medium text-gray-800">{bet.title}</p>
+														<p className="font-medium text-gray-800">
+															{bet.title}
+														</p>
 														<p className="text-sm text-gray-500">
 															vs {otherPartyName}
 														</p>
@@ -690,8 +716,12 @@ function Dashboard() {
 							) : (
 								<div className="space-y-3">
 									{activeBets.map((bet) => {
-										const displayStatus = getDisplayStatus(bet.status, bet.deadline);
-										const isDeadlinePassed = displayStatus === "deadline_passed";
+										const displayStatus = getDisplayStatus(
+											bet.status,
+											bet.deadline,
+										);
+										const isDeadlinePassed =
+											displayStatus === "deadline_passed";
 										// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
 										const isOpponent = user?.id === bet.opponent.id;
 										const otherPartyName = isOpponent
@@ -716,10 +746,11 @@ function Dashboard() {
 															Deadline Passed
 														</span>
 													)}
-													<p className="font-medium text-gray-800">{bet.title}</p>
+													<p className="font-medium text-gray-800">
+														{bet.title}
+													</p>
 													<p className="text-sm text-gray-500">
-														vs {otherPartyName} - Due{" "}
-														{formatDate(bet.deadline)}
+														vs {otherPartyName} - Due {formatDate(bet.deadline)}
 													</p>
 												</div>
 												<div className="flex items-center gap-3">
@@ -857,7 +888,9 @@ function Dashboard() {
 								{/* Prominent Share Button */}
 								<button
 									type="button"
-									onClick={() => shareLink(getFriendInviteShareData(userId, displayName))}
+									onClick={() =>
+										shareLink(getFriendInviteShareData(userId, displayName))
+									}
 									className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-lg transition-colors mb-4"
 								>
 									<Share2 size={24} />
@@ -872,7 +905,9 @@ function Dashboard() {
 									<button
 										type="button"
 										onClick={async () => {
-											const success = await copyToClipboard(generateFriendInviteLink(userId));
+											const success = await copyToClipboard(
+												generateFriendInviteLink(userId),
+											);
 											if (success) {
 												setLinkCopied(true);
 												setTimeout(() => setLinkCopied(false), 2000);
@@ -891,7 +926,9 @@ function Dashboard() {
 
 								{/* QR Code */}
 								<div className="border-t pt-4">
-									<p className="text-sm text-gray-500 text-center mb-3">Or scan QR code</p>
+									<p className="text-sm text-gray-500 text-center mb-3">
+										Or scan QR code
+									</p>
 									<QRCodeDisplay
 										value={generateFriendInviteLink(userId)}
 										title=""

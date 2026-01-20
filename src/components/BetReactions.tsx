@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
 import { Loader2, Plus } from "lucide-react";
-import { useUser } from "./AuthProvider";
+import { useEffect, useState } from "react";
 import {
 	getBetReactions,
-	toggleBetReaction,
 	REACTION_EMOJIS,
+	toggleBetReaction,
 } from "../api/bets";
+import { useUser } from "./AuthProvider";
 
 interface Reaction {
 	id: string;
@@ -63,7 +63,7 @@ export function BetReactions({ betId }: BetReactionsProps) {
 				setReactions((prev) => [...prev, data.reaction as Reaction]);
 			} else if (data.action === "removed") {
 				setReactions((prev) =>
-					prev.filter((r) => !(r.user_id === user.id && r.emoji === emoji))
+					prev.filter((r) => !(r.user_id === user.id && r.emoji === emoji)),
 				);
 			}
 		}
@@ -87,7 +87,8 @@ export function BetReactions({ betId }: BetReactionsProps) {
 
 	// Get emojis not yet used by current user
 	const availableEmojis = REACTION_EMOJIS.filter(
-		(emoji) => !reactions.some((r) => r.emoji === emoji && r.user_id === user?.id)
+		(emoji) =>
+			!reactions.some((r) => r.emoji === emoji && r.user_id === user?.id),
 	);
 
 	if (loading) {
@@ -158,9 +159,7 @@ export function BetReactions({ betId }: BetReactionsProps) {
 
 			{/* Empty state */}
 			{groupedReactions.length === 0 && !showPicker && (
-				<span className="text-sm text-gray-400">
-					Be the first to react!
-				</span>
+				<span className="text-sm text-gray-400">Be the first to react!</span>
 			)}
 		</div>
 	);

@@ -94,7 +94,7 @@ export interface Database {
 					amount: number;
 					currency: string;
 					creator_id: string;
-					opponent_id: string;
+					opponent_id: string | null;
 					status: BetStatus;
 					outcome: BetOutcome | null;
 					winner_id: string | null;
@@ -102,6 +102,7 @@ export interface Database {
 					deadline: string;
 					creator_approved: boolean;
 					opponent_approved: boolean;
+					share_token: string | null;
 					created_at: string;
 					accepted_at: string | null;
 					resolved_at: string | null;
@@ -113,7 +114,7 @@ export interface Database {
 					amount: number;
 					currency?: string;
 					creator_id: string;
-					opponent_id: string;
+					opponent_id?: string | null;
 					status?: BetStatus;
 					outcome?: BetOutcome | null;
 					winner_id?: string | null;
@@ -121,6 +122,7 @@ export interface Database {
 					deadline: string;
 					creator_approved?: boolean;
 					opponent_approved?: boolean;
+					share_token?: string | null;
 					created_at?: string;
 					accepted_at?: string | null;
 					resolved_at?: string | null;
@@ -129,11 +131,13 @@ export interface Database {
 					title?: string;
 					description?: string;
 					amount?: number;
+					opponent_id?: string | null;
 					status?: BetStatus;
 					outcome?: BetOutcome | null;
 					winner_id?: string | null;
 					creator_approved?: boolean;
 					opponent_approved?: boolean;
+					share_token?: string | null;
 					accepted_at?: string | null;
 					resolved_at?: string | null;
 				};
@@ -255,7 +259,7 @@ export type BetReactionInsert = Database["public"]["Tables"]["bet_reactions"]["I
 // Extended types with relationships
 export type BetWithUsers = Bet & {
 	creator: User;
-	opponent: User;
+	opponent: User | null;
 	winner?: User | null;
 };
 

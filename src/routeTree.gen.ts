@@ -22,6 +22,7 @@ import { Route as BetsCreateRouteImport } from './routes/bets/create'
 import { Route as BetsBetIdRouteImport } from './routes/bets/$betId'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
+import { Route as BetsJoinShareTokenRouteImport } from './routes/bets/join/$shareToken'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -88,6 +89,11 @@ const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
   path: '/auth/login/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BetsJoinShareTokenRoute = BetsJoinShareTokenRouteImport.update({
+  id: '/bets/join/$shareToken',
+  path: '/bets/join/$shareToken',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/friends/$friendId': typeof FriendsFriendIdRoute
   '/invite/$userId': typeof InviteUserIdRoute
   '/bets': typeof BetsIndexRoute
+  '/bets/join/$shareToken': typeof BetsJoinShareTokenRoute
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/signup': typeof AuthSignupIndexRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/friends/$friendId': typeof FriendsFriendIdRoute
   '/invite/$userId': typeof InviteUserIdRoute
   '/bets': typeof BetsIndexRoute
+  '/bets/join/$shareToken': typeof BetsJoinShareTokenRoute
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/signup': typeof AuthSignupIndexRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/friends/$friendId': typeof FriendsFriendIdRoute
   '/invite/$userId': typeof InviteUserIdRoute
   '/bets/': typeof BetsIndexRoute
+  '/bets/join/$shareToken': typeof BetsJoinShareTokenRoute
   '/auth/login/': typeof AuthLoginIndexRoute
   '/auth/signup/': typeof AuthSignupIndexRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/friends/$friendId'
     | '/invite/$userId'
     | '/bets'
+    | '/bets/join/$shareToken'
     | '/auth/login'
     | '/auth/signup'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/friends/$friendId'
     | '/invite/$userId'
     | '/bets'
+    | '/bets/join/$shareToken'
     | '/auth/login'
     | '/auth/signup'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/friends/$friendId'
     | '/invite/$userId'
     | '/bets/'
+    | '/bets/join/$shareToken'
     | '/auth/login/'
     | '/auth/signup/'
   fileRoutesById: FileRoutesById
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   BetsCreateRoute: typeof BetsCreateRoute
   InviteUserIdRoute: typeof InviteUserIdRoute
   BetsIndexRoute: typeof BetsIndexRoute
+  BetsJoinShareTokenRoute: typeof BetsJoinShareTokenRoute
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
   AuthSignupIndexRoute: typeof AuthSignupIndexRoute
 }
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bets/join/$shareToken': {
+      id: '/bets/join/$shareToken'
+      path: '/bets/join/$shareToken'
+      fullPath: '/bets/join/$shareToken'
+      preLoaderRoute: typeof BetsJoinShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -316,6 +336,7 @@ const rootRouteChildren: RootRouteChildren = {
   BetsCreateRoute: BetsCreateRoute,
   InviteUserIdRoute: InviteUserIdRoute,
   BetsIndexRoute: BetsIndexRoute,
+  BetsJoinShareTokenRoute: BetsJoinShareTokenRoute,
   AuthLoginIndexRoute: AuthLoginIndexRoute,
   AuthSignupIndexRoute: AuthSignupIndexRoute,
 }

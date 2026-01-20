@@ -85,6 +85,16 @@ export const getBetById = createServerFn({ method: "GET" })
 		return { error: null, data };
 	});
 
+// Helper function to generate a unique share token
+function generateShareToken(): string {
+	const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	let result = "";
+	for (let i = 0; i < 16; i++) {
+		result += chars.charAt(Math.floor(Math.random() * chars.length));
+	}
+	return result;
+}
+
 // Create a new bet
 export const createBet = createServerFn({ method: "POST" })
 	.inputValidator(
@@ -92,7 +102,7 @@ export const createBet = createServerFn({ method: "POST" })
 			title: string;
 			description: string;
 			amount: number;
-			opponentId: string;
+			opponentId?: string | null;
 			deadline: string;
 			verificationMethod: VerificationMethod;
 		}) => data
@@ -106,18 +116,20 @@ export const createBet = createServerFn({ method: "POST" })
 
 		const userId = currentUser.user.id;
 
-		// Check if opponent exists and is a friend
-		const { data: friendship } = await supabaseAdmin
-			.from("friendships")
-			.select("id")
-			.or(
-				`and(user_id.eq.${userId},friend_id.eq.${data.opponentId}),and(user_id.eq.${data.opponentId},friend_id.eq.${userId})`
-			)
-			.eq("status", "accepted")
-			.single();
+		// If opponent is specified, verify friendship
+		if (data.opponentId) {
+			const { data: friendship } = await supabaseAdmin
+				.from("friendships")
+				.select("id")
+				.or(
+					`and(user_id.eq.${userId},friend_id.eq.${data.opponentId}),and(user_id.eq.${data.opponentId},friend_id.eq.${userId})`
+				)
+				.eq("status", "accepted")
+				.single();
 
-		if (!friendship) {
-			return { error: "You can only bet with friends", data: null };
+			if (!friendship) {
+				return { error: "You can only bet with friends", data: null };
+			}
 		}
 
 		// Create the bet
@@ -126,10 +138,12 @@ export const createBet = createServerFn({ method: "POST" })
 			description: data.description,
 			amount: data.amount,
 			creator_id: userId,
-			opponent_id: data.opponentId,
+			opponent_id: data.opponentId || null,
 			deadline: data.deadline,
 			verification_method: data.verificationMethod,
 			status: "pending",
+			// Generate share_token only for bets without opponent
+			share_token: data.opponentId ? null : generateShareToken(),
 		};
 
 		const { data: bet, error } = await supabaseAdmin
@@ -148,21 +162,23 @@ export const createBet = createServerFn({ method: "POST" })
 			return { error: error.message, data: null };
 		}
 
-		// Send invitation email to opponent (await to ensure it completes before worker terminates)
-		try {
-			await sendBetInvitationEmail({
-				recipientId: data.opponentId,
-				recipientName: bet.opponent.display_name,
-				creatorName: bet.creator.display_name,
-				creatorUsername: bet.creator.username,
-				betTitle: bet.title,
-				betDescription: bet.description || "",
-				betAmount: Number(bet.amount),
-				betDeadline: bet.deadline,
-				betId: bet.id,
-			});
-		} catch (err) {
-			console.error("Failed to send bet invitation email:", err);
+		// Send invitation email to opponent only if opponent is specified
+		if (data.opponentId && bet.opponent) {
+			try {
+				await sendBetInvitationEmail({
+					recipientId: data.opponentId,
+					recipientName: bet.opponent.display_name,
+					creatorName: bet.creator.display_name,
+					creatorUsername: bet.creator.username,
+					betTitle: bet.title,
+					betDescription: bet.description || "",
+					betAmount: Number(bet.amount),
+					betDeadline: bet.deadline,
+					betId: bet.id,
+				});
+			} catch (err) {
+				console.error("Failed to send bet invitation email:", err);
+			}
 		}
 
 		return { error: null, data: bet };
@@ -1049,4 +1065,151 @@ export const toggleBetReaction = createServerFn({ method: "POST" })
 
 			return { error: null, data: { action: "added", reaction: data } };
 		}
+	});
+
+// Get a bet by share token (public access - no auth required for viewing)
+export const getBetByShareToken = createServerFn({ method: "GET" })
+	.inputValidator((data: { shareToken: string }) => data)
+	.handler(async ({ data: { shareToken } }) => {
+		// Use supabaseAdmin to bypass RLS for public access
+		const { data: bet, error } = await supabaseAdmin
+			.from("bets")
+			.select(
+				`
+				*,
+				creator:users!bets_creator_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.eq("share_token", shareToken)
+			.single();
+
+		if (error || !bet) {
+			return { error: "Bet not found", data: null };
+		}
+
+		// Only return bets that are still pending and have no opponent
+		if (bet.status !== "pending") {
+			return { error: "This bet is no longer available", data: null };
+		}
+
+		if (bet.opponent_id) {
+			return { error: "This bet already has an opponent", data: null };
+		}
+
+		return { error: null, data: bet };
+	});
+
+// Accept a bet via share link
+export const acceptBetViaShareLink = createServerFn({ method: "POST" })
+	.inputValidator((data: { shareToken: string }) => data)
+	.handler(async ({ data: { shareToken } }) => {
+		const currentUser = await getCurrentUser();
+
+		if (!currentUser) {
+			return { error: "Not authenticated", data: null };
+		}
+
+		const userId = currentUser.user.id;
+
+		// Get the bet by share token
+		const { data: bet, error: fetchError } = await supabaseAdmin
+			.from("bets")
+			.select(
+				`
+				*,
+				creator:users!bets_creator_id_fkey(id, username, display_name, avatar_url)
+			`
+			)
+			.eq("share_token", shareToken)
+			.single();
+
+		if (fetchError || !bet) {
+			return { error: "Bet not found", data: null };
+		}
+
+		// Validate the bet can be accepted
+		if (bet.status !== "pending") {
+			return { error: "This bet is no longer available", data: null };
+		}
+
+		if (bet.opponent_id) {
+			return { error: "This bet already has an opponent", data: null };
+		}
+
+		if (bet.creator_id === userId) {
+			return { error: "You cannot accept your own bet", data: null };
+		}
+
+		// Check if users are already friends
+		const { data: existingFriendship } = await supabaseAdmin
+			.from("friendships")
+			.select("id, status")
+			.or(
+				`and(user_id.eq.${userId},friend_id.eq.${bet.creator_id}),and(user_id.eq.${bet.creator_id},friend_id.eq.${userId})`
+			)
+			.single();
+
+		// If not friends, create friendship (auto-accepted via bet link)
+		if (!existingFriendship) {
+			const { error: friendshipError } = await supabaseAdmin
+				.from("friendships")
+				.insert({
+					user_id: userId,
+					friend_id: bet.creator_id,
+					status: "accepted",
+					added_via: "qr", // Using 'qr' as it's for link-based friend adds
+				});
+
+			if (friendshipError) {
+				console.error("Failed to create friendship:", friendshipError);
+				// Continue anyway - the bet can still be accepted
+			}
+		} else if (existingFriendship.status !== "accepted") {
+			// Update existing friendship to accepted
+			await supabaseAdmin
+				.from("friendships")
+				.update({ status: "accepted" })
+				.eq("id", existingFriendship.id);
+		}
+
+		// Update the bet: set opponent, change status to active, clear share_token
+		const { data: updatedBet, error: updateError } = await supabaseAdmin
+			.from("bets")
+			.update({
+				opponent_id: userId,
+				status: "active",
+				accepted_at: new Date().toISOString(),
+				share_token: null, // Clear the share token so link can't be used again
+			})
+			.eq("id", bet.id)
+			.select(
+				`
+				*,
+				creator:users!bets_creator_id_fkey(*),
+				opponent:users!bets_opponent_id_fkey(*)
+			`
+			)
+			.single();
+
+		if (updateError) {
+			return { error: updateError.message, data: null };
+		}
+
+		// Send notification email to bet creator
+		try {
+			await sendBetAcceptedEmail({
+				recipientId: bet.creator_id,
+				recipientName: bet.creator.display_name,
+				acceptorName: currentUser.user.display_name,
+				acceptorUsername: currentUser.user.username,
+				betTitle: bet.title,
+				betAmount: Number(bet.amount),
+				betDeadline: bet.deadline,
+				betId: bet.id,
+			});
+		} catch (err) {
+			console.error("Failed to send bet accepted email:", err);
+		}
+
+		return { error: null, data: updatedBet };
 	});

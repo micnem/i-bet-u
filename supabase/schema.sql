@@ -49,7 +49,7 @@ CREATE TABLE bets (
     amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
     currency VARCHAR(3) DEFAULT 'USD' NOT NULL,
     creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    opponent_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    opponent_id UUID REFERENCES users(id) ON DELETE CASCADE,
     status bet_status DEFAULT 'pending' NOT NULL,
     outcome bet_outcome,
     winner_id UUID REFERENCES users(id),
@@ -57,10 +57,11 @@ CREATE TABLE bets (
     deadline TIMESTAMPTZ NOT NULL,
     creator_approved BOOLEAN DEFAULT FALSE NOT NULL,
     opponent_approved BOOLEAN DEFAULT FALSE NOT NULL,
+    share_token VARCHAR(32) UNIQUE,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     accepted_at TIMESTAMPTZ,
     resolved_at TIMESTAMPTZ,
-    CHECK (creator_id != opponent_id)
+    CHECK (opponent_id IS NULL OR creator_id != opponent_id)
 );
 
 -- Payment reminders table (for tracking when users nudge others about owed amounts)
@@ -90,6 +91,7 @@ CREATE INDEX idx_friendships_status ON friendships(status);
 CREATE INDEX idx_bets_creator_id ON bets(creator_id);
 CREATE INDEX idx_bets_opponent_id ON bets(opponent_id);
 CREATE INDEX idx_bets_status ON bets(status);
+CREATE INDEX idx_bets_share_token ON bets(share_token) WHERE share_token IS NOT NULL;
 CREATE INDEX idx_payment_reminders_sender_id ON payment_reminders(sender_id);
 CREATE INDEX idx_payment_reminders_recipient_id ON payment_reminders(recipient_id);
 CREATE INDEX idx_comments_bet_id ON comments(bet_id);
@@ -169,9 +171,13 @@ CREATE POLICY "Users can delete their friendships"
     USING (auth.uid() = user_id OR auth.uid() = friend_id);
 
 -- Bets policies
-CREATE POLICY "Users can view their bets"
+CREATE POLICY "Users can view their bets or shared bets"
     ON bets FOR SELECT
-    USING (auth.uid() = creator_id OR auth.uid() = opponent_id);
+    USING (
+        auth.uid() = creator_id
+        OR auth.uid() = opponent_id
+        OR share_token IS NOT NULL
+    );
 
 CREATE POLICY "Users can create bets"
     ON bets FOR INSERT

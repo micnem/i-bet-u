@@ -28,7 +28,7 @@ interface Bet {
 	deadline: string;
 	created_at: string;
 	creator_id: string;
-	opponent_id: string;
+	opponent_id: string | null;
 	winner_id: string | null;
 	creator: {
 		id: string;
@@ -41,7 +41,7 @@ interface Bet {
 		username: string;
 		display_name: string;
 		avatar_url: string | null;
-	};
+	} | null;
 }
 
 type FilterStatus = "all" | BetStatus;
@@ -398,14 +398,16 @@ function BetsPage() {
 										);
 										const isPendingForMe =
 											bet.status === "pending" &&
+											bet.opponent &&
 											user?.id === bet.opponent.id &&
 											displayStatus !== "deadline_passed";
 										const isActionLoading = actionLoadingId === bet.id;
 										// Show the other party's name (creator if I'm opponent, opponent if I'm creator)
-										const isOpponent = user?.id === bet.opponent.id;
+										const isOpponent =
+											bet.opponent && user?.id === bet.opponent.id;
 										const otherPartyName = isOpponent
 											? bet.creator.display_name
-											: bet.opponent.display_name;
+											: (bet.opponent?.display_name ?? "Waiting for opponent");
 
 										return (
 											<Link

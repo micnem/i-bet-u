@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "../lib/supabase";
 import { getCurrentUser } from "../lib/auth";
+import { supabaseAdmin } from "../lib/supabase";
 
 export interface Notification {
 	id: string;
@@ -47,7 +47,7 @@ export const getNotifications = createServerFn({ method: "GET" }).handler(
 				id,
 				created_at,
 				requester:users!friendships_user_id_fkey(id, display_name, avatar_url)
-			`
+			`,
 			)
 			.eq("friend_id", userId)
 			.eq("status", "pending")
@@ -85,7 +85,7 @@ export const getNotifications = createServerFn({ method: "GET" }).handler(
 				amount,
 				created_at,
 				creator:users!bets_creator_id_fkey(id, display_name, avatar_url)
-			`
+			`,
 			)
 			.eq("opponent_id", userId)
 			.eq("status", "pending")
@@ -130,7 +130,7 @@ export const getNotifications = createServerFn({ method: "GET" }).handler(
 				creator:users!bets_creator_id_fkey(id, display_name, avatar_url),
 				opponent:users!bets_opponent_id_fkey(id, display_name, avatar_url),
 				winner:users!bets_winner_id_fkey(id, display_name)
-			`
+			`,
 			)
 			.eq("status", "active")
 			.or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
@@ -178,11 +178,11 @@ export const getNotifications = createServerFn({ method: "GET" }).handler(
 		// Sort all notifications by date (most recent first)
 		notifications.sort(
 			(a, b) =>
-				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+				new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
 		);
 
 		return { error: null, data: notifications };
-	}
+	},
 );
 
 // Get notification counts only (lightweight)
@@ -193,7 +193,12 @@ export const getNotificationCounts = createServerFn({ method: "GET" }).handler(
 		if (!currentUser) {
 			return {
 				error: "Not authenticated",
-				data: { friendRequests: 0, betInvitations: 0, betResolutions: 0, total: 0 },
+				data: {
+					friendRequests: 0,
+					betInvitations: 0,
+					betResolutions: 0,
+					total: 0,
+				},
 			};
 		}
 
@@ -249,5 +254,5 @@ export const getNotificationCounts = createServerFn({ method: "GET" }).handler(
 				total,
 			},
 		};
-	}
+	},
 );

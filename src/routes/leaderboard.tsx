@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { Trophy, Loader2, Medal } from "lucide-react";
+import { Loader2, Medal, Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
 import { getLeaderboard } from "../api/social";
 
 export const Route = createFileRoute("/leaderboard")({
@@ -193,47 +193,49 @@ function LeaderboardPage() {
 						{/* Rest of leaderboard */}
 						<div className="bg-white rounded-xl shadow-md overflow-hidden">
 							<div className="divide-y">
-								{leaderboard.slice(leaderboard.length >= 3 ? 3 : 0).map((entry) => (
-									<div
-										key={entry.id}
-										className="flex items-center justify-between p-4 hover:bg-gray-50"
-									>
-										<div className="flex items-center gap-4">
-											{getRankBadge(entry.rank)}
-											<div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-												{entry.avatarUrl ? (
-													<img
-														src={entry.avatarUrl}
-														alt={entry.displayName}
-														className="w-full h-full object-cover"
-													/>
-												) : (
-													<span className="text-lg font-bold text-white">
-														{entry.displayName.charAt(0).toUpperCase()}
-													</span>
-												)}
-											</div>
-											<div>
-												<p className="font-medium text-gray-800">
-													{entry.displayName}
-												</p>
-												{entry.username && (
-													<p className="text-sm text-gray-500">
-														@{entry.username}
+								{leaderboard
+									.slice(leaderboard.length >= 3 ? 3 : 0)
+									.map((entry) => (
+										<div
+											key={entry.id}
+											className="flex items-center justify-between p-4 hover:bg-gray-50"
+										>
+											<div className="flex items-center gap-4">
+												{getRankBadge(entry.rank)}
+												<div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+													{entry.avatarUrl ? (
+														<img
+															src={entry.avatarUrl}
+															alt={entry.displayName}
+															className="w-full h-full object-cover"
+														/>
+													) : (
+														<span className="text-lg font-bold text-white">
+															{entry.displayName.charAt(0).toUpperCase()}
+														</span>
+													)}
+												</div>
+												<div>
+													<p className="font-medium text-gray-800">
+														{entry.displayName}
 													</p>
-												)}
+													{entry.username && (
+														<p className="text-sm text-gray-500">
+															@{entry.username}
+														</p>
+													)}
+												</div>
+											</div>
+											<div className="text-right">
+												<p className="font-bold text-gray-800">
+													{entry.wins}W - {entry.losses}L
+												</p>
+												<p className="text-sm text-gray-500">
+													{entry.winRate}% win rate
+												</p>
 											</div>
 										</div>
-										<div className="text-right">
-											<p className="font-bold text-gray-800">
-												{entry.wins}W - {entry.losses}L
-											</p>
-											<p className="text-sm text-gray-500">
-												{entry.winRate}% win rate
-											</p>
-										</div>
-									</div>
-								))}
+									))}
 							</div>
 						</div>
 					</div>

@@ -161,7 +161,7 @@ function ProfilePage() {
 					setReminderSent((prev) => ({ ...prev, [friend.id]: false }));
 				}, 3000);
 			}
-		} catch (error) {
+		} catch (_error) {
 			setReminderError("Failed to send reminder");
 		} finally {
 			setSendingReminder(null);
@@ -290,7 +290,6 @@ function ProfilePage() {
 											className="px-3 py-1.5 rounded-lg text-gray-800 text-lg font-semibold w-48 focus:outline-none focus:ring-2 focus:ring-white/50"
 											placeholder="Display name"
 											disabled={savingName}
-											autoFocus
 											onKeyDown={(e) => {
 												if (e.key === "Enter") handleSaveName();
 												if (e.key === "Escape") handleCancelEditName();

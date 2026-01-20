@@ -5,7 +5,6 @@ import {
 	CheckCircle,
 	Handshake,
 	Medal,
-	Send,
 	Shield,
 	Trophy,
 	UserPlus,
@@ -28,9 +27,9 @@ function LandingPage() {
 						Turn friendly wagers into unforgettable moments.
 					</p>
 					<p className="text-lg text-gray-600 mb-8 max-w-2xl">
-						The fun way to make bets with friends, family, and colleagues — track
-						everything, climb the leaderboards, and never let anyone forget who
-						called it first.
+						The fun way to make bets with friends, family, and colleagues —
+						track everything, climb the leaderboards, and never let anyone
+						forget who called it first.
 					</p>
 					<div className="flex flex-col sm:flex-row gap-4">
 						<Link
@@ -76,13 +75,15 @@ function LandingPage() {
 							<div className="flex items-start gap-3">
 								<CheckCircle className="text-orange-500 mt-1 flex-shrink-0" />
 								<p className="text-orange-500 font-medium">
-									Both parties approve the outcome — no more "I never said that!"
+									Both parties approve the outcome — no more "I never said
+									that!"
 								</p>
 							</div>
 							<div className="flex items-start gap-3">
 								<CheckCircle className="text-orange-500 mt-1 flex-shrink-0" />
 								<p className="text-orange-500 font-medium">
-									Build your reputation on the leaderboard as the ultimate predictor
+									Build your reputation on the leaderboard as the ultimate
+									predictor
 								</p>
 							</div>
 						</div>
@@ -116,7 +117,10 @@ function LandingPage() {
 							<div className="bg-white rounded-xl p-8 shadow-lg">
 								<div className="flex flex-col items-center">
 									<UserPlus className="w-16 h-16 text-cyan-500 mb-4" />
-									<button className="px-6 py-2 bg-cyan-500 text-white rounded-full font-medium mb-2">
+									<button
+										type="button"
+										className="px-6 py-2 bg-cyan-500 text-white rounded-full font-medium mb-2"
+									>
 										Sign Up
 									</button>
 									<span className="text-gray-600">Register now!</span>
@@ -139,7 +143,8 @@ function LandingPage() {
 							<ol className="text-lg space-y-2 text-orange-400">
 								<li className="flex gap-2">
 									<span className="font-bold">1)</span>
-									Pick something to bet on — sports, trivia, predictions, anything!
+									Pick something to bet on — sports, trivia, predictions,
+									anything!
 								</li>
 								<li className="flex gap-2">
 									<span className="font-bold">2)</span>
@@ -153,7 +158,8 @@ function LandingPage() {
 								</li>
 								<li className="flex gap-2">
 									<span className="text-white">•</span>
-									Set the stakes (bragging rights, favors, or anything you agree on)
+									Set the stakes (bragging rights, favors, or anything you agree
+									on)
 								</li>
 								<li className="flex gap-2">
 									<span className="text-white">•</span>
@@ -171,7 +177,9 @@ function LandingPage() {
 									<span className="text-gray-800 font-medium">Sports Bet</span>
 									<div className="text-right text-gray-600 text-sm">
 										Stakes
-										<div className="text-orange-500 font-bold">Loser buys lunch</div>
+										<div className="text-orange-500 font-bold">
+											Loser buys lunch
+										</div>
 									</div>
 								</div>
 								<div className="text-center py-4">
@@ -181,18 +189,14 @@ function LandingPage() {
 											<div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
 												<Trophy className="w-5 h-5 text-blue-500" />
 											</div>
-											<div className="text-xs text-gray-600 mt-1">
-												Lakers
-											</div>
+											<div className="text-xs text-gray-600 mt-1">Lakers</div>
 										</div>
 										<span className="text-xl font-bold text-gray-400">VS</span>
 										<div className="text-center">
 											<div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
 												<Trophy className="w-5 h-5 text-red-500" />
 											</div>
-											<div className="text-xs text-gray-600 mt-1">
-												Celtics
-											</div>
+											<div className="text-xs text-gray-600 mt-1">Celtics</div>
 										</div>
 									</div>
 								</div>
@@ -214,7 +218,8 @@ function LandingPage() {
 							<ol className="text-lg space-y-2 text-orange-400">
 								<li className="flex gap-2">
 									<span className="font-bold">1)</span>
-									Track your bets and get nudge reminders when deadlines approach
+									Track your bets and get nudge reminders when deadlines
+									approach
 								</li>
 								<li className="flex gap-2">
 									<span className="font-bold">2)</span>
@@ -302,8 +307,8 @@ function LandingPage() {
 							</div>
 							<h3 className="font-bold text-lg mb-2">Quick & Easy</h3>
 							<p className="text-gray-600 text-sm">
-								Create a bet in seconds. Simple interface, no complicated
-								setup required.
+								Create a bet in seconds. Simple interface, no complicated setup
+								required.
 							</p>
 						</div>
 						<div className="bg-white rounded-xl p-6 shadow-md text-center">
@@ -327,8 +332,8 @@ function LandingPage() {
 						Ready to prove you called it?
 					</h2>
 					<p className="text-xl text-orange-100 mb-8">
-						Join IBetU — track your bets, climb the leaderboard, and never let
-						a friend forget who was right.
+						Join IBetU — track your bets, climb the leaderboard, and never let a
+						friend forget who was right.
 					</p>
 					<Link
 						to="/auth/signup"

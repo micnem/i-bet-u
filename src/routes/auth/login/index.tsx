@@ -14,7 +14,9 @@ export const Route = createFileRoute("/auth/login/")({
 	validateSearch: (search: Record<string, unknown>): LoginSearch => {
 		return {
 			redirect_url:
-				typeof search.redirect_url === "string" ? search.redirect_url : undefined,
+				typeof search.redirect_url === "string"
+					? search.redirect_url
+					: undefined,
 		};
 	},
 });
@@ -83,7 +85,6 @@ function LoginPage() {
 		}
 
 		try {
-
 			const supabase = getSupabaseBrowserClient();
 			const { error } = await supabase.auth.verifyOtp({
 				email: email.trim().toLowerCase(),
@@ -152,7 +153,6 @@ function LoginPage() {
 										placeholder="you@example.com"
 										className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
 										required
-										autoFocus
 									/>
 								</div>
 							</div>
@@ -205,7 +205,6 @@ function LoginPage() {
 										placeholder="123456"
 										className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors text-center text-2xl tracking-widest font-mono"
 										required
-										autoFocus
 									/>
 								</div>
 							</div>

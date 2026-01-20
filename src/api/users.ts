@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabaseAdmin } from "../lib/supabase";
-import type { User, UserInsert, UserUpdate } from "../lib/database.types";
 import { getCurrentUser } from "../lib/auth";
+import type { UserUpdate } from "../lib/database.types";
+import { supabaseAdmin } from "../lib/supabase";
 
 // Get current authenticated user's profile
 export const getCurrentUserProfile = createServerFn({ method: "GET" }).handler(
@@ -16,9 +16,12 @@ export const getCurrentUserProfile = createServerFn({ method: "GET" }).handler(
 			return { error: null, data: currentUser.user };
 		} catch (err) {
 			console.error("getCurrentUserProfile error:", err);
-			return { error: err instanceof Error ? err.message : "Unknown error", data: null };
+			return {
+				error: err instanceof Error ? err.message : "Unknown error",
+				data: null,
+			};
 		}
-	}
+	},
 );
 
 // Get user by ID
@@ -112,7 +115,11 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 	.inputValidator((data: { displayName: string }) => data)
 	.handler(async ({ data: { displayName } }) => {
 		try {
-			if (!displayName || typeof displayName !== "string" || displayName.trim() === "") {
+			if (
+				!displayName ||
+				typeof displayName !== "string" ||
+				displayName.trim() === ""
+			) {
 				return { error: "Display name is required", data: null };
 			}
 
@@ -134,7 +141,10 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 				.maybeSingle();
 
 			if (checkError) {
-				console.error("updateUserProfile display name check error:", checkError);
+				console.error(
+					"updateUserProfile display name check error:",
+					checkError,
+				);
 				return { error: "Failed to validate display name", data: null };
 			}
 
@@ -166,8 +176,7 @@ export const updateUserProfile = createServerFn({ method: "POST" })
 				data: null,
 			};
 		}
-	}
-);
+	});
 
 // Get user stats
 export const getUserStats = createServerFn({ method: "GET" })
@@ -236,7 +245,10 @@ export const updatePaymentLink = createServerFn({ method: "POST" })
 				let trimmedLink = paymentLink.trim();
 
 				// Auto-add https:// if no protocol is specified
-				if (!trimmedLink.startsWith("http://") && !trimmedLink.startsWith("https://")) {
+				if (
+					!trimmedLink.startsWith("http://") &&
+					!trimmedLink.startsWith("https://")
+				) {
 					trimmedLink = `https://${trimmedLink}`;
 				}
 
@@ -245,7 +257,10 @@ export const updatePaymentLink = createServerFn({ method: "POST" })
 					new URL(trimmedLink);
 					finalLink = trimmedLink;
 				} catch {
-					return { error: "Please enter a valid URL (e.g., venmo.com/u/username)", data: null };
+					return {
+						error: "Please enter a valid URL (e.g., venmo.com/u/username)",
+						data: null,
+					};
 				}
 			}
 

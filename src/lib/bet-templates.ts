@@ -38,7 +38,8 @@ export const betTemplateCategories: BetTemplateCategory[] = [
 				id: "sports-player-performance",
 				name: "Player Performance",
 				title: "[Player] scores [X] points/goals",
-				description: "Bet on whether a player hits a specific stat line in the game.",
+				description:
+					"Bet on whether a player hits a specific stat line in the game.",
 				suggestedAmount: 15,
 				suggestedDeadlineDays: 1,
 				verificationMethod: "mutual_agreement",
@@ -248,7 +249,7 @@ export const betTemplateCategories: BetTemplateCategory[] = [
 
 // Flatten all templates for easy searching
 export const allBetTemplates: BetTemplate[] = betTemplateCategories.flatMap(
-	(category) => category.templates
+	(category) => category.templates,
 );
 
 // Get a template by ID

@@ -14,7 +14,7 @@ const errorLoggingMiddleware = createMiddleware().server(
 			const duration = Date.now() - startTime;
 			console.error("=== SERVER ERROR ===");
 			console.error(
-				`[${timestamp}] ${request.method} ${request.url} - Error (${duration}ms)`
+				`[${timestamp}] ${request.method} ${request.url} - Error (${duration}ms)`,
 			);
 			console.error("Error:", error);
 			if (error instanceof Error) {
@@ -27,7 +27,7 @@ const errorLoggingMiddleware = createMiddleware().server(
 			console.error("===================");
 			throw error;
 		}
-	}
+	},
 );
 
 export const startInstance = createStart(() => {

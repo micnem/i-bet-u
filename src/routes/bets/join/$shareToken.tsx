@@ -1,13 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+	Calendar,
+	Check,
+	DollarSign,
+	Loader2,
+	Shield,
+	Trophy,
+	X,
+} from "lucide-react";
 import { useState } from "react";
-import { DollarSign, Calendar, Shield, Check, Loader2, X, Trophy } from "lucide-react";
+import { acceptBetViaShareLink, getBetByShareToken } from "../../../api/bets";
 import { useUser } from "../../../components/AuthProvider";
-import { getBetByShareToken, acceptBetViaShareLink } from "../../../api/bets";
 
 export const Route = createFileRoute("/bets/join/$shareToken")({
 	component: JoinBetPage,
 	loader: async ({ params }) => {
-		const result = await getBetByShareToken({ data: { shareToken: params.shareToken } });
+		const result = await getBetByShareToken({
+			data: { shareToken: params.shareToken },
+		});
 		return { bet: result.data, error: result.error };
 	},
 });
@@ -96,7 +106,8 @@ function JoinBetPage() {
 						Bet Not Available
 					</h1>
 					<p className="text-gray-500 mb-6">
-						{loaderError || "This bet link is invalid or the bet has already been accepted."}
+						{loaderError ||
+							"This bet link is invalid or the bet has already been accepted."}
 					</p>
 					<Link to="/" className="ibetu-btn-primary inline-block">
 						Go to Home
@@ -132,9 +143,7 @@ function JoinBetPage() {
 					<p className="text-gray-500 text-sm mb-1">
 						{creator.display_name} challenges you!
 					</p>
-					<h1 className="text-2xl font-bold text-gray-800">
-						{bet.title}
-					</h1>
+					<h1 className="text-2xl font-bold text-gray-800">{bet.title}</h1>
 				</div>
 
 				{/* Bet Details Card */}
@@ -153,7 +162,9 @@ function JoinBetPage() {
 						</div>
 						<div>
 							<p className="text-xs text-gray-500">Amount</p>
-							<p className="font-bold text-lg text-gray-800">${Number(bet.amount).toFixed(2)}</p>
+							<p className="font-bold text-lg text-gray-800">
+								${Number(bet.amount).toFixed(2)}
+							</p>
 						</div>
 					</div>
 
@@ -164,7 +175,9 @@ function JoinBetPage() {
 						</div>
 						<div>
 							<p className="text-xs text-gray-500">Deadline</p>
-							<p className="font-medium text-gray-800">{formatDeadline(bet.deadline)}</p>
+							<p className="font-medium text-gray-800">
+								{formatDeadline(bet.deadline)}
+							</p>
 						</div>
 					</div>
 
@@ -175,7 +188,9 @@ function JoinBetPage() {
 						</div>
 						<div>
 							<p className="text-xs text-gray-500">Verification</p>
-							<p className="font-medium text-gray-800">{formatVerificationMethod(bet.verification_method)}</p>
+							<p className="font-medium text-gray-800">
+								{formatVerificationMethod(bet.verification_method)}
+							</p>
 						</div>
 					</div>
 				</div>
@@ -203,9 +218,13 @@ function JoinBetPage() {
 					// User is the creator
 					<div className="text-center">
 						<p className="text-gray-500 mb-4">
-							This is your own bet. Share this link with someone to challenge them!
+							This is your own bet. Share this link with someone to challenge
+							them!
 						</p>
-						<Link to="/dashboard" className="ibetu-btn-secondary w-full inline-block">
+						<Link
+							to="/dashboard"
+							className="ibetu-btn-secondary w-full inline-block"
+						>
 							Back to Dashboard
 						</Link>
 					</div>
@@ -219,6 +238,7 @@ function JoinBetPage() {
 							</div>
 						)}
 						<button
+							type="button"
 							onClick={handleAcceptBet}
 							disabled={accepting}
 							className="ibetu-btn-primary w-full flex items-center justify-center gap-2"
@@ -236,13 +256,15 @@ function JoinBetPage() {
 							)}
 						</button>
 						<p className="text-gray-400 text-xs text-center mt-3">
-							By accepting, you'll be added as {creator.display_name}'s friend if you aren't already.
+							By accepting, you'll be added as {creator.display_name}'s friend
+							if you aren't already.
 						</p>
 					</div>
 				) : (
 					// Unauthenticated user - show signup CTA
 					<div>
 						<button
+							type="button"
 							onClick={handleSignUpToAccept}
 							className="ibetu-btn-primary w-full flex items-center justify-center gap-2 mb-4"
 						>

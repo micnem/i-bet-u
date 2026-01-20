@@ -13,13 +13,12 @@ let _supabaseAdmin: SupabaseClient<Database> | null = null;
 
 export function getSupabaseClient(): SupabaseClient<Database> {
 	if (!_supabase) {
-		
 		const supabaseUrl = getEnv("SUPABASE_URL");
 		const supabaseAnonKey = getEnv("SUPABASE_ANON_KEY");
 
 		if (!supabaseUrl || !supabaseAnonKey) {
 			console.warn(
-				"Supabase credentials not found. Set SUPABASE_URL and SUPABASE_ANON_KEY environment variables."
+				"Supabase credentials not found. Set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.",
 			);
 		}
 

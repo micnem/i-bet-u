@@ -1,9 +1,9 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useUser, useAuth } from "./AuthProvider";
 import {
 	Bell,
 	CheckCircle,
 	Home,
+	Loader2,
 	LogIn,
 	LogOut,
 	Medal,
@@ -15,17 +15,17 @@ import {
 	Users,
 	X,
 	XCircle,
-	Loader2,
 } from "lucide-react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { acceptBet, declineBet } from "../api/bets";
+import { acceptFriendRequest, declineFriendRequest } from "../api/friends";
 import {
-	getNotifications,
 	getNotificationCounts,
+	getNotifications,
 	type Notification,
 	type NotificationCounts,
 } from "../api/notifications";
-import { acceptFriendRequest, declineFriendRequest } from "../api/friends";
-import { acceptBet, declineBet } from "../api/bets";
+import { useAuth, useUser } from "./AuthProvider";
 
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -146,7 +146,7 @@ export default function Header() {
 	// Handle friend request actions
 	const handleAcceptFriend = async (
 		e: React.MouseEvent,
-		friendshipId: string
+		friendshipId: string,
 	) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -161,7 +161,7 @@ export default function Header() {
 
 	const handleDeclineFriend = async (
 		e: React.MouseEvent,
-		friendshipId: string
+		friendshipId: string,
 	) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -292,6 +292,7 @@ export default function Header() {
 							{!isPublicPage && (
 								<div className="relative" ref={notificationRef}>
 									<button
+										type="button"
 										onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
 										className="p-2 hover:bg-gray-700 rounded-lg transition-colors relative"
 										aria-label="Notifications"
@@ -308,6 +309,7 @@ export default function Header() {
 								</div>
 							)}
 							<button
+								type="button"
 								onClick={() => setIsOpen(true)}
 								className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
 								aria-label="Open menu"
@@ -322,6 +324,7 @@ export default function Header() {
 								{/* Notification Bell */}
 								<div className="relative" ref={notificationRef}>
 									<button
+										type="button"
 										onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
 										className="p-2 hover:bg-gray-700 rounded-lg transition-colors relative"
 										aria-label="Notifications"
@@ -376,17 +379,21 @@ export default function Header() {
 																	<div className="flex gap-3">
 																		{/* Avatar */}
 																		<div className="flex-shrink-0">
-																			{notification.data.fromUser?.avatar_url ? (
+																			{notification.data.fromUser
+																				?.avatar_url ? (
 																				<img
 																					src={
-																						notification.data.fromUser.avatar_url
+																						notification.data.fromUser
+																							.avatar_url
 																					}
 																					alt=""
 																					className="w-10 h-10 rounded-full"
 																				/>
 																			) : (
 																				<div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center">
-																					{getNotificationIcon(notification.type)}
+																					{getNotificationIcon(
+																						notification.type,
+																					)}
 																				</div>
 																			)}
 																		</div>
@@ -400,7 +407,7 @@ export default function Header() {
 																				</span>
 																				<span className="text-xs text-gray-500">
 																					{formatRelativeTime(
-																						notification.createdAt
+																						notification.createdAt,
 																					)}
 																				</span>
 																			</div>
@@ -413,10 +420,12 @@ export default function Header() {
 																				notification.data.friendshipId && (
 																					<div className="flex gap-2">
 																						<button
+																							type="button"
 																							onClick={(e) =>
 																								handleAcceptFriend(
 																									e,
-																									notification.data.friendshipId!
+																									notification.data
+																										.friendshipId!,
 																								)
 																							}
 																							disabled={isLoading}
@@ -430,10 +439,12 @@ export default function Header() {
 																							Accept
 																						</button>
 																						<button
+																							type="button"
 																							onClick={(e) =>
 																								handleDeclineFriend(
 																									e,
-																									notification.data.friendshipId!
+																									notification.data
+																										.friendshipId!,
 																								)
 																							}
 																							disabled={isLoading}
@@ -449,10 +460,11 @@ export default function Header() {
 																				notification.data.betId && (
 																					<div className="flex gap-2">
 																						<button
+																							type="button"
 																							onClick={(e) =>
 																								handleAcceptBet(
 																									e,
-																									notification.data.betId!
+																									notification.data.betId!,
 																								)
 																							}
 																							disabled={isLoading}
@@ -466,10 +478,11 @@ export default function Header() {
 																							Accept
 																						</button>
 																						<button
+																							type="button"
 																							onClick={(e) =>
 																								handleDeclineBet(
 																									e,
-																									notification.data.betId!
+																									notification.data.betId!,
 																								)
 																							}
 																							disabled={isLoading}
@@ -525,6 +538,7 @@ export default function Header() {
 								{/* Avatar with Dropdown */}
 								<div className="relative" ref={dropdownRef}>
 									<button
+										type="button"
 										onClick={() => setIsDropdownOpen(!isDropdownOpen)}
 										className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-700 transition-colors"
 										aria-label="User menu"
@@ -547,6 +561,7 @@ export default function Header() {
 
 											{/* Logout Button */}
 											<button
+												type="button"
 												onClick={() => {
 													setIsDropdownOpen(false);
 													handleSignOut();
@@ -575,6 +590,7 @@ export default function Header() {
 				<div className="flex items-center justify-between p-4 border-b border-gray-700">
 					<span className="text-2xl font-bold text-orange-500">IBetU</span>
 					<button
+						type="button"
 						onClick={() => setIsOpen(false)}
 						className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
 						aria-label="Close menu"
@@ -693,6 +709,7 @@ export default function Header() {
 					{/* Sign Out Button (only for authenticated) */}
 					{!isPublicPage && (
 						<button
+							type="button"
 							onClick={handleSignOut}
 							className="flex items-center gap-3 p-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors mt-4 w-full"
 						>
@@ -726,6 +743,7 @@ export default function Header() {
 					<div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
 						<h3 className="font-semibold text-white">Notifications</h3>
 						<button
+							type="button"
 							onClick={() => setIsNotificationsOpen(false)}
 							className="p-1 hover:bg-gray-700 rounded"
 						>
@@ -790,10 +808,11 @@ export default function Header() {
 														notification.data.friendshipId && (
 															<div className="flex gap-2">
 																<button
+																	type="button"
 																	onClick={(e) =>
 																		handleAcceptFriend(
 																			e,
-																			notification.data.friendshipId!
+																			notification.data.friendshipId!,
 																		)
 																	}
 																	disabled={isLoading}
@@ -807,10 +826,11 @@ export default function Header() {
 																	Accept
 																</button>
 																<button
+																	type="button"
 																	onClick={(e) =>
 																		handleDeclineFriend(
 																			e,
-																			notification.data.friendshipId!
+																			notification.data.friendshipId!,
 																		)
 																	}
 																	disabled={isLoading}
@@ -826,11 +846,9 @@ export default function Header() {
 														notification.data.betId && (
 															<div className="flex gap-2">
 																<button
+																	type="button"
 																	onClick={(e) =>
-																		handleAcceptBet(
-																			e,
-																			notification.data.betId!
-																		)
+																		handleAcceptBet(e, notification.data.betId!)
 																	}
 																	disabled={isLoading}
 																	className="flex-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
@@ -843,10 +861,11 @@ export default function Header() {
 																	Accept
 																</button>
 																<button
+																	type="button"
 																	onClick={(e) =>
 																		handleDeclineBet(
 																			e,
-																			notification.data.betId!
+																			notification.data.betId!,
 																		)
 																	}
 																	disabled={isLoading}

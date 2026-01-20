@@ -1,15 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { getCookies, setCookie } from "@tanstack/react-start/server";
+import type { Database, User } from "./database.types";
 import { supabaseAdmin } from "./supabase";
-import type { User } from "./database.types";
-import type { Database } from "./database.types";
 
 // Get Supabase client with request cookies for server-side auth
 // Based on: https://tanstack.com/start/latest/docs/framework/react/examples/start-supabase-basic
 export function getSupabaseServerClient() {
 	return createServerClient<Database>(
-		process.env.SUPABASE_URL!,
-		process.env.SUPABASE_ANON_KEY!,
+		process.env.SUPABASE_URL ?? "",
+		process.env.SUPABASE_ANON_KEY ?? "",
 		{
 			cookies: {
 				getAll() {
@@ -24,7 +23,7 @@ export function getSupabaseServerClient() {
 					});
 				},
 			},
-		}
+		},
 	);
 }
 

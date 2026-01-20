@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState, useEffect, useRef } from "react";
-import { Users, UserPlus, Check, Loader2, X } from "lucide-react";
+import { Check, Loader2, UserPlus, Users, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { addFriendViaInvite, checkFriendship } from "../../api/friends";
 import { useUser } from "../../components/AuthProvider";
 import { supabaseAdmin } from "../../lib/supabase";
-import { addFriendViaInvite, checkFriendship } from "../../api/friends";
 
 // Server function to get user by ID (public, no auth required)
 // Uses admin client to bypass RLS since this is a public invite page
@@ -57,10 +57,16 @@ function InvitePage() {
 				return;
 			}
 
-			const result = await checkFriendship({ data: { userId: loaderInviter.id } });
+			const result = await checkFriendship({
+				data: { userId: loaderInviter.id },
+			});
 			if (!result.error && result.status === "accepted") {
 				setFriendshipStatus("accepted");
-			} else if (!result.status || result.status === "none" || result.status === "pending") {
+			} else if (
+				!result.status ||
+				result.status === "none" ||
+				result.status === "pending"
+			) {
 				// Auto-add friend via invite link
 				setAddingFriend(true);
 				const addResult = await addFriendViaInvite({
@@ -171,7 +177,9 @@ function InvitePage() {
 				{/* Stats */}
 				<div className="flex justify-center gap-6 mb-6 text-sm">
 					<div>
-						<span className="font-bold text-gray-800">{inviter.total_bets}</span>
+						<span className="font-bold text-gray-800">
+							{inviter.total_bets}
+						</span>
 						<span className="text-gray-500 ml-1">bets</span>
 					</div>
 					<div>
@@ -190,7 +198,9 @@ function InvitePage() {
 					<div>
 						{friendshipStatus === "self" ? (
 							<div className="flex items-center justify-center gap-2 text-gray-500 mb-4">
-								<span className="font-medium">This is your own invite link</span>
+								<span className="font-medium">
+									This is your own invite link
+								</span>
 							</div>
 						) : friendshipStatus === "accepted" || friendAdded ? (
 							<div className="flex items-center justify-center gap-2 text-green-600 mb-4">
@@ -204,6 +214,7 @@ function InvitePage() {
 							</div>
 						) : (
 							<button
+								type="button"
 								onClick={handleAddFriend}
 								disabled={addingFriend}
 								className="ibetu-btn-primary w-full flex items-center justify-center gap-2 mb-4"
@@ -231,6 +242,7 @@ function InvitePage() {
 					// Unauthenticated user - show signup CTA
 					<div>
 						<button
+							type="button"
 							onClick={handleSignUpToAdd}
 							className="ibetu-btn-primary w-full flex items-center justify-center gap-2 mb-4"
 						>

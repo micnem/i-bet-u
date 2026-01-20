@@ -1,29 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
-import { useUser } from "../components/AuthProvider";
 import {
-	UserPlus,
-	Search,
-	QrCode,
-	Phone,
 	AtSign,
-	Users,
-	X,
 	Check,
 	Loader2,
-	UserX,
+	Phone,
+	QrCode,
+	Search,
+	UserPlus,
+	Users,
+	X,
 } from "lucide-react";
-import { QRCodeDisplay } from "../components/QRCode";
-import { generateFriendInviteLink, getFriendInviteShareData } from "../lib/sharing";
+import { useEffect, useState } from "react";
 import {
-	getFriends,
-	getPendingFriendRequests,
 	acceptFriendRequest,
 	declineFriendRequest,
+	getFriends,
+	getPendingFriendRequests,
 	sendFriendRequest,
 } from "../api/friends";
-import { searchUsers, searchUserByPhone } from "../api/users";
+import { searchUserByPhone, searchUsers } from "../api/users";
+import { useUser } from "../components/AuthProvider";
+import { QRCodeDisplay } from "../components/QRCode";
 import type { User } from "../lib/database.types";
+import {
+	generateFriendInviteLink,
+	getFriendInviteShareData,
+} from "../lib/sharing";
 
 export const Route = createFileRoute("/friends")({ component: FriendsPage });
 
@@ -60,7 +62,9 @@ function FriendsPage() {
 	const [friends, setFriends] = useState<Friend[]>([]);
 	const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [processingRequest, setProcessingRequest] = useState<string | null>(null);
+	const [processingRequest, setProcessingRequest] = useState<string | null>(
+		null,
+	);
 
 	// Search states
 	const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -135,11 +139,16 @@ function FriendsPage() {
 
 		try {
 			if (addMethod === "phone") {
-				const result = await searchUserByPhone({ data: { phoneNumber: addInput.trim() } });
+				const result = await searchUserByPhone({
+					data: { phoneNumber: addInput.trim() },
+				});
 				if (result.error) {
-					setSearchError(result.error === "JSON object requested, multiple (or no) rows returned"
-						? "No user found with this phone number"
-						: result.error);
+					setSearchError(
+						result.error ===
+							"JSON object requested, multiple (or no) rows returned"
+							? "No user found with this phone number"
+							: result.error,
+					);
 				} else if (result.data) {
 					setSearchResults([result.data]);
 				}
@@ -151,7 +160,7 @@ function FriendsPage() {
 					// Filter out users that are already friends
 					const friendIds = new Set(friends.map((f) => f.friend.id));
 					const filteredResults = result.data.filter(
-						(u: User) => !friendIds.has(u.id)
+						(u: User) => !friendIds.has(u.id),
 					);
 					setSearchResults(filteredResults);
 					if (filteredResults.length === 0) {
@@ -215,7 +224,9 @@ function FriendsPage() {
 					<div className="flex items-center justify-between">
 						<div>
 							<h1 className="text-2xl font-bold text-gray-800">Friends</h1>
-							<p className="text-gray-500">{friends.length} friend{friends.length !== 1 ? "s" : ""}</p>
+							<p className="text-gray-500">
+								{friends.length} friend{friends.length !== 1 ? "s" : ""}
+							</p>
 						</div>
 						<button
 							type="button"
@@ -269,7 +280,9 @@ function FriendsPage() {
 												/>
 											) : (
 												<span className="text-lg font-bold text-white">
-													{request.requester.display_name?.charAt(0).toUpperCase() || "?"}
+													{request.requester.display_name
+														?.charAt(0)
+														.toUpperCase() || "?"}
 												</span>
 											)}
 										</div>
@@ -319,9 +332,7 @@ function FriendsPage() {
 						<h3 className="text-lg font-medium text-gray-800 mb-2">
 							No friends yet
 						</h3>
-						<p className="text-gray-500 mb-4">
-							Add friends to start betting!
-						</p>
+						<p className="text-gray-500 mb-4">Add friends to start betting!</p>
 						<button
 							type="button"
 							onClick={() => setShowAddModal(true)}
@@ -333,7 +344,9 @@ function FriendsPage() {
 					</div>
 				) : (
 					<div className="bg-white rounded-xl shadow-md p-6">
-						<h2 className="text-lg font-bold text-gray-800 mb-4">Your Friends</h2>
+						<h2 className="text-lg font-bold text-gray-800 mb-4">
+							Your Friends
+						</h2>
 						<div className="space-y-3">
 							{filteredFriends.map((f) => {
 								const friend = f.friend;
@@ -353,7 +366,8 @@ function FriendsPage() {
 													/>
 												) : (
 													<span className="text-lg font-bold text-white">
-														{friend.display_name?.charAt(0).toUpperCase() || "?"}
+														{friend.display_name?.charAt(0).toUpperCase() ||
+															"?"}
 													</span>
 												)}
 											</div>
@@ -534,7 +548,8 @@ function FriendsPage() {
 															/>
 														) : (
 															<span className="text-sm font-bold text-white">
-																{user.display_name?.charAt(0).toUpperCase() || "?"}
+																{user.display_name?.charAt(0).toUpperCase() ||
+																	"?"}
 															</span>
 														)}
 													</div>

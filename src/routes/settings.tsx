@@ -1,17 +1,20 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { useUser, useAuth } from "../components/AuthProvider";
 import {
 	ArrowLeft,
 	Bell,
-	BellOff,
+	CreditCard,
+	ExternalLink,
 	Loader2,
 	Mail,
 	Shield,
-	CreditCard,
-	ExternalLink,
 } from "lucide-react";
-import { getCurrentUserProfile, updateEmailPreferences, updatePaymentLink } from "../api/users";
+import { useEffect, useState } from "react";
+import {
+	getCurrentUserProfile,
+	updateEmailPreferences,
+	updatePaymentLink,
+} from "../api/users";
+import { useUser } from "../components/AuthProvider";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -19,7 +22,9 @@ function SettingsPage() {
 	const router = useRouter();
 	const { user, isSignedIn, isLoaded } = useUser();
 
-	const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState<boolean | null>(null);
+	const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState<
+		boolean | null
+	>(null);
 	const [paymentLink, setPaymentLink] = useState<string>("");
 	const [paymentLinkInput, setPaymentLinkInput] = useState<string>("");
 	const [loading, setLoading] = useState(true);
@@ -77,12 +82,12 @@ function SettingsPage() {
 				setSuccessMessage(
 					newValue
 						? "Email notifications enabled"
-						: "Email notifications disabled"
+						: "Email notifications disabled",
 				);
 				// Clear success message after 3 seconds
 				setTimeout(() => setSuccessMessage(null), 3000);
 			}
-		} catch (err) {
+		} catch (_err) {
 			setError("Failed to update preferences");
 		} finally {
 			setSaving(false);
@@ -108,7 +113,7 @@ function SettingsPage() {
 				setSuccessMessage("Payment link saved");
 				setTimeout(() => setSuccessMessage(null), 3000);
 			}
-		} catch (err) {
+		} catch (_err) {
 			setError("Failed to save payment link");
 		} finally {
 			setSavingPaymentLink(false);
@@ -133,7 +138,7 @@ function SettingsPage() {
 				setSuccessMessage("Payment link removed");
 				setTimeout(() => setSuccessMessage(null), 3000);
 			}
-		} catch (err) {
+		} catch (_err) {
 			setError("Failed to remove payment link");
 		} finally {
 			setSavingPaymentLink(false);
@@ -168,7 +173,9 @@ function SettingsPage() {
 						</Link>
 						<div>
 							<h1 className="text-2xl font-bold">Settings</h1>
-							<p className="text-orange-100 text-sm">Manage your account preferences</p>
+							<p className="text-orange-100 text-sm">
+								Manage your account preferences
+							</p>
 						</div>
 					</div>
 				</div>
@@ -205,7 +212,9 @@ function SettingsPage() {
 							</div>
 							<div>
 								<h2 className="text-lg font-semibold">Notifications</h2>
-								<p className="text-sm text-gray-500">Control how you receive updates</p>
+								<p className="text-sm text-gray-500">
+									Control how you receive updates
+								</p>
 							</div>
 						</div>
 					</div>
@@ -220,9 +229,12 @@ function SettingsPage() {
 								<div className="flex items-center gap-3">
 									<Mail className="w-5 h-5 text-gray-400" />
 									<div>
-										<p className="font-medium text-gray-800">Email Notifications</p>
+										<p className="font-medium text-gray-800">
+											Email Notifications
+										</p>
 										<p className="text-sm text-gray-500">
-											Receive emails about bet invites, reminders, comments, and results
+											Receive emails about bet invites, reminders, comments, and
+											results
 										</p>
 									</div>
 								</div>
@@ -231,9 +243,7 @@ function SettingsPage() {
 									onClick={handleToggleEmailNotifications}
 									disabled={saving}
 									className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
-										emailNotificationsEnabled
-											? "bg-orange-500"
-											: "bg-gray-200"
+										emailNotificationsEnabled ? "bg-orange-500" : "bg-gray-200"
 									} ${saving ? "opacity-50 cursor-not-allowed" : ""}`}
 								>
 									{saving ? (
@@ -264,7 +274,9 @@ function SettingsPage() {
 							</div>
 							<div>
 								<h2 className="text-lg font-semibold">Payment Link</h2>
-								<p className="text-sm text-gray-500">Add a payment link to receive money from bets</p>
+								<p className="text-sm text-gray-500">
+									Add a payment link to receive money from bets
+								</p>
 							</div>
 						</div>
 					</div>
@@ -277,7 +289,10 @@ function SettingsPage() {
 						) : (
 							<div className="space-y-4">
 								<div>
-									<label htmlFor="payment-link" className="block text-sm font-medium text-gray-700 mb-2">
+									<label
+										htmlFor="payment-link"
+										className="block text-sm font-medium text-gray-700 mb-2"
+									>
 										Your payment URL
 									</label>
 									<input
@@ -289,7 +304,8 @@ function SettingsPage() {
 										className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
 									/>
 									<p className="mt-2 text-sm text-gray-500">
-										Add a link to Venmo, PayPal, Cash App, or any payment service. This will be shown to winners when you lose a bet.
+										Add a link to Venmo, PayPal, Cash App, or any payment
+										service. This will be shown to winners when you lose a bet.
 									</p>
 								</div>
 
@@ -357,38 +373,60 @@ function SettingsPage() {
 					<div className="p-6">
 						<ul className="space-y-3">
 							<li className="flex items-start gap-3">
-								<div className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`} />
+								<div
+									className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`}
+								/>
 								<div>
 									<p className="font-medium text-gray-800">Bet Invitations</p>
-									<p className="text-sm text-gray-500">When someone challenges you to a bet</p>
+									<p className="text-sm text-gray-500">
+										When someone challenges you to a bet
+									</p>
 								</div>
 							</li>
 							<li className="flex items-start gap-3">
-								<div className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`} />
+								<div
+									className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`}
+								/>
 								<div>
 									<p className="font-medium text-gray-800">Bet Accepted</p>
-									<p className="text-sm text-gray-500">When someone accepts your bet challenge</p>
+									<p className="text-sm text-gray-500">
+										When someone accepts your bet challenge
+									</p>
 								</div>
 							</li>
 							<li className="flex items-start gap-3">
-								<div className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`} />
+								<div
+									className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`}
+								/>
 								<div>
-									<p className="font-medium text-gray-800">Winner Confirmation</p>
-									<p className="text-sm text-gray-500">When someone declares a winner and needs your confirmation</p>
+									<p className="font-medium text-gray-800">
+										Winner Confirmation
+									</p>
+									<p className="text-sm text-gray-500">
+										When someone declares a winner and needs your confirmation
+									</p>
 								</div>
 							</li>
 							<li className="flex items-start gap-3">
-								<div className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`} />
+								<div
+									className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`}
+								/>
 								<div>
 									<p className="font-medium text-gray-800">Payment Reminders</p>
-									<p className="text-sm text-gray-500">When a friend reminds you about money owed</p>
+									<p className="text-sm text-gray-500">
+										When a friend reminds you about money owed
+									</p>
 								</div>
 							</li>
 							<li className="flex items-start gap-3">
-								<div className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`} />
+								<div
+									className={`w-2 h-2 rounded-full mt-2 ${emailNotificationsEnabled ? "bg-green-500" : "bg-gray-300"}`}
+								/>
 								<div>
 									<p className="font-medium text-gray-800">Comments</p>
-									<p className="text-sm text-gray-500">When someone comments on your bet</p>
+									<p className="text-sm text-gray-500">
+										When someone comments on your bet
+									</p>
 								</div>
 							</li>
 						</ul>
@@ -397,7 +435,8 @@ function SettingsPage() {
 
 				{/* Note about critical emails */}
 				<p className="mt-6 text-sm text-gray-500 text-center">
-					Note: You may still receive important account-related emails regardless of this setting.
+					Note: You may still receive important account-related emails
+					regardless of this setting.
 				</p>
 			</div>
 		</div>

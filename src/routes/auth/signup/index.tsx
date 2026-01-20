@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Mail, Loader2, KeyRound } from "lucide-react";
+import { ArrowLeft, KeyRound, Loader2, Mail } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useUser } from "../../../components/AuthProvider";
 import { getSupabaseBrowserClient } from "../../../lib/supabase-browser";
 import { isValidEmail, isValidOtp } from "../../../lib/validation";
-import { useUser } from "../../../components/AuthProvider";
 
 type SignUpSearch = {
 	redirect_url?: string;
@@ -14,7 +14,9 @@ export const Route = createFileRoute("/auth/signup/")({
 	validateSearch: (search: Record<string, unknown>): SignUpSearch => {
 		return {
 			redirect_url:
-				typeof search.redirect_url === "string" ? search.redirect_url : undefined,
+				typeof search.redirect_url === "string"
+					? search.redirect_url
+					: undefined,
 		};
 	},
 });
@@ -113,7 +115,9 @@ function SignUpPage() {
 
 				<div className="bg-white rounded-xl shadow-lg p-8">
 					<div className="text-center mb-8">
-						<h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
+						<h1 className="text-2xl font-bold text-gray-900">
+							Create your account
+						</h1>
 						<p className="text-gray-600 mt-2">
 							{step === "email"
 								? "Enter your email to get started"
@@ -143,7 +147,6 @@ function SignUpPage() {
 										placeholder="you@example.com"
 										className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
 										required
-										autoFocus
 									/>
 								</div>
 							</div>
@@ -196,7 +199,6 @@ function SignUpPage() {
 										placeholder="123456"
 										className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors text-center text-2xl tracking-widest font-mono"
 										required
-										autoFocus
 									/>
 								</div>
 							</div>
